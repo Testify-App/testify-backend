@@ -5,7 +5,7 @@
   "scripts": {
     "prestart": "npm run migrate:up",
     "build": "rm -rf dist && tsc",
-    "start": "npm run build && node dist/src/index.js",
+    "start": "node dist/src/index.js",
     "dev": "nodemon --exec ts-node ./src/index.ts --mode development",
     "lint": "eslint \"{src,apps,libs}/**/*.ts\" --fix",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
