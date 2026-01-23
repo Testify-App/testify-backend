@@ -1,0 +1,15 @@
+{
+	"development": {
+		"ENV": "TEMPLATE_DEV_DATABASE_URL"
+	},
+  "staging": {
+		"ENV": "TEMPLATE_STAGING_DATABASE_URL"
+	},
+	"test": {
+		"ENV": "TEMPLATE_TEST_DATABASE_URL"
+	},
+	"production": {
+		"ENV": "TEMPLATE_PRODUCTION_DATABASE_URL"
+	},
+	"sql-file" : true
+}
