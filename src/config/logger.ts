@@ -11,7 +11,7 @@ const logFormat = winston.format.combine(
   winston.format.printf((info) => {
     const { level, message, timestamp } = info;
     return `${timestamp} | ${level}: ${message}`;
-  })
+  }),
 );
 
 const infoLogRotationTransport = new DailyRotateFile({
@@ -58,7 +58,7 @@ const loggerInfo = (env: string) => {
           errorLogRotationTransport,
           new externalTransport(),
         ],
-        exitOnError: false,
+        exitOnError: false
       });
       break;
     case 'development':
@@ -119,7 +119,7 @@ const loggerInfo = (env: string) => {
 
 const logger = loggerInfo(Env.get<string>('NODE_ENV'));
 export default class Logger {
-  constructor(private readonly defaultContext: string) {}
+  constructor(private readonly defaultContext: string) { }
   public static log(message: string | any, context?: string): void {
     logger.info(message, { label: context });
   }

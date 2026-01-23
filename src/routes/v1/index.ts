@@ -1,10 +1,18 @@
-import express from 'express';
-import customerRouter from '../../modules/customers/routes';
-import authRouter from '../../modules/authentication/routes';
+import express from "express";
+import { StatusCodes } from 'http-status-codes';
+import * as Response from '../../shared/lib/api-response';
+import authenticationRouter from '../../modules/authentication/routes';
 
 const appRouter = express.Router();
 
-appRouter.use('/auth', authRouter);
-appRouter.use('/customers', customerRouter);
+appRouter.get('/', (_req, res) =>
+  Response.success(res, 'Welcome to Testify API.', StatusCodes.OK)
+);
+
+appRouter.get('/healthcheck/ping', (_req, res) =>
+  Response.success(res, 'PONG', StatusCodes.OK)
+);
+
+appRouter.use("/auth", authenticationRouter);
 
 export const Router = appRouter;

@@ -1,27 +1,51 @@
 import { Router } from 'express';
-import authController from './controller';
-import * as validators from './validator';
+import * as authValidator from './validator';
+import authenticationController from './controller';
 import { WatchAsyncController } from '../../shared/utils/watch-async-controller';
-import { RequestBodyValidatorMiddleware } from '../../shared/middlewares/request-body-validator.middleware';
+import { validateDataMiddleware } from '../../shared/middlewares/request-validator.middleware';
 
-const authRouter = Router();
+const authenticationRouter = Router();
 
-authRouter.post(
-  '/register',
-  RequestBodyValidatorMiddleware(validators.registerSchema),
-  WatchAsyncController(authController.createUser)
+authenticationRouter.post(
+  '/login',
+  validateDataMiddleware(authValidator.loginPayloadValidator, 'body'),
+  WatchAsyncController(authenticationController.login)
 );
 
-// authRouter.post(
-//   '/verify-otp',
-//   RequestBodyValidatorMiddleware(validators.otpSchema),
-//   WatchAsyncController(authController.verifyOTP),
-// )
+authenticationRouter.post(
+  '/register',
+  validateDataMiddleware(authValidator.registerPayloadValidator, 'body'),
+  WatchAsyncController(authenticationController.register)
+);
 
-// authRouter.post(
-//   '/login',
-//   RequestBodyValidatorMiddleware(validators.loginSchema),
-//   WatchAsyncController(authController.login),
-// )
+authenticationRouter.patch(
+  '/register/activate',
+  validateDataMiddleware(authValidator.activateRegistrationPayloadValidator, 'body'),
+  WatchAsyncController(authenticationController.activateRegistration)
+);
 
-export default authRouter;
+authenticationRouter.get(
+  '/username-availability',
+  validateDataMiddleware(authValidator.usernameAvailabilityQueryValidator, 'query'),
+  WatchAsyncController(authenticationController.usernameAvailability)
+);
+
+authenticationRouter.post(
+  '/forgot-password',
+  validateDataMiddleware(authValidator.forgotPasswordPayloadValidator, 'body'),
+  WatchAsyncController(authenticationController.forgotPassword),
+);
+
+authenticationRouter.post(
+  '/forgot-password/verify',
+  validateDataMiddleware(authValidator.verifyForgotPasswordOTPPayloadValidator, 'body'),
+  WatchAsyncController(authenticationController.verifyForgotPasswordOTP),
+);
+
+authenticationRouter.patch(
+  '/forgot-password/reset',
+  validateDataMiddleware(authValidator.resetPasswordPayloadValidator, 'body'),
+  WatchAsyncController(authenticationController.resetPassword),
+);
+
+export default authenticationRouter;

@@ -1,79 +1,95 @@
-import * as dtos from './dto';
-// import authServices, { AuthServices } from './services';
-import { fnRequest } from '../../shared/types';
 import { StatusCodes } from 'http-status-codes';
-// import { ConflictException, UnAuthorizedException, handleCustomError } from '../../shared/errors';
-// import { SignedData } from '../../shared/interfaces';
-// import hashingService, { HashingService } from '../../shared/services/hashing/hashing.service';
+import * as dtos from './dto';
+import { fnRequest } from '../../shared/types';
+import AuthenticationService from './services';
+import logger from '../../shared/services/logger';
+import * as Response from '../../shared/lib/api-response';
+import {
+  BadException,
+  NotFoundException,
+} from '../../shared/lib/errors';
 
-
-export class AuthController {
-  // constructor(
-  //   private readonly authServices: AuthServices,
-  //   private readonly hashingService: HashingService
-  // ) { }
-
-  public createUser: fnRequest = async (req, res) => {
-    const payload = new dtos.UserDto(req.body);
-    console.log('payload', payload);
-
-    // const resp = await this.authServices.createUser(payload);
-
-    // if (resp instanceof ConflictException) {
-    //   return handleCustomError(res, resp, StatusCodes.CONFLICT);
-    // }
-
-    return res.status(StatusCodes.OK).json({
-      status: 'success',
-      Statuscode: StatusCodes.OK,
-      message: 'User registered successfully',
-    });
+export class AuthenticationController {
+  public register: fnRequest = async (req, res) => {
+    const payload = new dtos.RegisterDTO(req.body);
+    const response = await AuthenticationService.register(payload);
+    if (response instanceof BadException) {
+      logger.error(`${response.message}`, 'authentication.controller.ts');
+      return Response.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    logger.info(`A verification code has been sent to ${payload.email}.`, 'authentication.controller.ts');
+    return Response.success(res, `A verification code has been sent to ${payload.email}.`, StatusCodes.CREATED, response);
   };
 
-  // public verifyOTP: fnRequest = async (req, res) => {
-  //   const resp = await this.authServices.verifyEmailOTP(req.body.email, req.body.otp);
+  public activateRegistration: fnRequest = async (req, res) => {
+    const payload = new dtos.ActivateRegistrationDTO(req.body);
+    const response = await AuthenticationService.activateRegistration(payload);
+    if (response instanceof BadException) {
+      logger.error(`${response.message}`, 'authentication.controller.ts');
+      return Response.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    logger.info('Account has been successfully activated.', 'authentication.controller.ts');
+    return Response.success(res, 'Account has been successfully activated.', StatusCodes.OK, response);
+  };
 
-  //   if (resp instanceof UnAuthorizedException) {
-  //     return handleCustomError(res, resp, StatusCodes.UNAUTHORIZED);
-  //   }
+  public usernameAvailability: fnRequest = async (req, res) => {
+    const payload = new dtos.UsernameAvailabilityDTO(req.query);
+    const response = await AuthenticationService.usernameAvailability(payload);
+    if (response instanceof BadException) {
+      logger.error(`${response.message}`, 'authentication.controller.ts');
+      return Response.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    logger.info(`Username ${payload.username} is available`, 'authentication.controller.ts');
+    return Response.success(res, `Username ${payload.username} is available`, StatusCodes.OK);
+  };
 
-  //   return res.status(StatusCodes.OK).json({
-  //     status: 'success',
-  //     Statuscode: StatusCodes.OK,
-  //     message: 'Token verified successfully',
-  //   })
-  // };
+  public forgotPassword: fnRequest = async (req, res) => {
+    const payload = new dtos.ForgotPasswordDTO(req.body);
+    const response = await AuthenticationService.forgotPassword(payload);
+    if (response instanceof NotFoundException) {
+      logger.error(response.message, 'authentication.controller.ts');
+      return Response.error(res, response, StatusCodes.NOT_FOUND);
+    }
+    const message = `A 4-digit OTP code was successfully sent to ${payload.email}`;
+    logger.info(`${message}`, 'authentication.controller.ts');
+    return Response.success(res, `${message}`, StatusCodes.OK, response);
+  };
 
-  // public login: fnRequest = async (req, res) => {
-  //   const payload = new dtos.UserDto(req.body);
+  public verifyForgotPasswordOTP: fnRequest = async (req, res) => {
+    const payload = new dtos.verifyForgotPasswordOTP(req.body);
+    const response = await AuthenticationService.verifyForgotPasswordOTP(res, payload);
+    if (response instanceof BadException) {
+      logger.error(response.message, 'authentication.controller.ts');
+      return Response.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    logger.info('Successfully verified forgot password OTP', 'authentication.controller.ts');
+    return Response.success(res, 'Successfully verified forgot password OTP.', StatusCodes.OK, { id: response.id });
+  };
 
-  //   const resp = await this.authServices.validateUser(payload.email, payload.password);
+  public resetPassword: fnRequest = async (req, res) => {
+    const payload = new dtos.ResetPasswordDTO(req.body);
+    payload.hash_id_key = req.get('hash-id-key') as string;
+    const response = await AuthenticationService.resetPassword(payload);
+    if (response instanceof BadException) {
+      logger.error(response.message, 'authentication.controller.ts');
+      return Response.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    logger.info('Successfully reset password', 'authentication.controller.ts');
+    return Response.success(res, 'Successfully reset password.', StatusCodes.OK, response);
+  };
 
-  //   if (resp instanceof UnAuthorizedException) {
-  //     return handleCustomError(res, resp, StatusCodes.UNAUTHORIZED);
-  //   }
-
-  //   const signedData: SignedData = {
-  //     id: resp.id,
-  //     first_name: resp.profile.first_name,
-  //     last_name: resp.profile.last_name,
-  //     email: resp.email,
-  //     verified: resp.verified
-  //     // add more
-  //   };
-
-  //   const token = await this.hashingService.sign(signedData);
-
-  //   return res.status(StatusCodes.OK).json({
-  //     status: 'success',
-  //     Statuscode: StatusCodes.OK,
-  //     message: 'User logged in successfully',
-  //     data: { user: signedData, token }
-  //   })
-  // };
-
+  public login: fnRequest = async (req, res) => {
+    const payload = new dtos.LoginDTO(req.body);
+    const response = await AuthenticationService.login(payload);
+    if (response instanceof BadException) {
+      logger.error(`${response.message}`, 'authentication.controller.ts');
+      return Response.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    logger.info(`Successfully logged in.`, 'authentication.controller.ts');
+    return Response.success(res, `Successfully logged in.`, StatusCodes.OK, response);
+  };
 }
 
-const authController = new AuthController();
+const authenticationController = new AuthenticationController();
 
-export default authController;
+export default authenticationController;

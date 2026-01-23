@@ -5,5 +5,4 @@ import './unit/error';
 import './unit/env';
 
 // Integration tests
-import './integration/authentication/auth_flow'
-import './integration/customers'
+import './integration/app';

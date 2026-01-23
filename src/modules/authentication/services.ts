@@ -1,91 +1,82 @@
-// import authRepository, { AuthRepository } from './repositories';
-// import * as authParams from './entities';
-// import { ConflictException, NotFoundException, UnAuthorizedException } from '../../shared/errors';
-// // import hashingService, { HashingService } from '../../shared/services/hashing/hashing.service';
-// // import { generateOtpOrHash, verifyOtpOrHash } from '../../shared/helpers';
+import { Response } from 'express';
+import * as dtos from './dto';
+import * as entities from './entities';
+import Env from '../../shared/utils/env';
+import AuthenticationRepository from './repositories';
+import otpGenerate from '../../shared/services/token';
+import { AuthenticationInterface } from './interface';
+import {
+  BadException,
+  NotFoundException,
+} from '../../shared/lib/errors';
 
-// export interface AuthServices {
-//   createUser(params: authParams.UserEntity): Promise<ConflictException | void>;
-//   // verifyEmailOTP(email: string, otp: string): Promise<UnAuthorizedException | void>;
-//   // validateUser(email: string, password: string): Promise<authParams.UserEntity | UnAuthorizedException>;
-// }
+export class AuthenticationServiceImpl implements AuthenticationInterface {
+  public register = async (
+    payload: dtos.RegisterDTO
+  ): Promise<BadException | entities.UserEntity> => {
+    return await AuthenticationRepository.register(payload);
+  };
 
-// export class AuthServiceImpl implements AuthServices {
-//   constructor(
-//     private readonly hashingService: HashingService,
-//     private readonly authRepository: AuthRepository,
-//   ) { }
+  public activateRegistration = async (
+    payload: dtos.ActivateRegistrationDTO
+  ): Promise<BadException | entities.UserEntity> => {
+    return await AuthenticationRepository.activateRegistration(payload);
+  };
 
-//   // public async getUser(param: string): Promise<authParams.UserEntity | NotFoundException> {
-//   //   return this.authRepository.getUser(param);
-//   // }
+  public usernameAvailability = async (
+    payload: dtos.UsernameAvailabilityDTO
+  ): Promise<BadException | string> => {
+    const response = await AuthenticationRepository.usernameAvailability(payload);
+    if (response instanceof BadException) {
+      return response;
+    }
+    return await otpGenerate.generateTOTP({ id: response, expiresIn: 5 }, 'user');
+  };
 
-//   public async createUser(params: authParams.UserEntity): Promise<ConflictException | void> {
+  public async forgotPassword(
+    payload: dtos.ForgotPasswordDTO
+  ): Promise<NotFoundException | entities.UserEntity> {
+    const response = await AuthenticationRepository.forgotPassword(payload);
+    if (response instanceof NotFoundException) {
+      return response;
+    }
+    Env.get<string>('NODE_ENV') !== 'test' && delete response.otp;
+    return response;
+  };
 
-//     const resp = await this.getUser(params.email);
+  public verifyForgotPasswordOTP = async (
+    res: Response,
+    payload: dtos.verifyForgotPasswordOTP
+  ): Promise<BadException | entities.UserEntity> => {
+    const response = await AuthenticationRepository.verifyForgotPasswordOTP(
+      res,
+      payload,
+    );
+    if (response instanceof BadException) {
+      return response;
+    }
+    res.setHeader('hash-id-key', response.hash_id_key as string);
+    return response;
+  };
 
-//     if (resp instanceof authParams.UserEntity) {
-//       // user already exists
-//       return new ConflictException('User already exists');
-//     }
+  public resetPassword = async (
+    payload: dtos.ResetPasswordDTO
+  ): Promise<BadException | entities.UserEntity> => {
+    const { new_password, confirm_new_password } = payload;
+    if (new_password !== confirm_new_password) {
+      return new BadException('Password does not match confirm password field');
+    }
+    const response = await AuthenticationRepository.resetPassword(payload);
+    return response;
+  };
 
-//     params.password = await this.hashingService.hash(params.password);
+  public login = async (
+    payload: dtos.LoginDTO
+  ): Promise<BadException | entities.UserEntity> => {
+    return await AuthenticationRepository.login(payload);
+  };
+}
 
-//     await this.authRepository.createUser(params);
+const AuthenticationServices = new AuthenticationServiceImpl();
 
-//     await generateOtpOrHash({
-//       action: 'verify_email',
-//       id: params.email,
-//       expiry: 300,
-//       identifierType: 'otp'
-//     });
-
-//     // send email
-//   }
-
-//   public async verifyEmailOTP(email: string, otp: string): Promise<UnAuthorizedException | void> {
-//     const resp = await verifyOtpOrHash(`${email}_verify_email`, otp, 'OTP');
-
-//     if (resp instanceof UnAuthorizedException) {
-//       return resp;
-//     }
-
-//     return this.authRepository.verifyUser(email);
-//   }
-
-
-//   public async validateUser(email: string, password: string): Promise<authParams.UserEntity | UnAuthorizedException> {
-
-//     const resp = await this.getUser(email);
-
-//     if (resp instanceof NotFoundException) {
-//       return new UnAuthorizedException('Incorrect email and password combination');
-//     }
-
-
-//     if (!resp.verified) {
-//       return new UnAuthorizedException('Account unverified. Please verify your email');
-//     }
-
-//     const passwordMatch = await this.hashingService.compare(password, resp.password);
-
-//     if (!passwordMatch) {
-//       return new UnAuthorizedException('Incorrect email and password combination');
-//     }
-
-//     return new authParams.UserEntity({
-//       id: resp.id,
-//       email: resp.email,
-//       verified: resp.verified,
-//       profile: {
-//         first_name: resp.profile.first_name,
-//         last_name: resp.profile.last_name
-//       }
-//     });
-
-//   }
-// }
-
-// const AuthServices = new AuthServiceImpl(hashingService, authRepository);
-
-// export default AuthServices;
+export default AuthenticationServices;

@@ -7,7 +7,7 @@ import {
   ForbiddenException,
   UnAuthorizedException,
   NotFoundException,
-} from '../../src/shared/errors';
+} from '../../src/shared/lib/errors';
 
 describe('Custom HTTP Exception Classes', () => {
   it('should create InternalServerErrorException', () => {
