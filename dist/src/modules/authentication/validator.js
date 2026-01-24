@@ -67,7 +67,7 @@ exports.usernameAvailabilityQueryValidator = joi_1.default.object({
 exports.activateRegistrationPayloadValidator = joi_1.default.object({
     id: joi_1.default.string().uuid().required(),
     token: joi_1.default.string()
-        .pattern(/^[0-9]{6}$/)
+        .pattern(/^[0-9]{4}$/)
         .required(),
 });
 exports.forgotPasswordPayloadValidator = joi_1.default.object({
@@ -76,7 +76,7 @@ exports.forgotPasswordPayloadValidator = joi_1.default.object({
 exports.verifyForgotPasswordOTPPayloadValidator = joi_1.default.object({
     id: joi_1.default.string().uuid().required(),
     token: joi_1.default.string()
-        .pattern(/^[0-9]{6}$/)
+        .pattern(/^[0-9]{4}$/)
         .required(),
 });
 exports.resetPasswordPayloadValidator = joi_1.default.object({

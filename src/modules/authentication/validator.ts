@@ -79,7 +79,7 @@ export const usernameAvailabilityQueryValidator = Joi.object({
 export const activateRegistrationPayloadValidator = Joi.object({
   id: Joi.string().uuid().required(),
   token: Joi.string()
-    .pattern(/^[0-9]{6}$/)
+    .pattern(/^[0-9]{4}$/)
     .required(),
 });
 
@@ -90,7 +90,7 @@ export const forgotPasswordPayloadValidator = Joi.object({
 export const verifyForgotPasswordOTPPayloadValidator = Joi.object({
   id: Joi.string().uuid().required(),
   token: Joi.string()
-    .pattern(/^[0-9]{6}$/)
+    .pattern(/^[0-9]{4}$/)
     .required(),
 });
 
