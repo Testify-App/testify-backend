@@ -4,7 +4,7 @@ import { SignedData, User } from '../interface';
 import jwtSigningService from '../services/jwt';
 
 interface ExtendedRequest extends Request {
-  user: User; // Add the 'user' property to the Request interface
+  user: User;
 }
 
 export const verifyAuthTokenMiddleware = (

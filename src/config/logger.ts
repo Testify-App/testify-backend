@@ -1,6 +1,5 @@
 import winston from 'winston';
 import Env from '../shared/utils/env';
-// import * as Sentry from '@sentry/node';
 // import LokiTransport from 'winston-loki';
 // import Transport from 'winston-transport';
 import DailyRotateFile from 'winston-daily-rotate-file';

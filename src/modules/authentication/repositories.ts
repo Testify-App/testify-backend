@@ -9,6 +9,7 @@ import { AuthenticationInterface } from './interface';
 import otpGenerate from '../../shared/services/token';
 import jwtSigningService from '../../shared/services/jwt';
 import hashingService from '../../shared/services/hashing';
+import * as MailService from '../../shared/lib/email/index';
 import {
   BadException,
   NotFoundException,
@@ -21,13 +22,23 @@ export class AuthenticationRepositoryImpl implements AuthenticationInterface {
   ): Promise<BadException | entities.UserEntity> {
     try {
       const response = await db.tx(async (t) => {
-        const existingUser = await t.oneOrNone('SELECT id FROM users WHERE email = $1', [payload.email]);
+        const existingUser = await t.oneOrNone('SELECT id, activated_at FROM users WHERE email = $1;', [payload.email]);
         if (existingUser) {
-          throw new BadException('Email already exists');
+          if (existingUser.activated_at) {
+            throw new BadException('Email already exists');
+          } else {
+            const otp = await otpGenerate.generateTOTP({ id: existingUser.id, expiresIn: 5 }, 'user', t);
+            await MailService.registerTOTP(payload.email, otp, payload.username, 5);
+            const data: entities.UserEntity = new entities.UserEntity({
+              id: existingUser.id,
+            });
+            return data;
+          }
         }
+        const hashedPassword = await hashingService.hash(payload.password);
         const user = await db.one(AuthenticationQuery.register, [
           payload.email,
-          payload.password,
+          hashedPassword,
           payload.dob,
           payload.username,
           payload.profile_image,
@@ -36,8 +47,8 @@ export class AuthenticationRepositoryImpl implements AuthenticationInterface {
         const otp = await otpGenerate.generateTOTP({ id: user.id, expiresIn: 5 }, 'user', t);
         const data: entities.UserEntity = new entities.UserEntity({
           id: user.id,
-          otp: otp,
         });
+        await MailService.registerTOTP(payload.email, otp, payload.username, 5);
         return data;
       });
       return response;
@@ -93,7 +104,7 @@ export class AuthenticationRepositoryImpl implements AuthenticationInterface {
   ): Promise<NotFoundException | entities.UserEntity> {
     try {
       const response = await db.tx(async (t) => {
-        const user = await t.oneOrNone('SELECT id FROM users WHERE email = $1', [payload.email]);
+        const user = await t.oneOrNone('SELECT id, username FROM users WHERE email = $1', [payload.email]);
         if (!user) {
           throw new NotFoundException('Email does not exist.');
         }
@@ -102,6 +113,7 @@ export class AuthenticationRepositoryImpl implements AuthenticationInterface {
           id: user.id,
           otp: otp,
         });
+        await MailService.forgotPassword(payload.email, otp, user.username, 5);
         return data;
       });
       return response;

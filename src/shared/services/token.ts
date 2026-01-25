@@ -27,7 +27,7 @@ export class OTPGenerateServiceImpl implements OtpGenerateService {
 
   public async generateTOTP(
     payload: generateTOTP,
-    entity: 'admin' | 'user',
+    _entity: 'admin' | 'user',
     t?: ITask<any>,
   ): Promise<string> {
     const currentTime = Math.floor(Date.now() / 1000);
@@ -45,34 +45,29 @@ export class OTPGenerateServiceImpl implements OtpGenerateService {
 
     const otpBytes = new Uint8Array(hmac.buffer, hmac.byteOffset + offset, 4);
 
-    const otpValue =
+    const otpNumber =
       new DataView(
         otpBytes.buffer,
         otpBytes.byteOffset,
         otpBytes.byteLength,
       ).getUint32(0, false) % Math.pow(10, this.otpLength);
 
+    const otp = otpNumber.toString().padStart(this.otpLength, '0');
+
     const expirationTime = Date.now() + payload.expiresIn * 60 * 1000;
     const otpExpiration = new Date(expirationTime);
 
     const executor = t ?? db;
 
-    if (entity === 'admin') {
-      await executor.none(AuthenticationQuery.customerVerificationCode, [
-        payload.id,
-        otpValue,
-        otpExpiration,
-      ]);
-      return otpValue.toString().padStart(this.otpLength, '0');
-    }
-
     await executor.none(AuthenticationQuery.customerVerificationCode, [
       payload.id,
-      otpValue,
+      otp,
       otpExpiration,
     ]);
-    return otpValue.toString().padStart(this.otpLength, '0');
-  };
+
+    return otp;
+  }
+
 
   public async validateTOTP(
     payload: validateTOTP,

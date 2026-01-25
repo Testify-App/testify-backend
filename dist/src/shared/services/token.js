@@ -58,7 +58,7 @@ class OTPGenerateServiceImpl {
         this.otpLength = env_1.default.get('CRYPTO_OTP_LENGTH');
         this.hashAlgorithm = env_1.default.get('CRYPTO_HASH_ALGO');
     }
-    generateTOTP(payload, entity, t) {
+    generateTOTP(payload, _entity, t) {
         return __awaiter(this, void 0, void 0, function* () {
             const currentTime = Math.floor(Date.now() / 1000);
             const counter = Math.floor(currentTime / this.timeStep);
@@ -70,27 +70,19 @@ class OTPGenerateServiceImpl {
                 .digest();
             const offset = hmac[hmac.length - 1] & 0x0f;
             const otpBytes = new Uint8Array(hmac.buffer, hmac.byteOffset + offset, 4);
-            const otpValue = new DataView(otpBytes.buffer, otpBytes.byteOffset, otpBytes.byteLength).getUint32(0, false) % Math.pow(10, this.otpLength);
+            const otpNumber = new DataView(otpBytes.buffer, otpBytes.byteOffset, otpBytes.byteLength).getUint32(0, false) % Math.pow(10, this.otpLength);
+            const otp = otpNumber.toString().padStart(this.otpLength, '0');
             const expirationTime = Date.now() + payload.expiresIn * 60 * 1000;
             const otpExpiration = new Date(expirationTime);
             const executor = t !== null && t !== void 0 ? t : database_1.db;
-            if (entity === 'admin') {
-                yield executor.none(query_1.default.customerVerificationCode, [
-                    payload.id,
-                    otpValue,
-                    otpExpiration,
-                ]);
-                return otpValue.toString().padStart(this.otpLength, '0');
-            }
             yield executor.none(query_1.default.customerVerificationCode, [
                 payload.id,
-                otpValue,
+                otp,
                 otpExpiration,
             ]);
-            return otpValue.toString().padStart(this.otpLength, '0');
+            return otp;
         });
     }
-    ;
     validateTOTP(payload, entity, t) {
         return __awaiter(this, void 0, void 0, function* () {
             const executor = t !== null && t !== void 0 ? t : database_1.db;

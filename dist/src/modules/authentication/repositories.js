@@ -53,6 +53,7 @@ const database_1 = require("../../config/database");
 const token_1 = __importDefault(require("../../shared/services/token"));
 const jwt_1 = __importDefault(require("../../shared/services/jwt"));
 const hashing_1 = __importDefault(require("../../shared/services/hashing"));
+const MailService = __importStar(require("../../shared/lib/email/index"));
 const errors_1 = require("../../shared/lib/errors");
 const helpers_1 = require("../../shared/helpers");
 class AuthenticationRepositoryImpl {
@@ -60,13 +61,24 @@ class AuthenticationRepositoryImpl {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const response = yield database_1.db.tx((t) => __awaiter(this, void 0, void 0, function* () {
-                    const existingUser = yield t.oneOrNone('SELECT id FROM users WHERE email = $1', [payload.email]);
+                    const existingUser = yield t.oneOrNone('SELECT id, activated_at FROM users WHERE email = $1;', [payload.email]);
                     if (existingUser) {
-                        throw new errors_1.BadException('Email already exists');
+                        if (existingUser.activated_at) {
+                            throw new errors_1.BadException('Email already exists');
+                        }
+                        else {
+                            const otp = yield token_1.default.generateTOTP({ id: existingUser.id, expiresIn: 5 }, 'user', t);
+                            yield MailService.registerTOTP(payload.email, otp, payload.username, 5);
+                            const data = new entities.UserEntity({
+                                id: existingUser.id,
+                            });
+                            return data;
+                        }
                     }
+                    const hashedPassword = yield hashing_1.default.hash(payload.password);
                     const user = yield database_1.db.one(query_1.default.register, [
                         payload.email,
-                        payload.password,
+                        hashedPassword,
                         payload.dob,
                         payload.username,
                         payload.profile_image,
@@ -75,8 +87,8 @@ class AuthenticationRepositoryImpl {
                     const otp = yield token_1.default.generateTOTP({ id: user.id, expiresIn: 5 }, 'user', t);
                     const data = new entities.UserEntity({
                         id: user.id,
-                        otp: otp,
                     });
+                    yield MailService.registerTOTP(payload.email, otp, payload.username, 5);
                     return data;
                 }));
                 return response;
@@ -134,7 +146,7 @@ class AuthenticationRepositoryImpl {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const response = yield database_1.db.tx((t) => __awaiter(this, void 0, void 0, function* () {
-                    const user = yield t.oneOrNone('SELECT id FROM users WHERE email = $1', [payload.email]);
+                    const user = yield t.oneOrNone('SELECT id, username FROM users WHERE email = $1', [payload.email]);
                     if (!user) {
                         throw new errors_1.NotFoundException('Email does not exist.');
                     }
@@ -143,6 +155,7 @@ class AuthenticationRepositoryImpl {
                         id: user.id,
                         otp: otp,
                     });
+                    yield MailService.forgotPassword(payload.email, otp, user.username, 5);
                     return data;
                 }));
                 return response;
