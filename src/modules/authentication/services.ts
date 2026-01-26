@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import * as dtos from './dto';
 import * as entities from './entities';
-import Env from '../../shared/utils/env';
+// import Env from '../../shared/utils/env';
 import AuthenticationRepository from './repositories';
 import otpGenerate from '../../shared/services/token';
 import { AuthenticationInterface } from './interface';
@@ -40,7 +40,7 @@ export class AuthenticationServiceImpl implements AuthenticationInterface {
     if (response instanceof NotFoundException) {
       return response;
     }
-    Env.get<string>('NODE_ENV') !== 'test' && delete response.otp;
+    // Env.get<string>('NODE_ENV') !== 'test' && delete response.otp;
     return response;
   };
 

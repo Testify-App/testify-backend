@@ -13,7 +13,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthenticationServiceImpl = void 0;
-const env_1 = __importDefault(require("../../shared/utils/env"));
 const repositories_1 = __importDefault(require("./repositories"));
 const token_1 = __importDefault(require("../../shared/services/token"));
 const errors_1 = require("../../shared/lib/errors");
@@ -58,7 +57,6 @@ class AuthenticationServiceImpl {
             if (response instanceof errors_1.NotFoundException) {
                 return response;
             }
-            env_1.default.get('NODE_ENV') !== 'test' && delete response.otp;
             return response;
         });
     }

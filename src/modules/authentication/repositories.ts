@@ -9,7 +9,7 @@ import { AuthenticationInterface } from './interface';
 import otpGenerate from '../../shared/services/token';
 import jwtSigningService from '../../shared/services/jwt';
 import hashingService from '../../shared/services/hashing';
-import * as MailService from '../../shared/lib/email/index';
+// import * as MailService from '../../shared/lib/email/index';
 import {
   BadException,
   NotFoundException,
@@ -28,9 +28,10 @@ export class AuthenticationRepositoryImpl implements AuthenticationInterface {
             throw new BadException('Email already exists');
           } else {
             const otp = await otpGenerate.generateTOTP({ id: existingUser.id, expiresIn: 5 }, 'user', t);
-            await MailService.registerTOTP(payload.email, otp, payload.username, 5);
+            // await MailService.registerTOTP(payload.email, otp, payload.username, 5);
             const data: entities.UserEntity = new entities.UserEntity({
               id: existingUser.id,
+              otp,
             });
             return data;
           }
@@ -47,8 +48,9 @@ export class AuthenticationRepositoryImpl implements AuthenticationInterface {
         const otp = await otpGenerate.generateTOTP({ id: user.id, expiresIn: 5 }, 'user', t);
         const data: entities.UserEntity = new entities.UserEntity({
           id: user.id,
+          otp,
         });
-        await MailService.registerTOTP(payload.email, otp, payload.username, 5);
+        // await MailService.registerTOTP(payload.email, otp, payload.username, 5);
         return data;
       });
       return response;
@@ -113,7 +115,7 @@ export class AuthenticationRepositoryImpl implements AuthenticationInterface {
           id: user.id,
           otp: otp,
         });
-        await MailService.forgotPassword(payload.email, otp, user.username, 5);
+        // await MailService.forgotPassword(payload.email, otp, user.username, 5);
         return data;
       });
       return response;

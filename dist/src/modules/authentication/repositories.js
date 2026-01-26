@@ -53,7 +53,6 @@ const database_1 = require("../../config/database");
 const token_1 = __importDefault(require("../../shared/services/token"));
 const jwt_1 = __importDefault(require("../../shared/services/jwt"));
 const hashing_1 = __importDefault(require("../../shared/services/hashing"));
-const MailService = __importStar(require("../../shared/lib/email/index"));
 const errors_1 = require("../../shared/lib/errors");
 const helpers_1 = require("../../shared/helpers");
 class AuthenticationRepositoryImpl {
@@ -68,9 +67,9 @@ class AuthenticationRepositoryImpl {
                         }
                         else {
                             const otp = yield token_1.default.generateTOTP({ id: existingUser.id, expiresIn: 5 }, 'user', t);
-                            yield MailService.registerTOTP(payload.email, otp, payload.username, 5);
                             const data = new entities.UserEntity({
                                 id: existingUser.id,
+                                otp,
                             });
                             return data;
                         }
@@ -87,8 +86,8 @@ class AuthenticationRepositoryImpl {
                     const otp = yield token_1.default.generateTOTP({ id: user.id, expiresIn: 5 }, 'user', t);
                     const data = new entities.UserEntity({
                         id: user.id,
+                        otp,
                     });
-                    yield MailService.registerTOTP(payload.email, otp, payload.username, 5);
                     return data;
                 }));
                 return response;
@@ -155,7 +154,6 @@ class AuthenticationRepositoryImpl {
                         id: user.id,
                         otp: otp,
                     });
-                    yield MailService.forgotPassword(payload.email, otp, user.username, 5);
                     return data;
                 }));
                 return response;
