@@ -3,7 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import { SignedData, User } from '../interface';
 import jwtSigningService from '../services/jwt';
 
-interface ExtendedRequest extends Request {
+export interface ExtendedRequest extends Request {
   user: User;
 }
 

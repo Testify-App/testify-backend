@@ -2,6 +2,7 @@ import express from "express";
 import { StatusCodes } from 'http-status-codes';
 import * as Response from '../../shared/lib/api-response';
 import authenticationRouter from '../../modules/authentication/routes';
+import postsRouter from '../../modules/posts/routes';
 
 const appRouter = express.Router();
 
@@ -14,5 +15,7 @@ appRouter.get('/healthcheck/ping', (_req, res) =>
 );
 
 appRouter.use("/auth", authenticationRouter);
+
+appRouter.use("/posts", postsRouter);
 
 export const Router = appRouter;

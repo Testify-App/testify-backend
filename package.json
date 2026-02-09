@@ -27,6 +27,8 @@
     "seed:up:test": "db-migrate up:seed --config database.json -e test"
   },
   "dependencies": {
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
     "aws-sdk": "^2.1424.0",
     "axios": "^1.7.2",
     "bcrypt": "^5.1.0",
@@ -54,6 +56,8 @@
     "nodemailer": "^6.10.0",
     "pg-promise": "^11.5.4",
     "sinon": "^15.2.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "winston": "^3.10.0",
     "winston-daily-rotate-file": "^4.7.1",
     "winston-loki": "^6.1.3",

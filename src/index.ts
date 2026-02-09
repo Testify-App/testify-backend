@@ -22,6 +22,7 @@ async function main(app: Express): Promise<void> {
   NODE_ENV !== AppEnv.PRODUCTION &&
     server.on('listening', () => {
       logger.log(`Listening on http://localhost:${PORT}`);
+      logger.log(`Swagger Documentation: http://localhost:${PORT}/docs`);
     });
 
   server.listen(PORT);

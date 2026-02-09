@@ -41,9 +41,11 @@ const express_1 = __importDefault(require("express"));
 const http_status_codes_1 = require("http-status-codes");
 const Response = __importStar(require("../../shared/lib/api-response"));
 const routes_1 = __importDefault(require("../../modules/authentication/routes"));
+const routes_2 = __importDefault(require("../../modules/posts/routes"));
 const appRouter = express_1.default.Router();
 appRouter.get('/', (_req, res) => Response.success(res, 'Welcome to Testify API.', http_status_codes_1.StatusCodes.OK));
 appRouter.get('/healthcheck/ping', (_req, res) => Response.success(res, 'PONG', http_status_codes_1.StatusCodes.OK));
 appRouter.use("/auth", routes_1.default);
+appRouter.use("/posts", routes_2.default);
 exports.Router = appRouter;
 //# sourceMappingURL=index.js.map

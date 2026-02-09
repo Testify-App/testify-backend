@@ -30,6 +30,7 @@ function main(app) {
         NODE_ENV !== enums_1.AppEnv.PRODUCTION &&
             server.on('listening', () => {
                 logger.log(`Listening on http://localhost:${PORT}`);
+                logger.log(`Swagger Documentation: http://localhost:${PORT}/docs`);
             });
         server.listen(PORT);
     });
