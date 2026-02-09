@@ -98,8 +98,7 @@ export default {
     SET 
       likes_count = likes_count + 1,
       updated_at = NOW()
-    WHERE id = $1
-    RETURNING *;
+    WHERE id = $1;
   `,
 
   decrementPostCounter: `
@@ -107,8 +106,7 @@ export default {
     SET 
       likes_count = GREATEST(likes_count - 1, 0),
       updated_at = NOW()
-    WHERE id = $1
-    RETURNING *;
+    WHERE id = $1;
   `,
 
   incrementPostCommentsCounter: `
@@ -177,8 +175,7 @@ export default {
   likePost: `
     INSERT INTO post_likes (post_id, user_id)
     VALUES ($1, $2)
-    ON CONFLICT (post_id, user_id) DO NOTHING
-    RETURNING *;
+    ON CONFLICT (post_id, user_id) DO NOTHING;
   `,
 
   unlikePost: `
@@ -221,8 +218,7 @@ export default {
   repost: `
     INSERT INTO reposts (post_id, user_id)
     VALUES ($1, $2)
-    ON CONFLICT (post_id, user_id) DO NOTHING
-    RETURNING *;
+    ON CONFLICT (post_id, user_id) DO NOTHING;
   `,
 
   unrepost: `

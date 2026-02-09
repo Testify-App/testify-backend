@@ -16,22 +16,9 @@ export interface PostsInterface {
   updatePost(payload: dtos.UpdatePostDTO): Promise<BadException | entities.PostEntity>;
   deletePost(payload: dtos.DeletePostDTO): Promise<NotFoundException | { message: string }>;
   likePost(payload: dtos.GetPostQueryDTO): Promise<NotFoundException | { message: string; is_liked: boolean }>;
-  
-  unlikePost(
-    userId: string,
-    postId: string
-  ): Promise<BadException | NotFoundException | { message: string }>;
-  
-  repost(
-    userId: string,
-    postId: string
-  ): Promise<BadException | NotFoundException | { message: string; is_reposted: boolean }>;
-  
-  unrepost(
-    userId: string,
-    postId: string
-  ): Promise<BadException | NotFoundException | { message: string }>;
-  
+  unlikePost(payload: dtos.GetPostQueryDTO): Promise<NotFoundException | { message: string }>;
+  repost(payload: dtos.GetPostQueryDTO): Promise<NotFoundException | { message: string; is_reposted: boolean }>;
+  unrepost(payload: dtos.GetPostQueryDTO): Promise<NotFoundException | { message: string }>;
   quoteRepost(payload: dtos.CreatePostDTO): Promise<BadException | entities.PostEntity>;
 
   bookmarkPost(

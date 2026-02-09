@@ -1027,3 +1027,156 @@ users (1)
 3. **Indexes**: Strategic indexes added for common query patterns
 4. **Constraints**: Unique constraints prevent duplicate likes, reposts, and bookmarks
 5. **JSONB**: `media_attachments` uses JSONB for flexible media metadata storage
+
+---
+
+# Profiles Module - User Profile Management
+
+## Overview
+
+This module handles user profile information including:
+- Profile details (name, phone, email, avatar, username, bio)
+- Social links (Instagram, YouTube, Twitter)
+
+## Profile Entity
+
+```typescript
+export class ProfileEntity extends BaseEntity<ProfileEntity> {
+  id?: string;
+  user_id?: string;
+  name?: string;
+  phone?: string;
+  email?: string;
+  avatar?: string;
+  username?: string;
+  bio?: string;
+  instagram?: string;
+  youtube?: string;
+  twitter?: string;
+  created_at?: Date;
+  updated_at?: Date;
+}
+```
+
+---
+
+## File Structure
+
+Create the following files in `src/modules/profiles/`:
+
+```
+src/modules/profiles/
+├── entities.ts      # Entity classes
+├── interface.ts     # TypeScript interfaces
+├── dto.ts           # Data Transfer Objects
+├── query.ts         # SQL queries
+├── repositories.ts  # Database operations
+├── services.ts      # Business logic
+├── controller.ts    # HTTP handlers
+├── routes.ts        # Route definitions
+└── validator.ts     # Validation schemas
+```
+
+---
+
+## API Endpoints
+
+### Base Route
+`/api/v1/profiles`
+
+### Endpoints Summary
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| **GET** | `/` | Get current user's profile | Yes |
+| **PUT** | `/` | Update current user's profile | Yes |
+
+---
+
+## Request Validators
+
+### Update Profile Validator
+
+```typescript
+export const updateProfileValidator = Joi.object({
+  name: Joi.string().max(100).optional(),
+  phone: Joi.string().max(20).optional(),
+  avatar: Joi.string().uri().optional(),
+  username: Joi.string().alphanum().min(3).max(30).optional(),
+  bio: Joi.string().max(500).optional(),
+  instagram: Joi.string().uri().optional(),
+  youtube: Joi.string().uri().optional(),
+  twitter: Joi.string().uri().optional(),
+});
+```
+
+---
+
+## DTOs
+
+### GetProfileDTO
+
+```typescript
+export class GetProfileDTO extends BaseEntity<GetProfileDTO> {
+  user_id: string;
+}
+```
+
+### UpdateProfileDTO
+
+```typescript
+export class UpdateProfileDTO extends BaseEntity<UpdateProfileDTO> {
+  user_id: string;
+  name?: string;
+  phone?: string;
+  avatar?: string;
+  username?: string;
+  bio?: string;
+  instagram?: string;
+  youtube?: string;
+  twitter?: string;
+}
+```
+
+---
+
+## SQL Queries
+
+### Get Profile By User ID
+
+```sql
+SELECT 
+  u.id,
+  u.user_id,
+  u.name,
+  u.phone,
+  u.email,
+  u.avatar,
+  u.username,
+  u.bio,
+  u.instagram,
+  u.youtube,
+  u.twitter,
+  u.created_at,
+  u.updated_at
+FROM users u
+WHERE u.id = $1;
+```
+
+### Update Profile
+
+```sql
+UPDATE users 
+SET 
+  name = COALESCE($2, name),
+  phone = COALESCE($3, phone),
+  avatar = COALESCE($4, avatar),
+  username = COALESCE($5, username),
+  bio = COALESCE($6, bio),
+  instagram = COALESCE($7, instagram),
+  youtube = COALESCE($8, youtube),
+  twitter = COALESCE($9, twitter),
+  updated_at = NOW()
+WHERE id = $1
+RETURNING *;
+```

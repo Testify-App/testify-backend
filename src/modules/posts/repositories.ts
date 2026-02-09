@@ -97,7 +97,6 @@ export class PostsRepositoryImpl implements PostsInterface {
     payload: dtos.GetPostQueryDTO
   ): Promise<NotFoundException | entities.PostWithUserEntity> {
     try {
-      console.log('payload post id', payload);
       const post = await db.oneOrNone(PostsQuery.getPostWithEngagement, [payload.post_id]);
       if (!post) {
         return new NotFoundException('Post not found');
@@ -180,112 +179,97 @@ export class PostsRepositoryImpl implements PostsInterface {
       });
       return response;
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        return error;
-      }
-      return new BadException(`${error.message}`);
+      return new NotFoundException(`${error.message}`);
     }
   };
 
   public async unlikePost(
-    userId: string,
-    postId: string
-  ): Promise<BadException | NotFoundException | { message: string }> {
+    payload: dtos.GetPostQueryDTO
+  ): Promise<NotFoundException | { message: string }> {
     try {
       const response = await db.tx(async (t) => {
-        const post = await t.oneOrNone(PostsQuery.getPostById, [postId]);
+        const post = await t.oneOrNone(PostsQuery.getPostById, [payload.post_id]);
         if (!post) {
           throw new NotFoundException('Post not found');
         }
 
         const existingLike = await t.oneOrNone(
           'SELECT id FROM post_likes WHERE post_id = $1 AND user_id = $2',
-          [postId, userId]
+          [payload.post_id, payload.user_id]
         );
 
         if (!existingLike) {
           return { message: 'Post not liked yet' };
         }
 
-        await t.none(PostsQuery.unlikePost, [postId, userId]);
-        await t.none(PostsQuery.decrementPostCounter, [postId]);
+        await t.none(PostsQuery.unlikePost, [payload.post_id, payload.user_id]);
+        await t.none(PostsQuery.decrementPostCounter, [payload.post_id]);
 
         return { message: 'Post unliked successfully' };
       });
       return response;
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        return error;
-      }
-      return new BadException(`${error.message}`);
+      return new NotFoundException(`${error.message}`);
     }
   }
 
   public async repost(
-    userId: string,
-    postId: string
-  ): Promise<BadException | NotFoundException | { message: string; is_reposted: boolean }> {
+    payload: dtos.GetPostQueryDTO
+  ): Promise<NotFoundException | { message: string; is_reposted: boolean }> {
     try {
       const response = await db.tx(async (t) => {
-        const post = await t.oneOrNone(PostsQuery.getPostById, [postId]);
+        const post = await t.oneOrNone(PostsQuery.getPostById, [payload.post_id]);
         if (!post) {
           throw new NotFoundException('Post not found');
         }
 
         const existingRepost = await t.oneOrNone(
           'SELECT id FROM reposts WHERE post_id = $1 AND user_id = $2',
-          [postId, userId]
+          [payload.post_id, payload.user_id]
         );
 
         if (existingRepost) {
           return { message: 'Post already reposted', is_reposted: true };
         }
 
-        await t.none(PostsQuery.repost, [postId, userId]);
-        await t.none('UPDATE posts SET reposts_count = reposts_count + 1 WHERE id = $1', [postId]);
+        await t.none(PostsQuery.repost, [payload.post_id, payload.user_id]);
+        await t.none('UPDATE posts SET reposts_count = reposts_count + 1 WHERE id = $1', [payload.post_id]);
 
         return { message: 'Post reposted successfully', is_reposted: true };
       });
       return response;
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        return error;
-      }
-      return new BadException(`${error.message}`);
+      return new NotFoundException(`${error.message}`);
     }
   }
 
   public async unrepost(
-    userId: string,
-    postId: string
-  ): Promise<BadException | NotFoundException | { message: string }> {
+    payload: dtos.GetPostQueryDTO
+  ): Promise<NotFoundException | { message: string }> {
     try {
       const response = await db.tx(async (t) => {
-        const post = await t.oneOrNone(PostsQuery.getPostById, [postId]);
+        const post = await t.oneOrNone(PostsQuery.getPostById, [payload.post_id]);
         if (!post) {
           throw new NotFoundException('Post not found');
         }
 
         const existingRepost = await t.oneOrNone(
           'SELECT id FROM reposts WHERE post_id = $1 AND user_id = $2',
-          [postId, userId]
+          [payload.post_id, payload.user_id]
         );
 
         if (!existingRepost) {
           return { message: 'Post not reposted yet' };
         }
 
-        await t.none(PostsQuery.unrepost, [postId, userId]);
-        await t.none('UPDATE posts SET reposts_count = GREATEST(reposts_count - 1, 0) WHERE id = $1', [postId]);
+        await t.none(PostsQuery.unrepost, [payload.post_id, payload.user_id]);
+        await t.none('UPDATE posts SET reposts_count = GREATEST(reposts_count - 1, 0) WHERE id = $1', [payload.post_id]);
 
         return { message: 'Repost removed successfully' };
       });
       return response;
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        return error;
-      }
-      return new BadException(`${error.message}`);
+      return new NotFoundException(`${error.message}`);
     }
   }
 

@@ -49,24 +49,21 @@ export class PostsServiceImpl implements PostsInterface {
   };
 
   public unlikePost = async (
-    userId: string,
-    postId: string
-  ): Promise<BadException | NotFoundException | { message: string }> => {
-    return await PostsRepository.unlikePost(userId, postId);
+    payload: dtos.GetPostQueryDTO
+  ): Promise<NotFoundException | { message: string }> => {
+    return await PostsRepository.unlikePost(payload);
   };
 
   public repost = async (
-    userId: string,
-    postId: string
-  ): Promise<BadException | NotFoundException | { message: string; is_reposted: boolean }> => {
-    return await PostsRepository.repost(userId, postId);
+    payload: dtos.GetPostQueryDTO
+  ): Promise<NotFoundException | { message: string; is_reposted: boolean }> => {
+    return await PostsRepository.repost(payload);
   };
 
   public unrepost = async (
-    userId: string,
-    postId: string
-  ): Promise<BadException | NotFoundException | { message: string }> => {
-    return await PostsRepository.unrepost(userId, postId);
+    payload: dtos.GetPostQueryDTO
+  ): Promise<NotFoundException | { message: string }> => {
+    return await PostsRepository.unrepost(payload);
   };
 
   public quoteRepost = async (

@@ -32,6 +32,10 @@ CREATE TABLE IF NOT EXISTS users (
   last_login TIMESTAMPTZ DEFAULT NULL,
   device_token VARCHAR DEFAULT NULL,
   hash_id_key TEXT NULL,
+  bio TEXT NULL,
+  instagram TEXT NULL,
+  twitter TEXT NULL,
+  youtube TEXT NULL,
   terms_and_condition BOOLEAN DEFAULT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NULL

@@ -56,7 +56,6 @@ export class PostsController {
     const payload = new dtos.UpdatePostDTO(req.body);
     payload.post_id = req.params.post_id;
     payload.user_id = req.user?.id as string;
-    console.log('updatePost payload -> ', payload);
     const response = await PostsService.updatePost(payload);
     if (response instanceof BadException) {
       logger.error(`${response.message}`, 'posts.controller.ts');
@@ -87,52 +86,40 @@ export class PostsController {
       return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
     }
     logger.info('Post liked successfully', 'posts.controller.ts');
-    return ResponseBuilder.success(res, response.message, StatusCodes.OK, { is_liked: response.is_liked });
+    return ResponseBuilder.success(res, response.message, StatusCodes.OK);
   };
 
   public unlikePost: fnRequest = async (req: AuthenticatedRequest, res) => {
-    const postId = req.params.id;
-    const userId = req.user?.id as string;
-    const response = await PostsService.unlikePost(userId, postId);
+    const payload = new dtos.GetPostQueryDTO(req.params);
+    payload.user_id = req.user?.id as string;
+    const response = await PostsService.unlikePost(payload);
     if (response instanceof NotFoundException) {
       logger.error(response.message, 'posts.controller.ts');
       return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
-    }
-    if (response instanceof BadException) {
-      logger.error(`${response.message}`, 'posts.controller.ts');
-      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
     }
     logger.info('Post unliked successfully', 'posts.controller.ts');
     return ResponseBuilder.success(res, response.message, StatusCodes.OK);
   };
 
   public repost: fnRequest = async (req: AuthenticatedRequest, res) => {
-    const postId = req.params.id;
-    const userId = req.user?.id as string;
-    const response = await PostsService.repost(userId, postId);
+    const payload = new dtos.GetPostQueryDTO(req.params);
+    payload.user_id = req.user?.id as string;
+    const response = await PostsService.repost(payload);
     if (response instanceof NotFoundException) {
       logger.error(response.message, 'posts.controller.ts');
       return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
     }
-    if (response instanceof BadException) {
-      logger.error(`${response.message}`, 'posts.controller.ts');
-      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
-    }
     logger.info('Post reposted successfully', 'posts.controller.ts');
-    return ResponseBuilder.success(res, response.message, StatusCodes.OK, { is_reposted: response.is_reposted });
+    return ResponseBuilder.success(res, response.message, StatusCodes.OK);
   };
 
   public unrepost: fnRequest = async (req: AuthenticatedRequest, res) => {
-    const postId = req.params.id;
-    const userId = req.user?.id as string;
-    const response = await PostsService.unrepost(userId, postId);
+    const payload = new dtos.GetPostQueryDTO(req.params);
+    payload.user_id = req.user?.id as string;
+    const response = await PostsService.unrepost(payload);
     if (response instanceof NotFoundException) {
       logger.error(response.message, 'posts.controller.ts');
       return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
-    }
-    if (response instanceof BadException) {
-      logger.error(`${response.message}`, 'posts.controller.ts');
-      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
     }
     logger.info('Repost removed successfully', 'posts.controller.ts');
     return ResponseBuilder.success(res, response.message, StatusCodes.OK);

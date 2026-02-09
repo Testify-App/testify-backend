@@ -294,7 +294,7 @@ postsRouter.post(
  *         description: Post not found
  */
 postsRouter.delete(
-  '/:id/like',
+  '/:post_id/like',
   verifyAuth,
   validateDataMiddleware(postsValidator.postIdValidator, 'params'),
   WatchAsyncController(postsController.unlikePost)
@@ -330,7 +330,7 @@ postsRouter.delete(
  *         description: Post not found
  */
 postsRouter.get(
-  '/:id/likes',
+  '/:post_id/likes',
   verifyAuth,
   validateDataMiddleware(postsValidator.postIdValidator, 'params'),
   validateDataMiddleware(postsValidator.getLikesQueryValidator, 'query'),
@@ -360,7 +360,7 @@ postsRouter.get(
  *         description: Post not found
  */
 postsRouter.post(
-  '/:id/repost',
+  '/:post_id/repost',
   verifyAuth,
   validateDataMiddleware(postsValidator.postIdValidator, 'params'),
   WatchAsyncController(postsController.repost)
@@ -388,7 +388,7 @@ postsRouter.post(
  *         description: Post not found
  */
 postsRouter.delete(
-  '/:id/repost',
+  '/:post_id/repost',
   verifyAuth,
   validateDataMiddleware(postsValidator.postIdValidator, 'params'),
   WatchAsyncController(postsController.unrepost)
@@ -464,7 +464,7 @@ postsRouter.get(
  *         description: Parent post not found
  */
 postsRouter.post(
-  '/:id/quote',
+  '/:post_id/quote',
   verifyAuth,
   validateDataMiddleware(postsValidator.postIdValidator, 'params'),
   validateDataMiddleware(postsValidator.createPostValidator, 'body'),
