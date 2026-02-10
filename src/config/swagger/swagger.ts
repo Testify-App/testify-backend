@@ -1,4 +1,9 @@
 import swaggerJsdoc from 'swagger-jsdoc';
+import Env from '../../shared/utils/env';
+
+const swaggerURL = Env.get<string>('NODE_ENV') === 'development'
+  ? 'http://localhost:8081/api/v1'
+  : 'https://testify-backend-kgtv.onrender.com/api/v1';
 
 const options = {
   definition: {
@@ -14,11 +19,11 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:8081/api/v1',
+        url: `${swaggerURL}`,
         description: 'Development server',
       },
       {
-        url: 'https://testify-backend-kgtv.onrender.com/api/v1',
+        url: `${swaggerURL}`,
         description: 'Production server',
       },
     ],

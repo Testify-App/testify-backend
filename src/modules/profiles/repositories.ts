@@ -1,6 +1,6 @@
 import * as dtos from './dto';
-import * as entities from './entities';
 import ProfilesQuery from './query';
+import * as entities from './entities';
 import { db } from '../../config/database';
 import { ProfilesInterface } from './interface';
 import {
