@@ -5,6 +5,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.swaggerSpec = void 0;
 const swagger_jsdoc_1 = __importDefault(require("swagger-jsdoc"));
+const env_1 = __importDefault(require("../../shared/utils/env"));
+const swaggerURL = env_1.default.get('NODE_ENV') === 'development'
+    ? 'http://localhost:8081/api/v1'
+    : 'https://testify-backend-kgtv.onrender.com/api/v1';
 const options = {
     definition: {
         openapi: '3.0.0',
@@ -19,11 +23,11 @@ const options = {
         },
         servers: [
             {
-                url: 'http://localhost:8081/api/v1',
+                url: `${swaggerURL}`,
                 description: 'Development server',
             },
             {
-                url: 'https://api.testify.com/api/v1',
+                url: `${swaggerURL}`,
                 description: 'Production server',
             },
         ],
@@ -340,6 +344,75 @@ const options = {
                         created_at: {
                             type: 'string',
                             format: 'date-time',
+                        },
+                    },
+                },
+                Profile: {
+                    type: 'object',
+                    properties: {
+                        id: {
+                            type: 'string',
+                            format: 'uuid',
+                            example: '550e8400-e29b-41d4-a716-446655440000',
+                        },
+                        first_name: {
+                            type: 'string',
+                            example: 'John',
+                        },
+                        last_name: {
+                            type: 'string',
+                            example: 'Doe',
+                        },
+                        country_code: {
+                            type: 'string',
+                            example: '+1',
+                        },
+                        phone_number: {
+                            type: 'string',
+                            example: '1234567890',
+                        },
+                        email: {
+                            type: 'string',
+                            format: 'email',
+                            example: 'john@example.com',
+                        },
+                        avatar: {
+                            type: 'string',
+                            format: 'uri',
+                            example: 'https://cdn.example.com/avatars/john.jpg',
+                        },
+                        username: {
+                            type: 'string',
+                            example: 'johndoe',
+                        },
+                        bio: {
+                            type: 'string',
+                            example: 'This is my bio',
+                        },
+                        instagram: {
+                            type: 'string',
+                            format: 'uri',
+                            example: 'https://instagram.com/johndoe',
+                        },
+                        youtube: {
+                            type: 'string',
+                            format: 'uri',
+                            example: 'https://youtube.com/@johndoe',
+                        },
+                        twitter: {
+                            type: 'string',
+                            format: 'uri',
+                            example: 'https://twitter.com/johndoe',
+                        },
+                        created_at: {
+                            type: 'string',
+                            format: 'date-time',
+                            example: '2024-01-15T10:30:00Z',
+                        },
+                        updated_at: {
+                            type: 'string',
+                            format: 'date-time',
+                            example: '2024-01-15T10:30:00Z',
                         },
                     },
                 },

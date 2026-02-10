@@ -36,18 +36,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Router = void 0;
-const express_1 = __importDefault(require("express"));
-const http_status_codes_1 = require("http-status-codes");
-const Response = __importStar(require("../../shared/lib/api-response"));
-const routes_1 = __importDefault(require("../../modules/authentication/routes"));
-const routes_2 = __importDefault(require("../../modules/posts/routes"));
-const routes_3 = __importDefault(require("../../modules/profiles/routes"));
-const appRouter = express_1.default.Router();
-appRouter.get('/', (_req, res) => Response.success(res, 'Welcome to Testify API.', http_status_codes_1.StatusCodes.OK));
-appRouter.get('/healthcheck/ping', (_req, res) => Response.success(res, 'PONG', http_status_codes_1.StatusCodes.OK));
-appRouter.use("/auth", routes_1.default);
-appRouter.use("/posts", routes_2.default);
-appRouter.use("/profiles", routes_3.default);
-exports.Router = appRouter;
-//# sourceMappingURL=index.js.map
+const express_1 = require("express");
+const profilesValidator = __importStar(require("./validator"));
+const controller_1 = __importDefault(require("./controller"));
+const AuthenticationMiddleware = __importStar(require("../../shared/middlewares/auth.middleware"));
+const watch_async_controller_1 = require("../../shared/utils/watch-async-controller");
+const request_validator_middleware_1 = require("../../shared/middlewares/request-validator.middleware");
+const verifyAuth = AuthenticationMiddleware.verifyAuthTokenMiddleware;
+const profilesRouter = (0, express_1.Router)();
+profilesRouter.get('/', verifyAuth, (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.getProfile));
+profilesRouter.put('/', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(profilesValidator.updateProfileValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.updateProfile));
+exports.default = profilesRouter;
+//# sourceMappingURL=routes.js.map

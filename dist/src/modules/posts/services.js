@@ -34,14 +34,14 @@ class PostsServiceImpl {
         this.likePost = (payload) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.likePost(payload);
         });
-        this.unlikePost = (userId, postId) => __awaiter(this, void 0, void 0, function* () {
-            return yield repositories_1.default.unlikePost(userId, postId);
+        this.unlikePost = (payload) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.unlikePost(payload);
         });
-        this.repost = (userId, postId) => __awaiter(this, void 0, void 0, function* () {
-            return yield repositories_1.default.repost(userId, postId);
+        this.repost = (payload) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.repost(payload);
         });
-        this.unrepost = (userId, postId) => __awaiter(this, void 0, void 0, function* () {
-            return yield repositories_1.default.unrepost(userId, postId);
+        this.unrepost = (payload) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.unrepost(payload);
         });
         this.quoteRepost = (payload) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.quoteRepost(payload);

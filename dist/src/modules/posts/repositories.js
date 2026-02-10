@@ -126,7 +126,6 @@ class PostsRepositoryImpl {
     getPost(payload) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                console.log('payload post id', payload);
                 const post = yield database_1.db.oneOrNone(query_1.default.getPostWithEngagement, [payload.post_id]);
                 if (!post) {
                     return new errors_1.NotFoundException('Post not found');
@@ -203,89 +202,77 @@ class PostsRepositoryImpl {
                 return response;
             }
             catch (error) {
-                if (error instanceof errors_1.NotFoundException) {
-                    return error;
-                }
-                return new errors_1.BadException(`${error.message}`);
+                return new errors_1.NotFoundException(`${error.message}`);
             }
         });
     }
     ;
-    unlikePost(userId, postId) {
+    unlikePost(payload) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const response = yield database_1.db.tx((t) => __awaiter(this, void 0, void 0, function* () {
-                    const post = yield t.oneOrNone(query_1.default.getPostById, [postId]);
+                    const post = yield t.oneOrNone(query_1.default.getPostById, [payload.post_id]);
                     if (!post) {
                         throw new errors_1.NotFoundException('Post not found');
                     }
-                    const existingLike = yield t.oneOrNone('SELECT id FROM post_likes WHERE post_id = $1 AND user_id = $2', [postId, userId]);
+                    const existingLike = yield t.oneOrNone('SELECT id FROM post_likes WHERE post_id = $1 AND user_id = $2', [payload.post_id, payload.user_id]);
                     if (!existingLike) {
                         return { message: 'Post not liked yet' };
                     }
-                    yield t.none(query_1.default.unlikePost, [postId, userId]);
-                    yield t.none(query_1.default.decrementPostCounter, [postId]);
+                    yield t.none(query_1.default.unlikePost, [payload.post_id, payload.user_id]);
+                    yield t.none(query_1.default.decrementPostCounter, [payload.post_id]);
                     return { message: 'Post unliked successfully' };
                 }));
                 return response;
             }
             catch (error) {
-                if (error instanceof errors_1.NotFoundException) {
-                    return error;
-                }
-                return new errors_1.BadException(`${error.message}`);
+                return new errors_1.NotFoundException(`${error.message}`);
             }
         });
     }
-    repost(userId, postId) {
+    repost(payload) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const response = yield database_1.db.tx((t) => __awaiter(this, void 0, void 0, function* () {
-                    const post = yield t.oneOrNone(query_1.default.getPostById, [postId]);
+                    const post = yield t.oneOrNone(query_1.default.getPostById, [payload.post_id]);
                     if (!post) {
                         throw new errors_1.NotFoundException('Post not found');
                     }
-                    const existingRepost = yield t.oneOrNone('SELECT id FROM reposts WHERE post_id = $1 AND user_id = $2', [postId, userId]);
+                    const existingRepost = yield t.oneOrNone('SELECT id FROM reposts WHERE post_id = $1 AND user_id = $2', [payload.post_id, payload.user_id]);
                     if (existingRepost) {
                         return { message: 'Post already reposted', is_reposted: true };
                     }
-                    yield t.none(query_1.default.repost, [postId, userId]);
-                    yield t.none('UPDATE posts SET reposts_count = reposts_count + 1 WHERE id = $1', [postId]);
+                    yield t.none(query_1.default.repost, [payload.post_id, payload.user_id]);
+                    yield t.none('UPDATE posts SET reposts_count = reposts_count + 1 WHERE id = $1', [payload.post_id]);
                     return { message: 'Post reposted successfully', is_reposted: true };
                 }));
                 return response;
             }
             catch (error) {
-                if (error instanceof errors_1.NotFoundException) {
-                    return error;
-                }
-                return new errors_1.BadException(`${error.message}`);
+                return new errors_1.NotFoundException(`${error.message}`);
             }
         });
     }
-    unrepost(userId, postId) {
+    unrepost(payload) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const response = yield database_1.db.tx((t) => __awaiter(this, void 0, void 0, function* () {
-                    const post = yield t.oneOrNone(query_1.default.getPostById, [postId]);
+                    const post = yield t.oneOrNone(query_1.default.getPostById, [payload.post_id]);
                     if (!post) {
                         throw new errors_1.NotFoundException('Post not found');
                     }
-                    const existingRepost = yield t.oneOrNone('SELECT id FROM reposts WHERE post_id = $1 AND user_id = $2', [postId, userId]);
+                    const existingRepost = yield t.oneOrNone('SELECT id FROM reposts WHERE post_id = $1 AND user_id = $2', [payload.post_id, payload.user_id]);
                     if (!existingRepost) {
                         return { message: 'Post not reposted yet' };
                     }
-                    yield t.none(query_1.default.unrepost, [postId, userId]);
-                    yield t.none('UPDATE posts SET reposts_count = GREATEST(reposts_count - 1, 0) WHERE id = $1', [postId]);
+                    yield t.none(query_1.default.unrepost, [payload.post_id, payload.user_id]);
+                    yield t.none('UPDATE posts SET reposts_count = GREATEST(reposts_count - 1, 0) WHERE id = $1', [payload.post_id]);
                     return { message: 'Repost removed successfully' };
                 }));
                 return response;
             }
             catch (error) {
-                if (error instanceof errors_1.NotFoundException) {
-                    return error;
-                }
-                return new errors_1.BadException(`${error.message}`);
+                return new errors_1.NotFoundException(`${error.message}`);
             }
         });
     }

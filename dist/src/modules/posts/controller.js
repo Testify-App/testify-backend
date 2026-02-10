@@ -93,7 +93,6 @@ class PostsController {
             const payload = new dtos.UpdatePostDTO(req.body);
             payload.post_id = req.params.post_id;
             payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-            console.log('updatePost payload -> ', payload);
             const response = yield services_1.default.updatePost(payload);
             if (response instanceof errors_1.BadException) {
                 logger_1.default.error(`${response.message}`, 'posts.controller.ts');
@@ -124,52 +123,40 @@ class PostsController {
                 return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.NOT_FOUND);
             }
             logger_1.default.info('Post liked successfully', 'posts.controller.ts');
-            return ResponseBuilder.success(res, response.message, http_status_codes_1.StatusCodes.OK, { is_liked: response.is_liked });
+            return ResponseBuilder.success(res, response.message, http_status_codes_1.StatusCodes.OK);
         });
         this.unlikePost = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
-            const postId = req.params.id;
-            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-            const response = yield services_1.default.unlikePost(userId, postId);
+            const payload = new dtos.GetPostQueryDTO(req.params);
+            payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const response = yield services_1.default.unlikePost(payload);
             if (response instanceof errors_1.NotFoundException) {
                 logger_1.default.error(response.message, 'posts.controller.ts');
                 return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.NOT_FOUND);
-            }
-            if (response instanceof errors_1.BadException) {
-                logger_1.default.error(`${response.message}`, 'posts.controller.ts');
-                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
             }
             logger_1.default.info('Post unliked successfully', 'posts.controller.ts');
             return ResponseBuilder.success(res, response.message, http_status_codes_1.StatusCodes.OK);
         });
         this.repost = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
-            const postId = req.params.id;
-            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-            const response = yield services_1.default.repost(userId, postId);
+            const payload = new dtos.GetPostQueryDTO(req.params);
+            payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const response = yield services_1.default.repost(payload);
             if (response instanceof errors_1.NotFoundException) {
                 logger_1.default.error(response.message, 'posts.controller.ts');
                 return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.NOT_FOUND);
             }
-            if (response instanceof errors_1.BadException) {
-                logger_1.default.error(`${response.message}`, 'posts.controller.ts');
-                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
-            }
             logger_1.default.info('Post reposted successfully', 'posts.controller.ts');
-            return ResponseBuilder.success(res, response.message, http_status_codes_1.StatusCodes.OK, { is_reposted: response.is_reposted });
+            return ResponseBuilder.success(res, response.message, http_status_codes_1.StatusCodes.OK);
         });
         this.unrepost = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
-            const postId = req.params.id;
-            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-            const response = yield services_1.default.unrepost(userId, postId);
+            const payload = new dtos.GetPostQueryDTO(req.params);
+            payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const response = yield services_1.default.unrepost(payload);
             if (response instanceof errors_1.NotFoundException) {
                 logger_1.default.error(response.message, 'posts.controller.ts');
                 return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.NOT_FOUND);
-            }
-            if (response instanceof errors_1.BadException) {
-                logger_1.default.error(`${response.message}`, 'posts.controller.ts');
-                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
             }
             logger_1.default.info('Repost removed successfully', 'posts.controller.ts');
             return ResponseBuilder.success(res, response.message, http_status_codes_1.StatusCodes.OK);
