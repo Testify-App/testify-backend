@@ -86,7 +86,6 @@ class ProfilesController {
             var _a;
             const payload = new dtos.AddToTribeDTO(req.body);
             payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-            console.log('payload -> ', payload);
             const response = yield services_1.default.addToTribe(payload);
             if (response instanceof errors_1.BadException) {
                 logger_1.default.error(response.message, 'profiles.controller.ts');
@@ -97,9 +96,9 @@ class ProfilesController {
         });
         this.removeFromTribe = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
-            const payload = new dtos.RemoveFromTribeDTO();
+            const payload = new dtos.RemoveFromTribeDTO(req.params);
             payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-            payload.following_id = req.params.userId;
+            console.log('removeFromTribe payload -> ', payload);
             const response = yield services_1.default.removeFromTribe(payload);
             if (response instanceof errors_1.BadException) {
                 logger_1.default.error(response.message, 'profiles.controller.ts');
@@ -110,27 +109,27 @@ class ProfilesController {
         });
         this.getTribeMembers = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
-            const payload = new dtos.GetTribeMembersDTO();
-            payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-            payload.limit = parseInt(req.query.limit) || 20;
-            payload.offset = parseInt(req.query.offset) || 0;
-            const response = yield services_1.default.getTribeMembers(payload);
-            if (response instanceof errors_1.BadException) {
+            const query = new dtos.GetTribeMembersQueryDTO(req.query);
+            query.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const response = yield services_1.default.getTribeMembers(query);
+            if (response instanceof errors_1.InternalServerErrorException) {
                 logger_1.default.error(response.message, 'profiles.controller.ts');
-                return ResponseBuilder.error(res, response, response.code);
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR);
             }
             logger_1.default.info('Tribe members retrieved successfully', 'profiles.controller.ts');
             return ResponseBuilder.success(res, 'Tribe members retrieved', http_status_codes_1.StatusCodes.OK, response);
         });
-        this.getTribeCount = (req, res) => __awaiter(this, void 0, void 0, function* () {
+        this.searchProfilesByUsername = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
-            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-            const response = yield services_1.default.getTribeCount(userId);
-            if (response instanceof errors_1.BadException) {
+            const query = new dtos.SearchProfilesByUsernameQueryDTO(req.query);
+            query.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const response = yield services_1.default.searchProfilesByUsername(query);
+            if (response instanceof errors_1.InternalServerErrorException) {
                 logger_1.default.error(response.message, 'profiles.controller.ts');
-                return ResponseBuilder.error(res, response, response.code);
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR);
             }
-            return ResponseBuilder.success(res, 'Tribe count retrieved', http_status_codes_1.StatusCodes.OK, { count: response });
+            logger_1.default.info('Profiles searched successfully', 'profiles.controller.ts');
+            return ResponseBuilder.success(res, 'Profiles found', http_status_codes_1.StatusCodes.OK, response);
         });
         this.isInTribe = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;

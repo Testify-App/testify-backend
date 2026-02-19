@@ -20,6 +20,25 @@ exports.default = {
     FROM users u
     WHERE u.id = $1;
   `,
+    getByUsername: `
+    SELECT 
+      u.id,
+      u.first_name,
+      u.last_name,
+      u.country_code,
+      u.phone_number,
+      u.email,
+      u.avatar,
+      u.username,
+      u.bio,
+      u.instagram,
+      u.youtube,
+      u.twitter,
+      u.created_at,
+      u.updated_at
+    FROM users u
+    WHERE LOWER(u.username) = LOWER($1);
+  `,
     updateProfile: `
     UPDATE users 
     SET 
@@ -48,12 +67,28 @@ exports.default = {
     WHERE follower_id = $1 AND following_id = $2;
   `,
     getTribeMembers: `
-    SELECT u.id, u.username, u.avatar, uf.created_at as followed_at
+    SELECT COUNT(*) OVER () as count,
+      u.id,
+      u.username,
+      u.avatar,
+      uf.created_at as followed_at
     FROM user_follows uf
     JOIN users u ON uf.following_id = u.id
-    WHERE uf.follower_id = $1
+    WHERE uf.follower_id = $3
     ORDER BY uf.created_at DESC
-    LIMIT $2 OFFSET $3;
+  `,
+    searchProfilesByUsername: `
+    SELECT COUNT(*) OVER () as count,
+      u.id,
+      u.first_name,
+      u.last_name,
+      u.username,
+      u.avatar,
+      u.bio,
+      u.created_at
+    FROM users u
+    WHERE LOWER(u.username) LIKE LOWER($3)
+    ORDER BY u.created_at DESC
   `,
     getTribeCount: `
     SELECT COUNT(*) as total FROM user_follows

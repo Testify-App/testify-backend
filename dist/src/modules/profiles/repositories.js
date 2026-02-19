@@ -50,11 +50,27 @@ const query_1 = __importDefault(require("./query"));
 const entities = __importStar(require("./entities"));
 const database_1 = require("../../config/database");
 const errors_1 = require("../../shared/lib/errors");
+const helpers_1 = require("../../shared/helpers");
 class ProfilesRepositoryImpl {
     getProfile(payload) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const profile = yield database_1.db.oneOrNone(query_1.default.getProfileByUserId, [payload.user_id]);
+                if (!profile) {
+                    return new errors_1.NotFoundException('Profile not found');
+                }
+                return new entities.ProfileEntity(profile);
+            }
+            catch (error) {
+                return new errors_1.NotFoundException(`${error.message}`);
+            }
+        });
+    }
+    ;
+    getByUsername(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const profile = yield database_1.db.oneOrNone(query_1.default.getByUsername, [payload.username]);
                 if (!profile) {
                     return new errors_1.NotFoundException('Profile not found');
                 }
@@ -135,29 +151,50 @@ class ProfilesRepositoryImpl {
     getTribeMembers(payload) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const members = yield database_1.db.manyOrNone(query_1.default.getTribeMembers, [
-                    payload.user_id,
-                    payload.limit || 20,
-                    payload.offset || 0,
-                ]);
-                return members.map((member) => new entities.TribeMemberEntity(member));
+                const { page = '1', limit = '20', user_id } = payload;
+                const [{ count }, members] = yield (0, helpers_1.fetchResourceByPage)({
+                    page,
+                    limit,
+                    getResources: query_1.default.getTribeMembers,
+                    params: [user_id],
+                });
+                return {
+                    total: count,
+                    currentPage: page,
+                    totalPages: (0, helpers_1.calcPages)(count, limit),
+                    members,
+                };
             }
             catch (error) {
-                return new errors_1.BadException(`${error.message}`);
+                return new errors_1.InternalServerErrorException(`${error.message}`);
             }
         });
     }
-    getTribeCount(userId) {
+    ;
+    searchProfilesByUsername(payload) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const result = yield database_1.db.oneOrNone(query_1.default.getTribeCount, [userId]);
-                return parseInt((result === null || result === void 0 ? void 0 : result.total) || '0', 10);
+                const { page = '1', limit = '20', search } = payload;
+                const searchPattern = `%${search}%`;
+                const [{ count }, profiles] = yield (0, helpers_1.fetchResourceByPage)({
+                    page,
+                    limit,
+                    getResources: query_1.default.searchProfilesByUsername,
+                    params: [searchPattern],
+                });
+                return {
+                    total: count,
+                    currentPage: page,
+                    totalPages: (0, helpers_1.calcPages)(count, limit),
+                    profiles,
+                };
             }
             catch (error) {
-                return new errors_1.BadException(`${error.message}`);
+                return new errors_1.InternalServerErrorException(`${error.message}`);
             }
         });
     }
+    ;
     isInTribe(userId, followingId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {

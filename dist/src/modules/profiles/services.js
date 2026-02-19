@@ -20,6 +20,9 @@ class ProfilesServiceImpl {
         this.getProfile = (payload) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.getProfile(payload);
         });
+        this.getByUsername = (payload) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.getByUsername(payload);
+        });
         this.updateProfile = (payload) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.updateProfile(payload);
         });
@@ -39,8 +42,8 @@ class ProfilesServiceImpl {
         this.getTribeMembers = (payload) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.getTribeMembers(payload);
         });
-        this.getTribeCount = (userId) => __awaiter(this, void 0, void 0, function* () {
-            return yield repositories_1.default.getTribeCount(userId);
+        this.searchProfilesByUsername = (payload) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.searchProfilesByUsername(payload);
         });
         this.isInTribe = (userId, followingId) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.isInTribe(userId, followingId);
