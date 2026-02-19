@@ -29,7 +29,7 @@ class ProfilesServiceImpl {
             }
             const userExists = yield repositories_1.default.checkUserExists(payload.following_id);
             if (!userExists) {
-                return new errors_1.NotFoundException('User not found');
+                return new errors_1.BadException('User not found');
             }
             return yield repositories_1.default.addToTribe(payload);
         });

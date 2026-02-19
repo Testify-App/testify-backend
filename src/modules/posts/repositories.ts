@@ -9,8 +9,8 @@ import {
   InternalServerErrorException,
 } from '../../shared/lib/errors';
 import {
-  fetchResourceByPage,
   calcPages,
+  fetchResourceByPage,
   FetchPaginatedResponse,
 } from '../../shared/helpers';
 

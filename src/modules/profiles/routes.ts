@@ -170,14 +170,14 @@ profilesRouter.post(
 
 /**
  * @swagger
- * /profiles/tribe/{userId}:
+ * /profiles/tribe/{following_id}:
  *   delete:
  *     summary: Remove user from Tribe (unfollow)
  *     tags: [Profiles]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - name: userId
+ *       - name: following_id
  *         in: path
  *         required: true
  *         schema:
@@ -187,7 +187,7 @@ profilesRouter.post(
  *         description: User removed from Tribe successfully
  */
 profilesRouter.delete(
-  '/tribe/:userId',
+  '/tribe/:following_id',
   verifyAuth,
   WatchAsyncController(profilesController.removeFromTribe)
 );
@@ -201,16 +201,16 @@ profilesRouter.delete(
  *     security:
  *       - bearerAuth: []
  *     parameters:
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 1
  *       - name: limit
  *         in: query
  *         schema:
  *           type: number
- *           default: 20
- *       - name: offset
- *         in: query
- *         schema:
- *           type: number
- *           default: 0
+ *           default: 10
  *     responses:
  *       200:
  *         description: Tribe members retrieved successfully
@@ -224,20 +224,58 @@ profilesRouter.get(
 
 /**
  * @swagger
- * /profiles/tribe/count:
+ * /profiles/search:
  *   get:
- *     summary: Get Tribe members count
+ *     summary: Search profiles by username
  *     tags: [Profiles]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - name: search
+ *         in: query
+ *         required: true
+ *         description: Username to search for
+ *         schema:
+ *           type: string
+ *           minLength: 1
+ *           maxLength: 100
+ *           example: john
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 1
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 10
  *     responses:
  *       200:
- *         description: Tribe count retrieved successfully
+ *         description: Profiles found successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Profiles found
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Profile'
+ *       500:
+ *         description: Internal server error
  */
 profilesRouter.get(
-  '/tribe/count',
+  '/search',
   verifyAuth,
-  WatchAsyncController(profilesController.getTribeCount)
+  validateDataMiddleware(profilesValidator.searchProfilesByUsernameValidator, 'query'),
+  WatchAsyncController(profilesController.searchProfilesByUsername)
 );
 
 /**

@@ -13,13 +13,17 @@ export const updateProfileValidator = Joi.object({
   twitter: Joi.string().uri().optional(),
 });
 
+export const getByUsernameValidator = Joi.object({
+  username: Joi.string().alphanum().min(3).max(30).required(),
+});
+
 export const addToTribeValidator = Joi.object({
   following_id: Joi.string().required(),
 });
 
 export const getTribeMembersValidator = Joi.object({
-  limit: Joi.number().min(1).max(100).optional().default(20),
-  offset: Joi.number().min(0).optional().default(0),
+  page: Joi.number().integer().min(1).optional(),
+  limit: Joi.number().integer().min(1).max(100).optional(),
 });
 
 export const unfollowValidator = Joi.object({
@@ -42,4 +46,10 @@ export const rejectCircleRequestValidator = Joi.object({
 export const getCircleMembersValidator = Joi.object({
   limit: Joi.number().min(1).max(100).optional().default(20),
   offset: Joi.number().min(0).optional().default(0),
+});
+
+export const searchProfilesByUsernameValidator = Joi.object({
+  search: Joi.string().min(1).max(100).required(),
+  page: Joi.number().integer().min(1).optional(),
+  limit: Joi.number().integer().min(1).max(100).optional(),
 });

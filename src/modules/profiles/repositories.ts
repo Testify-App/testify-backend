@@ -6,7 +6,13 @@ import { ProfilesInterface } from './interface';
 import {
   BadException,
   NotFoundException,
+  InternalServerErrorException,
 } from '../../shared/lib/errors';
+import {
+  calcPages,
+  fetchResourceByPage,
+  FetchPaginatedResponse,
+} from '../../shared/helpers';
 
 export class ProfilesRepositoryImpl implements ProfilesInterface {
   public async getProfile(
@@ -14,6 +20,21 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
   ): Promise<NotFoundException | entities.ProfileEntity> {
     try {
       const profile = await db.oneOrNone(ProfilesQuery.getProfileByUserId, [payload.user_id]);
+      if (!profile) {
+        return new NotFoundException('Profile not found');
+      }
+
+      return new entities.ProfileEntity(profile);
+    } catch (error) {
+      return new NotFoundException(`${error.message}`);
+    }
+  };
+
+  public async getByUsername(
+    payload: dtos.GetByUsernameDTO
+  ): Promise<NotFoundException | entities.ProfileEntity> {
+    try {
+      const profile = await db.oneOrNone(ProfilesQuery.getByUsername, [payload.username]);
       if (!profile) {
         return new NotFoundException('Profile not found');
       }
@@ -86,39 +107,58 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
         payload.user_id,
         payload.following_id,
       ]);
-
       return;
     } catch (error) {
       return new BadException(`${error.message}`);
     }
   }
-
+  
   public async getTribeMembers(
-    payload: dtos.GetTribeMembersDTO
-  ): Promise<BadException | entities.TribeMemberEntity[]> {
+    payload: dtos.GetTribeMembersQueryDTO
+  ): Promise<InternalServerErrorException | FetchPaginatedResponse> {
     try {
-      const members = await db.manyOrNone(ProfilesQuery.getTribeMembers, [
-        payload.user_id,
-        payload.limit || 20,
-        payload.offset || 0,
-      ]);
+      const { page = '1', limit = '20', user_id } = payload as { page?: string; limit?: string; user_id: string };
+      const [{ count }, members] = await fetchResourceByPage({
+        page,
+        limit,
+        getResources: ProfilesQuery.getTribeMembers,
+        params: [user_id],
+      });
 
-      return members.map((member: any) => new entities.TribeMemberEntity(member));
+      return {
+        total: count,
+        currentPage: page,
+        totalPages: calcPages(count, limit),
+        members,
+      };
     } catch (error) {
-      return new BadException(`${error.message}`);
+      return new InternalServerErrorException(`${error.message}`);
     }
-  }
+  };
 
-  public async getTribeCount(
-    userId: string
-  ): Promise<BadException | number> {
+  public async searchProfilesByUsername(
+    payload: dtos.SearchProfilesByUsernameQueryDTO
+  ): Promise<InternalServerErrorException | FetchPaginatedResponse> {
     try {
-      const result = await db.oneOrNone(ProfilesQuery.getTribeCount, [userId]);
-      return parseInt(result?.total || '0', 10);
+      const { page = '1', limit = '20', search } = payload as { page?: string; limit?: string; search: string };
+      const searchPattern = `%${search}%`;
+      const [{ count }, profiles] = await fetchResourceByPage({
+        page,
+        limit,
+        getResources: ProfilesQuery.searchProfilesByUsername,
+        params: [searchPattern],
+      });
+
+      return {
+        total: count,
+        currentPage: page,
+        totalPages: calcPages(count, limit),
+        profiles,
+      };
     } catch (error) {
-      return new BadException(`${error.message}`);
+      return new InternalServerErrorException(`${error.message}`);
     }
-  }
+  };
 
   public async isInTribe(
     userId: string,

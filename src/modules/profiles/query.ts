@@ -19,6 +19,26 @@ export default {
     WHERE u.id = $1;
   `,
 
+  getByUsername: `
+    SELECT 
+      u.id,
+      u.first_name,
+      u.last_name,
+      u.country_code,
+      u.phone_number,
+      u.email,
+      u.avatar,
+      u.username,
+      u.bio,
+      u.instagram,
+      u.youtube,
+      u.twitter,
+      u.created_at,
+      u.updated_at
+    FROM users u
+    WHERE LOWER(u.username) = LOWER($1);
+  `,
+
   updateProfile: `
     UPDATE users 
     SET 
@@ -37,7 +57,6 @@ export default {
     RETURNING id, first_name, last_name, country_code, phone_number, email, avatar, username, bio, instagram, youtube, twitter, created_at, updated_at;
   `,
 
-  // Add to Tribe (follow)
   addToTribe: `
     INSERT INTO user_follows (follower_id, following_id)
     VALUES ($1, $2)
@@ -45,29 +64,42 @@ export default {
     RETURNING *;
   `,
 
-  // Remove from Tribe (unfollow)
   removeFromTribe: `
     DELETE FROM user_follows
     WHERE follower_id = $1 AND following_id = $2;
   `,
 
-  // Get Tribe members
   getTribeMembers: `
-    SELECT u.id, u.username, u.avatar, uf.created_at as followed_at
+    SELECT COUNT(*) OVER () as count,
+      u.id,
+      u.username,
+      u.avatar,
+      uf.created_at as followed_at
     FROM user_follows uf
     JOIN users u ON uf.following_id = u.id
-    WHERE uf.follower_id = $1
+    WHERE uf.follower_id = $3
     ORDER BY uf.created_at DESC
-    LIMIT $2 OFFSET $3;
   `,
 
-  // Get Tribe count
+  searchProfilesByUsername: `
+    SELECT COUNT(*) OVER () as count,
+      u.id,
+      u.first_name,
+      u.last_name,
+      u.username,
+      u.avatar,
+      u.bio,
+      u.created_at
+    FROM users u
+    WHERE LOWER(u.username) LIKE LOWER($3)
+    ORDER BY u.created_at DESC
+  `,
+
   getTribeCount: `
     SELECT COUNT(*) as total FROM user_follows
     WHERE follower_id = $1;
   `,
 
-  // Check if user is in Tribe
   isInTribe: `
     SELECT EXISTS(
       SELECT 1 FROM user_follows
@@ -75,20 +107,15 @@ export default {
     );
   `,
 
-  // Get follower count (users who follow this user)
   getFollowerCount: `
     SELECT COUNT(*) as total FROM user_follows
     WHERE following_id = $1;
   `,
 
-  // Check if user exists
   checkUserExists: `
     SELECT EXISTS(SELECT 1 FROM users WHERE id = $1);
   `,
 
-  // Circle queries
-
-  // Send Circle request
   sendCircleRequest: `
     INSERT INTO user_connections (user_id, connected_user_id, status)
     VALUES ($1, $2, 'pending')
@@ -96,7 +123,6 @@ export default {
     RETURNING *;
   `,
 
-  // Accept Circle request (update status to accepted)
   acceptCircleRequest: `
     UPDATE user_connections
     SET status = 'accepted', updated_at = NOW()
@@ -104,7 +130,6 @@ export default {
     RETURNING *;
   `,
 
-  // Create mutual connection after acceptance
   createMutualConnection: `
     INSERT INTO user_connections (user_id, connected_user_id, status)
     VALUES ($1, $2, 'accepted')
@@ -112,7 +137,6 @@ export default {
     RETURNING *;
   `,
 
-  // Reject Circle request
   rejectCircleRequest: `
     UPDATE user_connections
     SET status = 'rejected', updated_at = NOW()
@@ -120,14 +144,12 @@ export default {
     RETURNING *;
   `,
 
-  // Remove from Circle
   removeFromCircle: `
     DELETE FROM user_connections
     WHERE (user_id = $1 AND connected_user_id = $2 AND status = 'accepted')
        OR (user_id = $2 AND connected_user_id = $1 AND status = 'accepted');
   `,
 
-  // Get Circle members (only accepted connections)
   getCircleMembers: `
     SELECT u.id, u.username, u.avatar, uc.updated_at as connected_at
     FROM user_connections uc
@@ -137,13 +159,11 @@ export default {
     LIMIT $2 OFFSET $3;
   `,
 
-  // Get Circle count
   getCircleCount: `
     SELECT COUNT(*) as total FROM user_connections
     WHERE user_id = $1 AND status = 'accepted';
   `,
 
-  // Check if user is in Circle
   isInCircle: `
     SELECT EXISTS(
       SELECT 1 FROM user_connections
@@ -151,7 +171,6 @@ export default {
     );
   `,
 
-  // Get pending Circle requests (requests received by user)
   getPendingRequests: `
     SELECT uc.*, u.username, u.avatar
     FROM user_connections uc
@@ -160,7 +179,6 @@ export default {
     ORDER BY uc.created_at DESC;
   `,
 
-  // Get sent Circle requests
   getSentRequests: `
     SELECT uc.*, u.username, u.avatar
     FROM user_connections uc
@@ -169,7 +187,6 @@ export default {
     ORDER BY uc.created_at DESC;
   `,
 
-  // Check if there's a pending request
   hasPendingRequest: `
     SELECT EXISTS(
       SELECT 1 FROM user_connections
@@ -178,7 +195,6 @@ export default {
     );
   `,
 
-  // Get request by ID
   getRequestById: `
     SELECT * FROM user_connections WHERE id = $1 AND connected_user_id = $2;
   `,

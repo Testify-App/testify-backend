@@ -84,17 +84,13 @@ class ProfilesController {
         });
         this.addToTribe = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
-            const payload = new dtos.AddToTribeDTO();
+            const payload = new dtos.AddToTribeDTO(req.body);
             payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-            payload.following_id = req.body.following_id;
+            console.log('payload -> ', payload);
             const response = yield services_1.default.addToTribe(payload);
             if (response instanceof errors_1.BadException) {
                 logger_1.default.error(response.message, 'profiles.controller.ts');
-                return ResponseBuilder.error(res, response, response.code);
-            }
-            if (response instanceof errors_1.NotFoundException) {
-                logger_1.default.error(response.message, 'profiles.controller.ts');
-                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.NOT_FOUND);
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
             }
             logger_1.default.info('User added to Tribe successfully', 'profiles.controller.ts');
             return ResponseBuilder.success(res, 'Added to Tribe successfully', http_status_codes_1.StatusCodes.CREATED, response);

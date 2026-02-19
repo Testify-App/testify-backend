@@ -4,6 +4,10 @@ export class GetProfileDTO extends BaseEntity<GetProfileDTO> {
   user_id: string;
 }
 
+export class GetByUsernameDTO extends BaseEntity<GetByUsernameDTO> {
+  username: string;
+}
+
 export class UpdateProfileDTO extends BaseEntity<UpdateProfileDTO> {
   user_id: string;
   first_name?: string;
@@ -23,10 +27,17 @@ export class AddToTribeDTO extends BaseEntity<AddToTribeDTO> {
   following_id: string;
 }
 
-export class GetTribeMembersDTO extends BaseEntity<GetTribeMembersDTO> {
+export class GetTribeMembersQueryDTO extends BaseEntity<GetTribeMembersQueryDTO> {
   user_id: string;
+  page?: number;
   limit?: number;
-  offset?: number;
+}
+
+export class SearchProfilesByUsernameQueryDTO extends BaseEntity<SearchProfilesByUsernameQueryDTO> {
+  user_id: string;
+  search: string;
+  page?: number;
+  limit?: number;
 }
 
 export class RemoveFromTribeDTO extends BaseEntity<RemoveFromTribeDTO> {

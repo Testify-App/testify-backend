@@ -10,6 +10,7 @@ import {
   BadException,
   NotFoundException,
   ConflictException,
+  InternalServerErrorException,
 } from '../../shared/lib/errors';
 
 interface AuthenticatedRequest extends Request {
@@ -46,69 +47,52 @@ export class ProfilesController {
   };
 
   public addToTribe: fnRequest = async (req: AuthenticatedRequest, res) => {
-    const payload = new dtos.AddToTribeDTO();
+    const payload = new dtos.AddToTribeDTO(req.body);
     payload.user_id = req.user?.id as string;
-    payload.following_id = req.body.following_id;
-
     const response = await ProfilesService.addToTribe(payload);
-
     if (response instanceof BadException) {
       logger.error(response.message, 'profiles.controller.ts');
-      return ResponseBuilder.error(res, response, response.code);
+      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
     }
-
-    if (response instanceof NotFoundException) {
-      logger.error(response.message, 'profiles.controller.ts');
-      return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
-    }
-
     logger.info('User added to Tribe successfully', 'profiles.controller.ts');
     return ResponseBuilder.success(res, 'Added to Tribe successfully', StatusCodes.CREATED, response);
   };
 
   public removeFromTribe: fnRequest = async (req: AuthenticatedRequest, res) => {
-    const payload = new dtos.RemoveFromTribeDTO();
+    const payload = new dtos.RemoveFromTribeDTO(req.params);
     payload.user_id = req.user?.id as string;
-    payload.following_id = req.params.userId;
-
+    console.log('removeFromTribe payload -> ', payload);
     const response = await ProfilesService.removeFromTribe(payload);
-
     if (response instanceof BadException) {
       logger.error(response.message, 'profiles.controller.ts');
       return ResponseBuilder.error(res, response, response.code);
     }
-
     logger.info('User removed from Tribe successfully', 'profiles.controller.ts');
     return ResponseBuilder.success(res, 'Removed from Tribe successfully', StatusCodes.OK, response);
   };
 
   public getTribeMembers: fnRequest = async (req: AuthenticatedRequest, res) => {
-    const payload = new dtos.GetTribeMembersDTO();
-    payload.user_id = req.user?.id as string;
-    payload.limit = parseInt(req.query.limit as string) || 20;
-    payload.offset = parseInt(req.query.offset as string) || 0;
-
-    const response = await ProfilesService.getTribeMembers(payload);
-
-    if (response instanceof BadException) {
+    const query = new dtos.GetTribeMembersQueryDTO(req.query);
+    query.user_id = req.user?.id as string;
+    const response = await ProfilesService.getTribeMembers(query);
+    if (response instanceof InternalServerErrorException) {
       logger.error(response.message, 'profiles.controller.ts');
-      return ResponseBuilder.error(res, response, response.code);
+      return ResponseBuilder.error(res, response, StatusCodes.INTERNAL_SERVER_ERROR);
     }
-
     logger.info('Tribe members retrieved successfully', 'profiles.controller.ts');
     return ResponseBuilder.success(res, 'Tribe members retrieved', StatusCodes.OK, response);
   };
 
-  public getTribeCount: fnRequest = async (req: AuthenticatedRequest, res) => {
-    const userId = req.user?.id as string;
-    const response = await ProfilesService.getTribeCount(userId);
-
-    if (response instanceof BadException) {
+  public searchProfilesByUsername: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const query = new dtos.SearchProfilesByUsernameQueryDTO(req.query);
+    query.user_id = req.user?.id as string;
+    const response = await ProfilesService.searchProfilesByUsername(query);
+    if (response instanceof InternalServerErrorException) {
       logger.error(response.message, 'profiles.controller.ts');
-      return ResponseBuilder.error(res, response, response.code);
+      return ResponseBuilder.error(res, response, StatusCodes.INTERNAL_SERVER_ERROR);
     }
-
-    return ResponseBuilder.success(res, 'Tribe count retrieved', StatusCodes.OK, { count: response });
+    logger.info('Profiles searched successfully', 'profiles.controller.ts');
+    return ResponseBuilder.success(res, 'Profiles found', StatusCodes.OK, response);
   };
 
   public isInTribe: fnRequest = async (req: AuthenticatedRequest, res) => {
@@ -123,8 +107,6 @@ export class ProfilesController {
 
     return ResponseBuilder.success(res, 'Tribe membership checked', StatusCodes.OK, { is_in_tribe: response });
   };
-
-  // Circle controller methods
 
   public sendCircleRequest: fnRequest = async (req: AuthenticatedRequest, res) => {
     const payload = new dtos.SendCircleRequestDTO();

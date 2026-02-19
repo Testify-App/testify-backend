@@ -3,17 +3,22 @@ import * as entities from './entities';
 import {
   BadException,
   NotFoundException,
+  InternalServerErrorException,
 } from '../../shared/lib/errors';
+import {
+  FetchPaginatedResponse,
+} from '../../shared/helpers';
 
 export interface ProfilesInterface {
   getProfile(payload: dtos.GetProfileDTO): Promise<NotFoundException | entities.ProfileEntity>;
+  getByUsername(payload: dtos.GetByUsernameDTO): Promise<NotFoundException | entities.ProfileEntity>;
   updateProfile(payload: dtos.UpdateProfileDTO): Promise<BadException | entities.ProfileEntity>;
   
   // Tribe methods
   addToTribe(payload: dtos.AddToTribeDTO): Promise<BadException | entities.UserFollowEntity>;
   removeFromTribe(payload: dtos.RemoveFromTribeDTO): Promise<BadException | void>;
-  getTribeMembers(payload: dtos.GetTribeMembersDTO): Promise<BadException | entities.TribeMemberEntity[]>;
-  getTribeCount(userId: string): Promise<BadException | number>;
+  getTribeMembers(query: dtos.GetTribeMembersQueryDTO): Promise<InternalServerErrorException | FetchPaginatedResponse>;
+  searchProfilesByUsername(query: dtos.SearchProfilesByUsernameQueryDTO): Promise<InternalServerErrorException | FetchPaginatedResponse>;
   isInTribe(userId: string, followingId: string): Promise<BadException | boolean>;
   getFollowerCount(userId: string): Promise<BadException | number>;
   checkUserExists(userId: string): Promise<boolean>;

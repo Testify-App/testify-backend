@@ -6,13 +6,23 @@ import {
   BadException,
   NotFoundException,
   ConflictException,
+  InternalServerErrorException,
 } from '../../shared/lib/errors';
+import {
+  FetchPaginatedResponse,
+} from '../../shared/helpers';
 
 export class ProfilesServiceImpl implements ProfilesInterface {
   public getProfile = async (
     payload: dtos.GetProfileDTO
   ): Promise<NotFoundException | entities.ProfileEntity> => {
     return await ProfilesRepository.getProfile(payload);
+  };
+
+  public getByUsername = async (
+    payload: dtos.GetByUsernameDTO
+  ): Promise<NotFoundException | entities.ProfileEntity> => {
+    return await ProfilesRepository.getByUsername(payload);
   };
 
   public updateProfile = async (
@@ -32,7 +42,7 @@ export class ProfilesServiceImpl implements ProfilesInterface {
     // Validate following user exists
     const userExists = await ProfilesRepository.checkUserExists(payload.following_id);
     if (!userExists) {
-      return new NotFoundException('User not found');
+      return new BadException('User not found');
     }
 
     return await ProfilesRepository.addToTribe(payload);
@@ -45,15 +55,15 @@ export class ProfilesServiceImpl implements ProfilesInterface {
   };
 
   public getTribeMembers = async (
-    payload: dtos.GetTribeMembersDTO
-  ): Promise<BadException | entities.TribeMemberEntity[]> => {
+    payload: dtos.GetTribeMembersQueryDTO
+  ): Promise<InternalServerErrorException | FetchPaginatedResponse> => {
     return await ProfilesRepository.getTribeMembers(payload);
   };
 
-  public getTribeCount = async (
-    userId: string
-  ): Promise<BadException | number> => {
-    return await ProfilesRepository.getTribeCount(userId);
+  public searchProfilesByUsername = async (
+    payload: dtos.SearchProfilesByUsernameQueryDTO
+  ): Promise<InternalServerErrorException | FetchPaginatedResponse> => {
+    return await ProfilesRepository.searchProfilesByUsername(payload);
   };
 
   public isInTribe = async (
