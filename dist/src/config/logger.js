@@ -63,7 +63,7 @@ const loggerInfo = (env) => {
                 transports: [
                     infoLogRotationTransport,
                     errorLogRotationTransport,
-                    externalTransport,
+                    new winston_1.default.transports.Console(),
                 ],
                 exitOnError: false,
             });

@@ -2,7 +2,7 @@
 	"development": {
 		"ENV": "TESTIFY_DATABASE_URL"
 	},
-  "staging": {
+    "staging": {
 		"ENV": "TESTIFY_DATABASE_URL"
 	},
 	"test": {
