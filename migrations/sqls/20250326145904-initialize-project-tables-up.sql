@@ -122,6 +122,24 @@ CREATE TABLE IF NOT EXISTS post_bookmarks (
   UNIQUE(post_id, user_id)
 );
 
+CREATE TABLE IF NOT EXISTS user_follows (
+  id VARCHAR PRIMARY KEY DEFAULT LOWER(CAST(uuid_generate_v1mc() As VARCHAR(50))),
+  follower_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  following_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(follower_id, following_id)
+);
+
+CREATE TABLE IF NOT EXISTS user_connections (
+  id VARCHAR PRIMARY KEY DEFAULT LOWER(CAST(uuid_generate_v1mc() As VARCHAR(50))),
+  user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  connected_user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status VARCHAR NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, connected_user_id)
+);
+
 -- Posts indexes
 CREATE INDEX idx_posts_user_id ON posts(user_id);
 CREATE INDEX idx_posts_created_at ON posts(created_at DESC);
@@ -157,3 +175,14 @@ CREATE INDEX idx_post_mentions_mentioned_user_id ON post_mentions(mentioned_user
 -- Post bookmarks indexes
 CREATE INDEX idx_post_bookmarks_user_id ON post_bookmarks(user_id);
 CREATE INDEX idx_post_bookmarks_created_at ON post_bookmarks(created_at DESC);
+
+-- User follows Indexes
+CREATE INDEX idx_user_follows_follower_id ON user_follows(follower_id);
+CREATE INDEX idx_user_follows_following_id ON user_follows(following_id);
+CREATE INDEX idx_user_follows_created_at ON user_follows(created_at DESC);
+
+-- User connections Indexes
+CREATE INDEX idx_user_connections_user_id ON user_connections(user_id);
+CREATE INDEX idx_user_connections_connected_user_id ON user_connections(connected_user_id);
+CREATE INDEX idx_user_connections_status ON user_connections(status);
+CREATE INDEX idx_user_connections_created_at ON user_connections(created_at DESC);

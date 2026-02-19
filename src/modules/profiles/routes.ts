@@ -137,4 +137,346 @@ profilesRouter.put(
   WatchAsyncController(profilesController.updateProfile)
 );
 
+/**
+ * @swagger
+ * /profiles/tribe:
+ *   post:
+ *     summary: Add user to Tribe (follow)
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               following_id:
+ *                 type: string
+ *                 description: ID of user to follow
+ *     responses:
+ *       201:
+ *         description: User added to Tribe successfully
+ *       400:
+ *         description: Cannot follow yourself or already following
+ */
+profilesRouter.post(
+  '/tribe',
+  verifyAuth,
+  validateDataMiddleware(profilesValidator.addToTribeValidator, 'body'),
+  WatchAsyncController(profilesController.addToTribe)
+);
+
+/**
+ * @swagger
+ * /profiles/tribe/{userId}:
+ *   delete:
+ *     summary: Remove user from Tribe (unfollow)
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User removed from Tribe successfully
+ */
+profilesRouter.delete(
+  '/tribe/:userId',
+  verifyAuth,
+  WatchAsyncController(profilesController.removeFromTribe)
+);
+
+/**
+ * @swagger
+ * /profiles/tribe:
+ *   get:
+ *     summary: Get Tribe members list
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 20
+ *       - name: offset
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Tribe members retrieved successfully
+ */
+profilesRouter.get(
+  '/tribe',
+  verifyAuth,
+  validateDataMiddleware(profilesValidator.getTribeMembersValidator, 'query'),
+  WatchAsyncController(profilesController.getTribeMembers)
+);
+
+/**
+ * @swagger
+ * /profiles/tribe/count:
+ *   get:
+ *     summary: Get Tribe members count
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Tribe count retrieved successfully
+ */
+profilesRouter.get(
+  '/tribe/count',
+  verifyAuth,
+  WatchAsyncController(profilesController.getTribeCount)
+);
+
+/**
+ * @swagger
+ * /profiles/tribe/is-member/{userId}:
+ *   get:
+ *     summary: Check if user is in Tribe
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Tribe membership checked
+ */
+profilesRouter.get(
+  '/tribe/is-member/:userId',
+  verifyAuth,
+  WatchAsyncController(profilesController.isInTribe)
+);
+
+// Circle routes
+
+/**
+ * @swagger
+ * /profiles/circle:
+ *   post:
+ *     summary: Send Circle request
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               connected_user_id:
+ *                 type: string
+ *                 description: ID of user to send Circle request to
+ *     responses:
+ *       201:
+ *         description: Circle request sent successfully
+ *       400:
+ *         description: Cannot send request to yourself
+ *       409:
+ *         description: Request already pending or already connected
+ */
+profilesRouter.post(
+  '/circle',
+  verifyAuth,
+  validateDataMiddleware(profilesValidator.sendCircleRequestValidator, 'body'),
+  WatchAsyncController(profilesController.sendCircleRequest)
+);
+
+/**
+ * @swagger
+ * /profiles/circle/accept/{requestId}:
+ *   put:
+ *     summary: Accept Circle request
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: requestId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Circle request accepted
+ */
+profilesRouter.put(
+  '/circle/accept/:requestId',
+  verifyAuth,
+  WatchAsyncController(profilesController.acceptCircleRequest)
+);
+
+/**
+ * @swagger
+ * /profiles/circle/reject/{requestId}:
+ *   put:
+ *     summary: Reject Circle request
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: requestId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Circle request rejected
+ */
+profilesRouter.put(
+  '/circle/reject/:requestId',
+  verifyAuth,
+  WatchAsyncController(profilesController.rejectCircleRequest)
+);
+
+/**
+ * @swagger
+ * /profiles/circle/{userId}:
+ *   delete:
+ *     summary: Remove user from Circle
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User removed from Circle successfully
+ */
+profilesRouter.delete(
+  '/circle/:userId',
+  verifyAuth,
+  WatchAsyncController(profilesController.removeFromCircle)
+);
+
+/**
+ * @swagger
+ * /profiles/circle:
+ *   get:
+ *     summary: Get Circle members list
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 20
+ *       - name: offset
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Circle members retrieved successfully
+ */
+profilesRouter.get(
+  '/circle',
+  verifyAuth,
+  validateDataMiddleware(profilesValidator.getCircleMembersValidator, 'query'),
+  WatchAsyncController(profilesController.getCircleMembers)
+);
+
+/**
+ * @swagger
+ * /profiles/circle/count:
+ *   get:
+ *     summary: Get Circle members count
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Circle count retrieved successfully
+ */
+profilesRouter.get(
+  '/circle/count',
+  verifyAuth,
+  WatchAsyncController(profilesController.getCircleCount)
+);
+
+/**
+ * @swagger
+ * /profiles/circle/is-member/{userId}:
+ *   get:
+ *     summary: Check if user is in Circle
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Circle membership checked
+ */
+profilesRouter.get(
+  '/circle/is-member/:userId',
+  verifyAuth,
+  WatchAsyncController(profilesController.isInCircle)
+);
+
+/**
+ * @swagger
+ * /profiles/circle/requests:
+ *   get:
+ *     summary: Get pending Circle requests
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Pending requests retrieved
+ */
+profilesRouter.get(
+  '/circle/requests',
+  verifyAuth,
+  WatchAsyncController(profilesController.getPendingRequests)
+);
+
+/**
+ * @swagger
+ * /profiles/circle/requests/sent:
+ *   get:
+ *     summary: Get sent Circle requests
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Sent requests retrieved
+ */
+profilesRouter.get(
+  '/circle/requests/sent',
+  verifyAuth,
+  WatchAsyncController(profilesController.getSentRequests)
+);
+
 export default profilesRouter;

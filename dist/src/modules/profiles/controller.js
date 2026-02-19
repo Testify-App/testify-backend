@@ -75,8 +75,198 @@ class ProfilesController {
                 logger_1.default.error(response.message, 'profiles.controller.ts');
                 return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.NOT_FOUND);
             }
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, response.code);
+            }
             logger_1.default.info('Profile updated successfully', 'profiles.controller.ts');
             return ResponseBuilder.success(res, 'Profile updated successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
+        this.addToTribe = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const payload = new dtos.AddToTribeDTO();
+            payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            payload.following_id = req.body.following_id;
+            const response = yield services_1.default.addToTribe(payload);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, response.code);
+            }
+            if (response instanceof errors_1.NotFoundException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.NOT_FOUND);
+            }
+            logger_1.default.info('User added to Tribe successfully', 'profiles.controller.ts');
+            return ResponseBuilder.success(res, 'Added to Tribe successfully', http_status_codes_1.StatusCodes.CREATED, response);
+        });
+        this.removeFromTribe = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const payload = new dtos.RemoveFromTribeDTO();
+            payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            payload.following_id = req.params.userId;
+            const response = yield services_1.default.removeFromTribe(payload);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, response.code);
+            }
+            logger_1.default.info('User removed from Tribe successfully', 'profiles.controller.ts');
+            return ResponseBuilder.success(res, 'Removed from Tribe successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
+        this.getTribeMembers = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const payload = new dtos.GetTribeMembersDTO();
+            payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            payload.limit = parseInt(req.query.limit) || 20;
+            payload.offset = parseInt(req.query.offset) || 0;
+            const response = yield services_1.default.getTribeMembers(payload);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, response.code);
+            }
+            logger_1.default.info('Tribe members retrieved successfully', 'profiles.controller.ts');
+            return ResponseBuilder.success(res, 'Tribe members retrieved', http_status_codes_1.StatusCodes.OK, response);
+        });
+        this.getTribeCount = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const response = yield services_1.default.getTribeCount(userId);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, response.code);
+            }
+            return ResponseBuilder.success(res, 'Tribe count retrieved', http_status_codes_1.StatusCodes.OK, { count: response });
+        });
+        this.isInTribe = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const followingId = req.params.userId;
+            const response = yield services_1.default.isInTribe(userId, followingId);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, response.code);
+            }
+            return ResponseBuilder.success(res, 'Tribe membership checked', http_status_codes_1.StatusCodes.OK, { is_in_tribe: response });
+        });
+        this.sendCircleRequest = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const payload = new dtos.SendCircleRequestDTO();
+            payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            payload.connected_user_id = req.body.connected_user_id;
+            const response = yield services_1.default.sendCircleRequest(payload);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, response.code);
+            }
+            if (response instanceof errors_1.ConflictException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.CONFLICT);
+            }
+            if (response instanceof errors_1.NotFoundException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.NOT_FOUND);
+            }
+            logger_1.default.info('Circle request sent successfully', 'profiles.controller.ts');
+            return ResponseBuilder.success(res, 'Circle request sent', http_status_codes_1.StatusCodes.CREATED, response);
+        });
+        this.acceptCircleRequest = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const payload = new dtos.AcceptCircleRequestDTO();
+            payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            payload.request_id = req.params.requestId;
+            const response = yield services_1.default.acceptCircleRequest(payload);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, response.code);
+            }
+            if (response instanceof errors_1.NotFoundException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.NOT_FOUND);
+            }
+            logger_1.default.info('Circle request accepted successfully', 'profiles.controller.ts');
+            return ResponseBuilder.success(res, 'Circle request accepted', http_status_codes_1.StatusCodes.OK, response);
+        });
+        this.rejectCircleRequest = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const payload = new dtos.RejectCircleRequestDTO();
+            payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            payload.request_id = req.params.requestId;
+            const response = yield services_1.default.rejectCircleRequest(payload);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, response.code);
+            }
+            logger_1.default.info('Circle request rejected', 'profiles.controller.ts');
+            return ResponseBuilder.success(res, 'Circle request rejected', http_status_codes_1.StatusCodes.OK, response);
+        });
+        this.removeFromCircle = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const payload = new dtos.RemoveFromCircleDTO();
+            payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            payload.connected_user_id = req.params.userId;
+            const response = yield services_1.default.removeFromCircle(payload);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, response.code);
+            }
+            logger_1.default.info('User removed from Circle successfully', 'profiles.controller.ts');
+            return ResponseBuilder.success(res, 'Removed from Circle successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
+        this.getCircleMembers = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const payload = new dtos.GetCircleMembersDTO();
+            payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            payload.limit = parseInt(req.query.limit) || 20;
+            payload.offset = parseInt(req.query.offset) || 0;
+            const response = yield services_1.default.getCircleMembers(payload);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, response.code);
+            }
+            logger_1.default.info('Circle members retrieved successfully', 'profiles.controller.ts');
+            return ResponseBuilder.success(res, 'Circle members retrieved', http_status_codes_1.StatusCodes.OK, response);
+        });
+        this.getCircleCount = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const response = yield services_1.default.getCircleCount(userId);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, response.code);
+            }
+            return ResponseBuilder.success(res, 'Circle count retrieved', http_status_codes_1.StatusCodes.OK, { count: response });
+        });
+        this.isInCircle = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const connectedUserId = req.params.userId;
+            const response = yield services_1.default.isInCircle(userId, connectedUserId);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, response.code);
+            }
+            return ResponseBuilder.success(res, 'Circle membership checked', http_status_codes_1.StatusCodes.OK, { is_in_circle: response });
+        });
+        this.getPendingRequests = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const response = yield services_1.default.getPendingRequests(userId);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, response.code);
+            }
+            logger_1.default.info('Pending Circle requests retrieved', 'profiles.controller.ts');
+            return ResponseBuilder.success(res, 'Pending requests retrieved', http_status_codes_1.StatusCodes.OK, response);
+        });
+        this.getSentRequests = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const response = yield services_1.default.getSentRequests(userId);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, response.code);
+            }
+            logger_1.default.info('Sent Circle requests retrieved', 'profiles.controller.ts');
+            return ResponseBuilder.success(res, 'Sent requests retrieved', http_status_codes_1.StatusCodes.OK, response);
         });
     }
 }

@@ -90,6 +90,256 @@ class ProfilesRepositoryImpl {
         });
     }
     ;
+    checkUserExists(userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const result = yield database_1.db.oneOrNone(query_1.default.checkUserExists, [userId]);
+                return (result === null || result === void 0 ? void 0 : result.exists) || false;
+            }
+            catch (error) {
+                return false;
+            }
+        });
+    }
+    addToTribe(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const result = yield database_1.db.oneOrNone(query_1.default.addToTribe, [
+                    payload.user_id,
+                    payload.following_id,
+                ]);
+                if (!result) {
+                    return new errors_1.BadException('User is already in your Tribe');
+                }
+                return new entities.UserFollowEntity(result);
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    removeFromTribe(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield database_1.db.none(query_1.default.removeFromTribe, [
+                    payload.user_id,
+                    payload.following_id,
+                ]);
+                return;
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    getTribeMembers(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const members = yield database_1.db.manyOrNone(query_1.default.getTribeMembers, [
+                    payload.user_id,
+                    payload.limit || 20,
+                    payload.offset || 0,
+                ]);
+                return members.map((member) => new entities.TribeMemberEntity(member));
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    getTribeCount(userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const result = yield database_1.db.oneOrNone(query_1.default.getTribeCount, [userId]);
+                return parseInt((result === null || result === void 0 ? void 0 : result.total) || '0', 10);
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    isInTribe(userId, followingId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const result = yield database_1.db.oneOrNone(query_1.default.isInTribe, [userId, followingId]);
+                return (result === null || result === void 0 ? void 0 : result.exists) || false;
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    getFollowerCount(userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const result = yield database_1.db.oneOrNone(query_1.default.getFollowerCount, [userId]);
+                return parseInt((result === null || result === void 0 ? void 0 : result.total) || '0', 10);
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    sendCircleRequest(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const result = yield database_1.db.oneOrNone(query_1.default.sendCircleRequest, [
+                    payload.user_id,
+                    payload.connected_user_id,
+                ]);
+                if (!result) {
+                    return new errors_1.BadException('Circle request already exists');
+                }
+                return new entities.CircleRequestEntity(result);
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    acceptCircleRequest(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const result = yield database_1.db.tx((t) => __awaiter(this, void 0, void 0, function* () {
+                    const updated = yield t.oneOrNone(query_1.default.acceptCircleRequest, [
+                        payload.request_id,
+                        payload.user_id,
+                    ]);
+                    if (!updated) {
+                        return null;
+                    }
+                    const request = yield t.oneOrNone('SELECT * FROM user_connections WHERE id = $1', [payload.request_id]);
+                    if (!request) {
+                        return null;
+                    }
+                    yield t.none(query_1.default.createMutualConnection, [
+                        payload.user_id,
+                        request.user_id,
+                    ]);
+                    return updated;
+                }));
+                if (!result) {
+                    return new errors_1.BadException('Circle request not found or already processed');
+                }
+                return new entities.UserConnectionEntity(result);
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    rejectCircleRequest(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const result = yield database_1.db.oneOrNone(query_1.default.rejectCircleRequest, [
+                    payload.request_id,
+                    payload.user_id,
+                ]);
+                if (!result) {
+                    return new errors_1.BadException('Circle request not found or already processed');
+                }
+                return;
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    removeFromCircle(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield database_1.db.none(query_1.default.removeFromCircle, [
+                    payload.user_id,
+                    payload.connected_user_id,
+                ]);
+                return;
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    getCircleMembers(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const members = yield database_1.db.manyOrNone(query_1.default.getCircleMembers, [
+                    payload.user_id,
+                    payload.limit || 20,
+                    payload.offset || 0,
+                ]);
+                return members.map((member) => new entities.CircleMemberEntity(member));
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    getCircleCount(userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const result = yield database_1.db.oneOrNone(query_1.default.getCircleCount, [userId]);
+                return parseInt((result === null || result === void 0 ? void 0 : result.total) || '0', 10);
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    isInCircle(userId, connectedUserId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const result = yield database_1.db.oneOrNone(query_1.default.isInCircle, [userId, connectedUserId]);
+                return (result === null || result === void 0 ? void 0 : result.exists) || false;
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    getPendingRequests(userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const requests = yield database_1.db.manyOrNone(query_1.default.getPendingRequests, [userId]);
+                return requests.map((request) => new entities.CircleRequestEntity(request));
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    getSentRequests(userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const requests = yield database_1.db.manyOrNone(query_1.default.getSentRequests, [userId]);
+                return requests.map((request) => new entities.CircleRequestEntity(request));
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    hasPendingRequest(userId, connectedUserId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const result = yield database_1.db.oneOrNone(query_1.default.hasPendingRequest, [userId, connectedUserId]);
+                return (result === null || result === void 0 ? void 0 : result.exists) || false;
+            }
+            catch (error) {
+                return false;
+            }
+        });
+    }
+    getRequestById(requestId, userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const result = yield database_1.db.oneOrNone(query_1.default.getRequestById, [requestId, userId]);
+                return result ? new entities.CircleRequestEntity(result) : null;
+            }
+            catch (error) {
+                return null;
+            }
+        });
+    }
 }
 exports.ProfilesRepositoryImpl = ProfilesRepositoryImpl;
 ;

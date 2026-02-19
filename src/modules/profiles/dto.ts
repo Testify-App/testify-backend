@@ -17,3 +17,50 @@ export class UpdateProfileDTO extends BaseEntity<UpdateProfileDTO> {
   youtube?: string;
   twitter?: string;
 }
+
+export class AddToTribeDTO extends BaseEntity<AddToTribeDTO> {
+  user_id: string;
+  following_id: string;
+}
+
+export class GetTribeMembersDTO extends BaseEntity<GetTribeMembersDTO> {
+  user_id: string;
+  limit?: number;
+  offset?: number;
+}
+
+export class RemoveFromTribeDTO extends BaseEntity<RemoveFromTribeDTO> {
+  user_id: string;
+  following_id: string;
+}
+
+// Circle DTOs
+export class SendCircleRequestDTO extends BaseEntity<SendCircleRequestDTO> {
+  user_id: string;
+  connected_user_id: string;
+}
+
+export class AcceptCircleRequestDTO extends BaseEntity<AcceptCircleRequestDTO> {
+  user_id: string;
+  request_id: string;
+}
+
+export class RejectCircleRequestDTO extends BaseEntity<RejectCircleRequestDTO> {
+  user_id: string;
+  request_id: string;
+}
+
+export class GetCircleMembersDTO extends BaseEntity<GetCircleMembersDTO> {
+  user_id: string;
+  limit?: number;
+  offset?: number;
+}
+
+export class RemoveFromCircleDTO extends BaseEntity<RemoveFromCircleDTO> {
+  user_id: string;
+  connected_user_id: string;
+}
+
+export class GetCircleRequestsDTO extends BaseEntity<GetCircleRequestsDTO> {
+  user_id: string;
+}

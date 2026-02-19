@@ -12,3 +12,34 @@ export const updateProfileValidator = Joi.object({
   youtube: Joi.string().uri().optional(),
   twitter: Joi.string().uri().optional(),
 });
+
+export const addToTribeValidator = Joi.object({
+  following_id: Joi.string().required(),
+});
+
+export const getTribeMembersValidator = Joi.object({
+  limit: Joi.number().min(1).max(100).optional().default(20),
+  offset: Joi.number().min(0).optional().default(0),
+});
+
+export const unfollowValidator = Joi.object({
+  confirm: Joi.boolean().optional().default(false),
+});
+
+// Circle validators
+export const sendCircleRequestValidator = Joi.object({
+  connected_user_id: Joi.string().required(),
+});
+
+export const acceptCircleRequestValidator = Joi.object({
+  request_id: Joi.string().required(),
+});
+
+export const rejectCircleRequestValidator = Joi.object({
+  request_id: Joi.string().required(),
+});
+
+export const getCircleMembersValidator = Joi.object({
+  limit: Joi.number().min(1).max(100).optional().default(20),
+  offset: Joi.number().min(0).optional().default(0),
+});

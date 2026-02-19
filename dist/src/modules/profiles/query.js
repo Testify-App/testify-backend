@@ -37,5 +37,111 @@ exports.default = {
     WHERE id = $1
     RETURNING id, first_name, last_name, country_code, phone_number, email, avatar, username, bio, instagram, youtube, twitter, created_at, updated_at;
   `,
+    addToTribe: `
+    INSERT INTO user_follows (follower_id, following_id)
+    VALUES ($1, $2)
+    ON CONFLICT (follower_id, following_id) DO NOTHING
+    RETURNING *;
+  `,
+    removeFromTribe: `
+    DELETE FROM user_follows
+    WHERE follower_id = $1 AND following_id = $2;
+  `,
+    getTribeMembers: `
+    SELECT u.id, u.username, u.avatar, uf.created_at as followed_at
+    FROM user_follows uf
+    JOIN users u ON uf.following_id = u.id
+    WHERE uf.follower_id = $1
+    ORDER BY uf.created_at DESC
+    LIMIT $2 OFFSET $3;
+  `,
+    getTribeCount: `
+    SELECT COUNT(*) as total FROM user_follows
+    WHERE follower_id = $1;
+  `,
+    isInTribe: `
+    SELECT EXISTS(
+      SELECT 1 FROM user_follows
+      WHERE follower_id = $1 AND following_id = $2
+    );
+  `,
+    getFollowerCount: `
+    SELECT COUNT(*) as total FROM user_follows
+    WHERE following_id = $1;
+  `,
+    checkUserExists: `
+    SELECT EXISTS(SELECT 1 FROM users WHERE id = $1);
+  `,
+    sendCircleRequest: `
+    INSERT INTO user_connections (user_id, connected_user_id, status)
+    VALUES ($1, $2, 'pending')
+    ON CONFLICT (user_id, connected_user_id) DO NOTHING
+    RETURNING *;
+  `,
+    acceptCircleRequest: `
+    UPDATE user_connections
+    SET status = 'accepted', updated_at = NOW()
+    WHERE id = $1 AND connected_user_id = $2 AND status = 'pending'
+    RETURNING *;
+  `,
+    createMutualConnection: `
+    INSERT INTO user_connections (user_id, connected_user_id, status)
+    VALUES ($1, $2, 'accepted')
+    ON CONFLICT (user_id, connected_user_id) DO NOTHING
+    RETURNING *;
+  `,
+    rejectCircleRequest: `
+    UPDATE user_connections
+    SET status = 'rejected', updated_at = NOW()
+    WHERE id = $1 AND connected_user_id = $2 AND status = 'pending'
+    RETURNING *;
+  `,
+    removeFromCircle: `
+    DELETE FROM user_connections
+    WHERE (user_id = $1 AND connected_user_id = $2 AND status = 'accepted')
+       OR (user_id = $2 AND connected_user_id = $1 AND status = 'accepted');
+  `,
+    getCircleMembers: `
+    SELECT u.id, u.username, u.avatar, uc.updated_at as connected_at
+    FROM user_connections uc
+    JOIN users u ON uc.connected_user_id = u.id
+    WHERE uc.user_id = $1 AND uc.status = 'accepted'
+    ORDER BY uc.updated_at DESC
+    LIMIT $2 OFFSET $3;
+  `,
+    getCircleCount: `
+    SELECT COUNT(*) as total FROM user_connections
+    WHERE user_id = $1 AND status = 'accepted';
+  `,
+    isInCircle: `
+    SELECT EXISTS(
+      SELECT 1 FROM user_connections
+      WHERE user_id = $1 AND connected_user_id = $2 AND status = 'accepted'
+    );
+  `,
+    getPendingRequests: `
+    SELECT uc.*, u.username, u.avatar
+    FROM user_connections uc
+    JOIN users u ON uc.user_id = u.id
+    WHERE uc.connected_user_id = $1 AND uc.status = 'pending'
+    ORDER BY uc.created_at DESC;
+  `,
+    getSentRequests: `
+    SELECT uc.*, u.username, u.avatar
+    FROM user_connections uc
+    JOIN users u ON uc.connected_user_id = u.id
+    WHERE uc.user_id = $1 AND uc.status = 'pending'
+    ORDER BY uc.created_at DESC;
+  `,
+    hasPendingRequest: `
+    SELECT EXISTS(
+      SELECT 1 FROM user_connections
+      WHERE (user_id = $1 AND connected_user_id = $2 AND status = 'pending')
+         OR (user_id = $2 AND connected_user_id = $1 AND status = 'pending')
+    );
+  `,
+    getRequestById: `
+    SELECT * FROM user_connections WHERE id = $1 AND connected_user_id = $2;
+  `,
 };
 //# sourceMappingURL=query.js.map

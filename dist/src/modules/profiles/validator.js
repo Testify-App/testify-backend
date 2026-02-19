@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateProfileValidator = void 0;
+exports.getCircleMembersValidator = exports.rejectCircleRequestValidator = exports.acceptCircleRequestValidator = exports.sendCircleRequestValidator = exports.unfollowValidator = exports.getTribeMembersValidator = exports.addToTribeValidator = exports.updateProfileValidator = void 0;
 const joi_1 = __importDefault(require("joi"));
 exports.updateProfileValidator = joi_1.default.object({
     first_name: joi_1.default.string().max(100).optional(),
@@ -16,5 +16,28 @@ exports.updateProfileValidator = joi_1.default.object({
     instagram: joi_1.default.string().uri().optional(),
     youtube: joi_1.default.string().uri().optional(),
     twitter: joi_1.default.string().uri().optional(),
+});
+exports.addToTribeValidator = joi_1.default.object({
+    following_id: joi_1.default.string().required(),
+});
+exports.getTribeMembersValidator = joi_1.default.object({
+    limit: joi_1.default.number().min(1).max(100).optional().default(20),
+    offset: joi_1.default.number().min(0).optional().default(0),
+});
+exports.unfollowValidator = joi_1.default.object({
+    confirm: joi_1.default.boolean().optional().default(false),
+});
+exports.sendCircleRequestValidator = joi_1.default.object({
+    connected_user_id: joi_1.default.string().required(),
+});
+exports.acceptCircleRequestValidator = joi_1.default.object({
+    request_id: joi_1.default.string().required(),
+});
+exports.rejectCircleRequestValidator = joi_1.default.object({
+    request_id: joi_1.default.string().required(),
+});
+exports.getCircleMembersValidator = joi_1.default.object({
+    limit: joi_1.default.number().min(1).max(100).optional().default(20),
+    offset: joi_1.default.number().min(0).optional().default(0),
 });
 //# sourceMappingURL=validator.js.map
