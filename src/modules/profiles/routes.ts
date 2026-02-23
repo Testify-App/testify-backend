@@ -210,7 +210,7 @@ profilesRouter.delete(
  *         in: query
  *         schema:
  *           type: number
- *           default: 10
+ *           default: 20
  *     responses:
  *       200:
  *         description: Tribe members retrieved successfully
@@ -249,7 +249,7 @@ profilesRouter.get(
  *         in: query
  *         schema:
  *           type: number
- *           default: 10
+ *           default: 20
  *     responses:
  *       200:
  *         description: Profiles found successfully

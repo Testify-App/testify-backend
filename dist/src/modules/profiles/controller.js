@@ -98,7 +98,6 @@ class ProfilesController {
             var _a;
             const payload = new dtos.RemoveFromTribeDTO(req.params);
             payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-            console.log('removeFromTribe payload -> ', payload);
             const response = yield services_1.default.removeFromTribe(payload);
             if (response instanceof errors_1.BadException) {
                 logger_1.default.error(response.message, 'profiles.controller.ts');

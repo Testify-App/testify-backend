@@ -15,6 +15,9 @@ export class ProfileEntity extends BaseEntity<ProfileEntity> {
   twitter?: string;
   created_at?: Date;
   updated_at?: Date;
+  posts_count?: number;
+  tribes_count?: number;
+  circles_count?: number;
 }
 
 export class UserFollowEntity extends BaseEntity<UserFollowEntity> {

@@ -61,7 +61,6 @@ export class ProfilesController {
   public removeFromTribe: fnRequest = async (req: AuthenticatedRequest, res) => {
     const payload = new dtos.RemoveFromTribeDTO(req.params);
     payload.user_id = req.user?.id as string;
-    console.log('removeFromTribe payload -> ', payload);
     const response = await ProfilesService.removeFromTribe(payload);
     if (response instanceof BadException) {
       logger.error(response.message, 'profiles.controller.ts');

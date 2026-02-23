@@ -16,8 +16,28 @@ exports.default = {
       u.youtube,
       u.twitter,
       u.created_at,
-      u.updated_at
+      u.updated_at,
+      COALESCE(posts_count.count, 0) as posts_count,
+      COALESCE(tribes_count.count, 0) as tribes_count,
+      COALESCE(circles_count.count, 0) as circles_count
     FROM users u
+    LEFT JOIN (
+      SELECT user_id, COUNT(*) as count 
+      FROM posts 
+      WHERE deleted_at IS NULL
+      GROUP BY user_id
+    ) posts_count ON u.id = posts_count.user_id
+    LEFT JOIN (
+      SELECT follower_id, COUNT(*) as count 
+      FROM user_follows 
+      GROUP BY follower_id
+    ) tribes_count ON u.id = tribes_count.follower_id
+    LEFT JOIN (
+      SELECT user_id, COUNT(*) as count 
+      FROM user_connections 
+      WHERE status = 'accepted'
+      GROUP BY user_id
+    ) circles_count ON u.id = circles_count.user_id
     WHERE u.id = $1;
   `,
     getByUsername: `

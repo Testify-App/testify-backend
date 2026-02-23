@@ -13,32 +13,40 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UploadFile = void 0;
-exports.s3upload = s3upload;
+exports.cloudinaryUpload = cloudinaryUpload;
 const crypto_1 = __importDefault(require("crypto"));
+const cloudinary_1 = require("cloudinary");
 const env_1 = __importDefault(require("../utils/env"));
-const aws_1 = __importDefault(require("../../config/aws"));
-function s3upload(Key, Body, mimetype) {
-    const params = {
-        Bucket: `${env_1.default.get('AWS_BUCKET_NAME')}`,
-        Key,
-        Body,
-        ACL: 'public-read',
-        ContentType: mimetype,
-    };
-    if (env_1.default.get('NODE_ENV') === 'test') {
-        return { Location: 'https://www.google.com/photos/about/' };
-    }
-    const upload = aws_1.default.upload(params);
-    return upload.promise();
+function cloudinaryUpload(publicId, fileBuffer, mimetype) {
+    return new Promise((resolve, reject) => {
+        console.log('mimetype -> ', mimetype);
+        const uploadStream = cloudinary_1.v2.uploader.upload_stream({
+            public_id: publicId,
+            resource_type: 'auto',
+            folder: 'testify',
+        }, (error, result) => {
+            if (error) {
+                reject(error);
+            }
+            else {
+                resolve(result);
+            }
+        });
+        uploadStream.end(fileBuffer);
+    });
 }
-;
 const UploadFile = (file) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
-        let key = crypto_1.default.randomUUID();
-        key = `files-koins/${key}.${file.originalname}`;
+        let publicId = crypto_1.default.randomUUID();
         const buffer = Buffer.from(file.buffer);
-        const { Location } = yield s3upload(key, buffer, file.mimetype);
-        return Location;
+        const fileName = ((_a = file.originalname) === null || _a === void 0 ? void 0 : _a.split('.')[0]) || 'file';
+        publicId = `testify/${publicId}-${fileName}`;
+        if (env_1.default.get('NODE_ENV') === 'test') {
+            return 'https://www.google.com/photos/about/';
+        }
+        const result = yield cloudinaryUpload(publicId, buffer, file.mimetype);
+        return result.secure_url;
     }
     catch (error) {
         throw new Error(`Error uploading file. ${error}`);

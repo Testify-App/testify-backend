@@ -1,6 +1,6 @@
 import crypto from 'crypto';
+import { v2 as cloudinary } from 'cloudinary';
 import Env from '../utils/env';
-import s3 from '../../config/aws';
 import { File } from '../interface';
 
 export type FileUpload = {
@@ -9,29 +9,41 @@ export type FileUpload = {
   key: string;
 };
 
-export function s3upload(Key: string, Body: Buffer, mimetype: string) {
-  const params = {
-    Bucket: `${Env.get<string>('AWS_BUCKET_NAME')}`,
-    Key,
-    Body,
-    ACL: 'public-read',
-    ContentType: mimetype,
-  };
+export function cloudinaryUpload(publicId: string, fileBuffer: Buffer, mimetype: string) {
+  return new Promise((resolve, reject) => {
+    console.log('mimetype -> ', mimetype);
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        public_id: publicId,
+        resource_type: 'auto',
+        folder: 'testify',
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      }
+    );
 
-  if (Env.get<string>('NODE_ENV') === 'test') {
-    return { Location: 'https://www.google.com/photos/about/' };
-  }
-  const upload = s3.upload(params);
-  return upload.promise();
-};
+    uploadStream.end(fileBuffer);
+  });
+}
 
 export const UploadFile = async (file: File) => {
   try {
-    let key = crypto.randomUUID();
-    key = `files-koins/${key}.${file.originalname}`;
+    let publicId = crypto.randomUUID();
     const buffer = Buffer.from(file.buffer);
-    const { Location } = await s3upload(key, buffer, file.mimetype);
-    return Location;
+    const fileName = file.originalname?.split('.')[0] || 'file';
+    publicId = `testify/${publicId}-${fileName}`;
+
+    if (Env.get<string>('NODE_ENV') === 'test') {
+      return 'https://www.google.com/photos/about/';
+    }
+
+    const result = await cloudinaryUpload(publicId, buffer, file.mimetype) as { secure_url: string };
+    return result.secure_url;
   } catch (error) {
     throw new Error(`Error uploading file. ${error}`);
   }
