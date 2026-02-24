@@ -8,6 +8,8 @@ export default {
       u.phone_number,
       u.email,
       u.avatar,
+      u.display_name,
+      u.header_image,
       u.username,
       u.bio,
       u.instagram,
@@ -72,9 +74,10 @@ export default {
       instagram = COALESCE($9, instagram),
       youtube = COALESCE($10, youtube),
       twitter = COALESCE($11, twitter),
+      display_name = COALESCE($12, first_name),
       updated_at = NOW()
     WHERE id = $1
-    RETURNING id, first_name, last_name, country_code, phone_number, email, avatar, username, bio, instagram, youtube, twitter, created_at, updated_at;
+    RETURNING id, first_name, last_name, country_code, phone_number, email, avatar, username, header_image, display_name, bio, instagram, youtube, twitter, created_at, updated_at;
   `,
 
   addToTribe: `

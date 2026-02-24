@@ -7,6 +7,7 @@ export const updateProfileValidator = Joi.object({
   phone_number: Joi.string().max(20).optional(),
   avatar: Joi.string().uri().optional(),
   username: Joi.string().alphanum().min(3).max(30).optional(),
+  display_name: Joi.string().max(30).optional(),
   bio: Joi.string().max(500).optional(),
   instagram: Joi.string().uri().optional(),
   youtube: Joi.string().uri().optional(),

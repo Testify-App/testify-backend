@@ -12,6 +12,7 @@ exports.updateProfileValidator = joi_1.default.object({
     phone_number: joi_1.default.string().max(20).optional(),
     avatar: joi_1.default.string().uri().optional(),
     username: joi_1.default.string().alphanum().min(3).max(30).optional(),
+    display_name: joi_1.default.string().max(30).optional(),
     bio: joi_1.default.string().max(500).optional(),
     instagram: joi_1.default.string().uri().optional(),
     youtube: joi_1.default.string().uri().optional(),

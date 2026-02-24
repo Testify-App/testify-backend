@@ -94,6 +94,9 @@ profilesRouter.get(
  *                 type: string
  *                 maxLength: 500
  *                 example: This is my bio
+ *               display_name:
+ *                 type: string
+ *                 example: benny
  *               instagram:
  *                 type: string
  *                 format: uri

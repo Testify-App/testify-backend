@@ -56,6 +56,7 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
         payload.country_code || null,
         payload.phone_number || null,
         payload.avatar || null,
+        payload.display_name || null,
         payload.username || null,
         payload.bio || null,
         payload.instagram || null,

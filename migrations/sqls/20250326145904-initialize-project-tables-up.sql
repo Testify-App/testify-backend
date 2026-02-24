@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS users (
   state_of_origin VARCHAR NULL,
   status status DEFAULT 'inactive',
   avatar TEXT NULL,
+  header_image TEXT NULL,
+  display_name TEXT NULL,
   verification_code VARCHAR,
   verification_code_expiry_time TIMESTAMPTZ,
   activated_at TIMESTAMPTZ DEFAULT NULL,

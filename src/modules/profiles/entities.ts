@@ -8,6 +8,8 @@ export class ProfileEntity extends BaseEntity<ProfileEntity> {
   phone_number?: string;
   email?: string;
   avatar?: string;
+  header_image?: string;
+  display_name?: string;
   username?: string;
   bio?: string;
   instagram?: string;
