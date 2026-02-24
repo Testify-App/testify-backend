@@ -94,6 +94,20 @@ export class ProfilesController {
     return ResponseBuilder.success(res, 'Profiles found', StatusCodes.OK, response);
   };
 
+  public fetchProfilePostHistoryById: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const query = new dtos.FetchProfilePostHistoryByIdDTO(req.query);
+    query.user_id = req.user?.id as string;
+    query.following_id = req.params.following_id;
+    console.log('query -> ', query);
+    const response = await ProfilesService.fetchProfilePostHistoryById(query);
+    if (response instanceof NotFoundException) {
+      logger.error(response.message, 'profiles.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
+    }
+    logger.info('Profile found', 'profiles.controller.ts');
+    return ResponseBuilder.success(res, 'Profile found', StatusCodes.OK, response);
+  };
+
   public isInTribe: fnRequest = async (req: AuthenticatedRequest, res) => {
     const userId = req.user?.id as string;
     const followingId = req.params.userId;

@@ -66,6 +66,12 @@ export class ProfilesServiceImpl implements ProfilesInterface {
     return await ProfilesRepository.searchProfilesByUsername(payload);
   };
 
+  public fetchProfilePostHistoryById = async (
+    payload: dtos.FetchProfilePostHistoryByIdDTO
+  ): Promise<NotFoundException | any> => {
+    return await ProfilesRepository.fetchProfilePostHistoryById(payload);
+  };
+
   public isInTribe = async (
     userId: string,
     followingId: string

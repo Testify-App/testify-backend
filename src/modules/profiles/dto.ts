@@ -40,6 +40,13 @@ export class SearchProfilesByUsernameQueryDTO extends BaseEntity<SearchProfilesB
   limit?: number;
 }
 
+export class FetchProfilePostHistoryByIdDTO extends BaseEntity<FetchProfilePostHistoryByIdDTO> {
+  user_id: string;
+  following_id: string;
+  page?: number;
+  limit?: number;
+}
+
 export class RemoveFromTribeDTO extends BaseEntity<RemoveFromTribeDTO> {
   user_id: string;
   following_id: string;

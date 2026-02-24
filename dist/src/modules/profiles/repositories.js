@@ -195,6 +195,51 @@ class ProfilesRepositoryImpl {
         });
     }
     ;
+    fetchProfilePostHistoryById(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { page = '1', limit = '20' } = payload;
+                const following_id_details = yield database_1.db.oneOrNone(`
+        SELECT
+          u.id,
+          u.first_name,
+          u.last_name,
+          u.country_code,
+          u.phone_number,
+          u.email,
+          u.avatar,
+          u.username,
+          u.bio,
+          COUNT(DISTINCT uf.follower_id) as tribe_members_count,
+          CASE WHEN EXISTS (
+            SELECT 1 FROM user_follows 
+            WHERE follower_id = $2 AND following_id = u.id
+          ) THEN true ELSE false END as is_following
+        FROM users u
+        LEFT JOIN user_follows uf ON u.id = uf.following_id
+        WHERE u.id = $1
+        GROUP BY u.id
+      `, [payload.following_id, payload.user_id]);
+                const [{ count }, posts] = yield (0, helpers_1.fetchResourceByPage)({
+                    page,
+                    limit,
+                    getResources: query_1.default.fetchProfilePostHistoryById,
+                    params: [payload.following_id],
+                });
+                return {
+                    total: count,
+                    currentPage: page,
+                    totalPages: (0, helpers_1.calcPages)(count, limit),
+                    following_id_details,
+                    posts,
+                };
+            }
+            catch (error) {
+                return new errors_1.NotFoundException(`${error.message}`);
+            }
+        });
+    }
+    ;
     isInTribe(userId, followingId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {

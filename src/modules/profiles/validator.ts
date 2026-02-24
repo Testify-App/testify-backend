@@ -53,3 +53,8 @@ export const searchProfilesByUsernameValidator = Joi.object({
   page: Joi.number().integer().min(1).optional(),
   limit: Joi.number().integer().min(1).max(100).optional(),
 });
+
+export const fetchProfilePostHistoryByIdValidator = Joi.object({
+  page: Joi.number().integer().min(1).optional(),
+  limit: Joi.number().integer().min(1).max(100).optional(),
+});

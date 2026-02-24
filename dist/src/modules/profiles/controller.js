@@ -130,6 +130,20 @@ class ProfilesController {
             logger_1.default.info('Profiles searched successfully', 'profiles.controller.ts');
             return ResponseBuilder.success(res, 'Profiles found', http_status_codes_1.StatusCodes.OK, response);
         });
+        this.fetchProfilePostHistoryById = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const query = new dtos.FetchProfilePostHistoryByIdDTO(req.query);
+            query.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            query.following_id = req.params.following_id;
+            console.log('query -> ', query);
+            const response = yield services_1.default.fetchProfilePostHistoryById(query);
+            if (response instanceof errors_1.NotFoundException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.NOT_FOUND);
+            }
+            logger_1.default.info('Profile found', 'profiles.controller.ts');
+            return ResponseBuilder.success(res, 'Profile found', http_status_codes_1.StatusCodes.OK, response);
+        });
         this.isInTribe = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
             const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;

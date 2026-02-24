@@ -50,6 +50,7 @@ profilesRouter.post('/tribe', verifyAuth, (0, request_validator_middleware_1.val
 profilesRouter.delete('/tribe/:following_id', verifyAuth, (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.removeFromTribe));
 profilesRouter.get('/tribe', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(profilesValidator.getTribeMembersValidator, 'query'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.getTribeMembers));
 profilesRouter.get('/search', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(profilesValidator.searchProfilesByUsernameValidator, 'query'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.searchProfilesByUsername));
+profilesRouter.get('/:following_id/posts', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(profilesValidator.fetchProfilePostHistoryByIdValidator, 'query'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.fetchProfilePostHistoryById));
 profilesRouter.get('/tribe/is-member/:userId', verifyAuth, (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.isInTribe));
 profilesRouter.post('/circle', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(profilesValidator.sendCircleRequestValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.sendCircleRequest));
 profilesRouter.put('/circle/accept/:requestId', verifyAuth, (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.acceptCircleRequest));

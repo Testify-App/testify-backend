@@ -110,6 +110,25 @@ exports.default = {
     WHERE LOWER(u.username) LIKE LOWER($3)
     ORDER BY u.created_at DESC
   `,
+    fetchProfilePostHistoryById: `
+    SELECT COUNT(*) OVER () as count,
+      p.id as post_id,
+      p.content,
+      p.post_type,
+      p.visibility,
+      p.media_attachments,
+      p.likes_count,
+      p.comments_count,
+      p.reposts_count,
+      p.quotes_count,
+      p.parent_post_id,
+      p.quote_text,
+      p.created_at as post_created_at,
+      p.updated_at as post_updated_at
+    FROM posts p
+    WHERE p.user_id = $3
+    ORDER BY p.created_at DESC
+  `,
     getTribeCount: `
     SELECT COUNT(*) as total FROM user_follows
     WHERE follower_id = $1;

@@ -45,6 +45,9 @@ class ProfilesServiceImpl {
         this.searchProfilesByUsername = (payload) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.searchProfilesByUsername(payload);
         });
+        this.fetchProfilePostHistoryById = (payload) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.fetchProfilePostHistoryById(payload);
+        });
         this.isInTribe = (userId, followingId) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.isInTribe(userId, followingId);
         });

@@ -280,6 +280,126 @@ profilesRouter.get(
 
 /**
  * @swagger
+ * /profiles/{following_id}/posts:
+ *   get:
+ *     summary: Get profile post history by user ID
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: following_id
+ *         in: path
+ *         required: true
+ *         description: ID of the user whose profile posts to retrieve
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *           example: 550e8400-e29b-41d4-a716-446655440000
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 1
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Profile found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Profile found
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                       example: 1
+ *                     currentPage:
+ *                       type: string
+ *                       example: "1"
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 1
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                       example: 550e8400-e29b-41d4-a716-446655440000
+ *                     first_name:
+ *                       type: string
+ *                       example: John
+ *                     last_name:
+ *                       type: string
+ *                       example: Doe
+ *                     country_code:
+ *                       type: string
+ *                       example: "+1"
+ *                     phone_number:
+ *                       type: string
+ *                       example: "1234567890"
+ *                     email:
+ *                       type: string
+ *                       format: email
+ *                       example: john@example.com
+ *                     avatar:
+ *                       type: string
+ *                       format: uri
+ *                       example: https://cdn.example.com/avatars/john.jpg
+ *                     username:
+ *                       type: string
+ *                       example: johndoe
+ *                     bio:
+ *                       type: string
+ *                       example: This is my bio
+ *                     tribe_members_count:
+ *                       type: integer
+ *                       example: 10
+ *                     prayer_count:
+ *                       type: integer
+ *                       example: 2
+ *                     posts:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                           content:
+ *                             type: string
+ *                           username:
+ *                             type: string
+ *                           avatar:
+ *                             type: string
+ *                             nullable: true
+ *                           bio:
+ *                             type: string
+ *                             nullable: true
+ *                           created_at:
+ *                             type: string
+ *                             format: date-time
+ *       404:
+ *         description: Profile not found
+ */
+profilesRouter.get(
+  '/:following_id/posts',
+  verifyAuth,
+  validateDataMiddleware(profilesValidator.fetchProfilePostHistoryByIdValidator, 'query'),
+  WatchAsyncController(profilesController.fetchProfilePostHistoryById)
+);
+
+/**
+ * @swagger
  * /profiles/tribe/is-member/{userId}:
  *   get:
  *     summary: Check if user is in Tribe

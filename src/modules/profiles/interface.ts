@@ -11,7 +11,6 @@ import {
 
 export interface ProfilesInterface {
   getProfile(payload: dtos.GetProfileDTO): Promise<NotFoundException | entities.ProfileEntity>;
-  getByUsername(payload: dtos.GetByUsernameDTO): Promise<NotFoundException | entities.ProfileEntity>;
   updateProfile(payload: dtos.UpdateProfileDTO): Promise<BadException | entities.ProfileEntity>;
   
   // Tribe methods
@@ -19,6 +18,7 @@ export interface ProfilesInterface {
   removeFromTribe(payload: dtos.RemoveFromTribeDTO): Promise<BadException | void>;
   getTribeMembers(query: dtos.GetTribeMembersQueryDTO): Promise<InternalServerErrorException | FetchPaginatedResponse>;
   searchProfilesByUsername(query: dtos.SearchProfilesByUsernameQueryDTO): Promise<InternalServerErrorException | FetchPaginatedResponse>;
+  fetchProfilePostHistoryById(query: dtos.FetchProfilePostHistoryByIdDTO): Promise<NotFoundException | any>;
   isInTribe(userId: string, followingId: string): Promise<BadException | boolean>;
   getFollowerCount(userId: string): Promise<BadException | number>;
   checkUserExists(userId: string): Promise<boolean>;
