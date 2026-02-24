@@ -35,7 +35,7 @@ export default {
     LEFT JOIN (
       SELECT user_id, COUNT(*) as count 
       FROM user_connections 
-      WHERE status = 'active'
+      WHERE status = 'accepted'
       GROUP BY user_id
     ) circles_count ON u.id = circles_count.user_id
     WHERE u.id = $1;
@@ -164,7 +164,7 @@ export default {
 
   sendCircleRequest: `
     INSERT INTO user_connections (user_id, connected_user_id, status)
-    VALUES ($1, $2, 'active')
+    VALUES ($1, $2, 'accepted')
     ON CONFLICT (user_id, connected_user_id) DO NOTHING
     RETURNING *;
   `,
@@ -197,12 +197,19 @@ export default {
   `,
 
   getCircleMembers: `
-    SELECT u.id, u.username, u.avatar, uc.updated_at as connected_at
+    SELECT COUNT(*) OVER () as count,
+      u.id,
+      u.username,
+      u.display_name,
+      u.header_image,
+      u.avatar,
+      uc.updated_at as connected_at
     FROM user_connections uc
     JOIN users u ON uc.connected_user_id = u.id
-    WHERE uc.user_id = $1 AND uc.status = 'accepted'
-    ORDER BY uc.updated_at DESC
-    LIMIT $2 OFFSET $3;
+    WHERE uc.user_id = $3
+      AND uc.status = 'accepted'
+      AND LOWER(u.username) LIKE LOWER($4)
+    ORDER BY uc.updated_at DESC;
   `,
 
   getCircleCount: `

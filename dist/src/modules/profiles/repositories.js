@@ -347,18 +347,27 @@ class ProfilesRepositoryImpl {
     getCircleMembers(payload) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const members = yield database_1.db.manyOrNone(query_1.default.getCircleMembers, [
-                    payload.user_id,
-                    payload.limit || 20,
-                    payload.offset || 0,
-                ]);
-                return members.map((member) => new entities.CircleMemberEntity(member));
+                const { page = '1', limit = '20', user_id, } = payload;
+                const searchPattern = payload.search ? `%${payload.search}%` : `%`;
+                const [{ count }, circle_members] = yield (0, helpers_1.fetchResourceByPage)({
+                    page,
+                    limit,
+                    getResources: query_1.default.getCircleMembers,
+                    params: [user_id, searchPattern],
+                });
+                return {
+                    total: count,
+                    currentPage: page,
+                    totalPages: (0, helpers_1.calcPages)(count, limit),
+                    circle_members,
+                };
             }
             catch (error) {
-                return new errors_1.BadException(`${error.message}`);
+                return new errors_1.InternalServerErrorException(`${error.message}`);
             }
         });
     }
+    ;
     getCircleCount(userId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {

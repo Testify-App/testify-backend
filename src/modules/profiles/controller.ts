@@ -34,10 +34,6 @@ export class ProfilesController {
     const payload = new dtos.UpdateProfileDTO(req.body);
     payload.user_id = req.user?.id as string;
     const response = await ProfilesService.updateProfile(payload);
-    if (response instanceof NotFoundException) {
-      logger.error(response.message, 'profiles.controller.ts');
-      return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
-    }
     if (response instanceof BadException) {
       logger.error(response.message, 'profiles.controller.ts');
       return ResponseBuilder.error(res, response, response.code);
@@ -200,18 +196,13 @@ export class ProfilesController {
   };
 
   public getCircleMembers: fnRequest = async (req: AuthenticatedRequest, res) => {
-    const payload = new dtos.GetCircleMembersDTO();
-    payload.user_id = req.user?.id as string;
-    payload.limit = parseInt(req.query.limit as string) || 20;
-    payload.offset = parseInt(req.query.offset as string) || 0;
-
-    const response = await ProfilesService.getCircleMembers(payload);
-
-    if (response instanceof BadException) {
+    const query = new dtos.GetCircleMembersDTO(req.query);
+    query.user_id = req.user?.id as string;
+    const response = await ProfilesService.getCircleMembers(query);
+    if (response instanceof InternalServerErrorException) {
       logger.error(response.message, 'profiles.controller.ts');
-      return ResponseBuilder.error(res, response, response.code);
+      return ResponseBuilder.error(res, response, StatusCodes.INTERNAL_SERVER_ERROR);
     }
-
     logger.info('Circle members retrieved successfully', 'profiles.controller.ts');
     return ResponseBuilder.success(res, 'Circle members retrieved', StatusCodes.OK, response);
   };

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CircleMemberEntity = exports.CircleRequestEntity = exports.UserConnectionEntity = exports.TribeMemberEntity = exports.UserFollowEntity = exports.ProfileEntity = void 0;
+exports.CircleRequestEntity = exports.UserConnectionEntity = exports.TribeMemberEntity = exports.UserFollowEntity = exports.ProfileEntity = void 0;
 const base_entity_1 = require("../../shared/utils/base-entity");
 class ProfileEntity extends base_entity_1.BaseEntity {
 }
@@ -17,7 +17,4 @@ exports.UserConnectionEntity = UserConnectionEntity;
 class CircleRequestEntity extends base_entity_1.BaseEntity {
 }
 exports.CircleRequestEntity = CircleRequestEntity;
-class CircleMemberEntity extends base_entity_1.BaseEntity {
-}
-exports.CircleMemberEntity = CircleMemberEntity;
 //# sourceMappingURL=entities.js.map

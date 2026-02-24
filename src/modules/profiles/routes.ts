@@ -545,16 +545,31 @@ profilesRouter.delete(
  *     security:
  *       - bearerAuth: []
  *     parameters:
+ *       - name: search
+ *         in: query
+ *         description: Search by username or name
+ *         schema:
+ *           type: string
+ *           minLength: 1
+ *           maxLength: 100
+ *           example: john
+ *       - name: page
+ *         in: query
+ *         description: Page number for pagination
+ *         schema:
+ *           type: number
+ *           integer: true
+ *           minimum: 1
+ *           default: 1
  *       - name: limit
  *         in: query
+ *         description: Number of items per page
  *         schema:
  *           type: number
+ *           integer: true
+ *           minimum: 1
+ *           maximum: 100
  *           default: 20
- *       - name: offset
- *         in: query
- *         schema:
- *           type: number
- *           default: 0
  *     responses:
  *       200:
  *         description: Circle members retrieved successfully

@@ -42,8 +42,9 @@ exports.rejectCircleRequestValidator = joi_1.default.object({
     request_id: joi_1.default.string().required(),
 });
 exports.getCircleMembersValidator = joi_1.default.object({
-    limit: joi_1.default.number().min(1).max(100).optional().default(20),
-    offset: joi_1.default.number().min(0).optional().default(0),
+    search: joi_1.default.string().min(1).max(100).optional(),
+    page: joi_1.default.number().integer().min(1).optional(),
+    limit: joi_1.default.number().integer().min(1).max(100).optional(),
 });
 exports.searchProfilesByUsernameValidator = joi_1.default.object({
     search: joi_1.default.string().min(1).max(100).required(),

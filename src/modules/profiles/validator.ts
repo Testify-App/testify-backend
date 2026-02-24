@@ -46,8 +46,9 @@ export const rejectCircleRequestValidator = Joi.object({
 });
 
 export const getCircleMembersValidator = Joi.object({
-  limit: Joi.number().min(1).max(100).optional().default(20),
-  offset: Joi.number().min(0).optional().default(0),
+  search: Joi.string().min(1).max(100).optional(),
+  page: Joi.number().integer().min(1).optional(),
+  limit: Joi.number().integer().min(1).max(100).optional(),
 });
 
 export const searchProfilesByUsernameValidator = Joi.object({

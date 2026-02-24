@@ -13,7 +13,6 @@ export interface ProfilesInterface {
   getProfile(payload: dtos.GetProfileDTO): Promise<NotFoundException | entities.ProfileEntity>;
   updateProfile(payload: dtos.UpdateProfileDTO): Promise<BadException | entities.ProfileEntity>;
   
-  // Tribe methods
   addToTribe(payload: dtos.AddToTribeDTO): Promise<BadException | entities.UserFollowEntity>;
   removeFromTribe(payload: dtos.RemoveFromTribeDTO): Promise<BadException | void>;
   getTribeMembers(query: dtos.GetTribeMembersQueryDTO): Promise<InternalServerErrorException | FetchPaginatedResponse>;
@@ -23,12 +22,11 @@ export interface ProfilesInterface {
   getFollowerCount(userId: string): Promise<BadException | number>;
   checkUserExists(userId: string): Promise<boolean>;
 
-  // Circle methods
   sendCircleRequest(payload: dtos.SendCircleRequestDTO): Promise<BadException | entities.CircleRequestEntity>;
   acceptCircleRequest(payload: dtos.AcceptCircleRequestDTO): Promise<BadException | entities.UserConnectionEntity>;
   rejectCircleRequest(payload: dtos.RejectCircleRequestDTO): Promise<BadException | void>;
   removeFromCircle(payload: dtos.RemoveFromCircleDTO): Promise<BadException | void>;
-  getCircleMembers(payload: dtos.GetCircleMembersDTO): Promise<BadException | entities.CircleMemberEntity[]>;
+  getCircleMembers(payload: dtos.GetCircleMembersDTO): Promise<InternalServerErrorException | FetchPaginatedResponse>;
   getCircleCount(userId: string): Promise<BadException | number>;
   isInCircle(userId: string, connectedUserId: string): Promise<BadException | boolean>;
   getPendingRequests(userId: string): Promise<BadException | entities.CircleRequestEntity[]>;

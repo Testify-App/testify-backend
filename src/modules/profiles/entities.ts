@@ -55,10 +55,3 @@ export class CircleRequestEntity extends BaseEntity<CircleRequestEntity> {
   username?: string;
   avatar?: string;
 }
-
-export class CircleMemberEntity extends BaseEntity<CircleMemberEntity> {
-  id?: string;
-  username?: string;
-  avatar?: string;
-  connected_at?: Date;
-}

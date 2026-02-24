@@ -13,7 +13,7 @@ CREATE TYPE status AS ENUM (
 DROP TYPE IF EXISTS user_connection_status;
 CREATE TYPE user_connection_status AS ENUM (
   'inactive',
-  'active',
+  'accepted',
   'deactivated',
   'pending'
 );

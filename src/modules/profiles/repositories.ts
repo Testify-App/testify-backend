@@ -333,19 +333,28 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
 
   public async getCircleMembers(
     payload: dtos.GetCircleMembersDTO
-  ): Promise<BadException | entities.CircleMemberEntity[]> {
+  ): Promise<InternalServerErrorException | FetchPaginatedResponse> {
     try {
-      const members = await db.manyOrNone(ProfilesQuery.getCircleMembers, [
-        payload.user_id,
-        payload.limit || 20,
-        payload.offset || 0,
-      ]);
+      const { page = '1', limit = '20', user_id, } = payload as { page?: string; limit?: string; user_id: string };
+      const searchPattern = payload.search ? `%${payload.search}%` : `%`;
 
-      return members.map((member: any) => new entities.CircleMemberEntity(member));
+      const [{ count }, circle_members] = await fetchResourceByPage({
+        page,
+        limit,
+        getResources: ProfilesQuery.getCircleMembers,
+        params: [user_id, searchPattern],
+      });
+
+      return {
+        total: count,
+        currentPage: page,
+        totalPages: calcPages(count, limit),
+        circle_members,
+      };
     } catch (error) {
-      return new BadException(`${error.message}`);
+      return new InternalServerErrorException(`${error.message}`);
     }
-  }
+  };
 
   public async getCircleCount(
     userId: string

@@ -71,10 +71,6 @@ class ProfilesController {
             const payload = new dtos.UpdateProfileDTO(req.body);
             payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
             const response = yield services_1.default.updateProfile(payload);
-            if (response instanceof errors_1.NotFoundException) {
-                logger_1.default.error(response.message, 'profiles.controller.ts');
-                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.NOT_FOUND);
-            }
             if (response instanceof errors_1.BadException) {
                 logger_1.default.error(response.message, 'profiles.controller.ts');
                 return ResponseBuilder.error(res, response, response.code);
@@ -220,14 +216,12 @@ class ProfilesController {
         });
         this.getCircleMembers = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
-            const payload = new dtos.GetCircleMembersDTO();
-            payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-            payload.limit = parseInt(req.query.limit) || 20;
-            payload.offset = parseInt(req.query.offset) || 0;
-            const response = yield services_1.default.getCircleMembers(payload);
-            if (response instanceof errors_1.BadException) {
+            const query = new dtos.GetCircleMembersDTO(req.query);
+            query.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const response = yield services_1.default.getCircleMembers(query);
+            if (response instanceof errors_1.InternalServerErrorException) {
                 logger_1.default.error(response.message, 'profiles.controller.ts');
-                return ResponseBuilder.error(res, response, response.code);
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR);
             }
             logger_1.default.info('Circle members retrieved successfully', 'profiles.controller.ts');
             return ResponseBuilder.success(res, 'Circle members retrieved', http_status_codes_1.StatusCodes.OK, response);

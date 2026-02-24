@@ -162,7 +162,7 @@ export class ProfilesServiceImpl implements ProfilesInterface {
 
   public getCircleMembers = async (
     payload: dtos.GetCircleMembersDTO
-  ): Promise<BadException | entities.CircleMemberEntity[]> => {
+  ): Promise<InternalServerErrorException | FetchPaginatedResponse> => {
     return await ProfilesRepository.getCircleMembers(payload);
   };
 
