@@ -178,6 +178,7 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
           u.avatar,
           u.username,
           u.bio,
+          u.display_name,
           COUNT(DISTINCT uf.follower_id) as tribe_members_count,
           CASE WHEN EXISTS (
             SELECT 1 FROM user_follows 

@@ -96,6 +96,7 @@ export default {
     SELECT COUNT(*) OVER () as count,
       u.id,
       u.username,
+      u.display_name,
       u.avatar,
       uf.created_at as followed_at
     FROM user_follows uf
@@ -110,6 +111,7 @@ export default {
       u.first_name,
       u.last_name,
       u.username,
+      u.display_name,
       u.avatar,
       u.bio,
       u.created_at
