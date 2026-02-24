@@ -215,7 +215,7 @@ export default {
 
   sendCircleRequest: `
     INSERT INTO user_connections (user_id, connected_user_id, status)
-    VALUES ($1, $2, 'pending')
+    VALUES ($1, $2, 'active')
     ON CONFLICT (user_id, connected_user_id) DO NOTHING
     RETURNING *;
   `,

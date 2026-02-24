@@ -5,7 +5,7 @@ import ProfilesRepository from './repositories';
 import {
   BadException,
   NotFoundException,
-  ConflictException,
+  // ConflictException,
   InternalServerErrorException,
 } from '../../shared/lib/errors';
 import {
@@ -101,23 +101,23 @@ export class ProfilesServiceImpl implements ProfilesInterface {
       return new BadException('You cannot send a Circle request to yourself');
     }
 
-    // Validate connected user exists
-    const userExists = await ProfilesRepository.checkUserExists(payload.connected_user_id);
-    if (!userExists) {
-      return new NotFoundException('User not found');
-    }
+    // // Validate connected user exists
+    // const userExists = await ProfilesRepository.checkUserExists(payload.connected_user_id);
+    // if (!userExists) {
+    //   return new NotFoundException('User not found');
+    // }
 
-    // Check if there's already a pending request
-    const hasPending = await ProfilesRepository.hasPendingRequest(payload.user_id, payload.connected_user_id);
-    if (hasPending) {
-      return new ConflictException('A Circle request is already pending');
-    }
+    // // Check if there's already a pending request
+    // const hasPending = await ProfilesRepository.hasPendingRequest(payload.user_id, payload.connected_user_id);
+    // if (hasPending) {
+    //   return new ConflictException('A Circle request is already pending');
+    // }
 
-    // Check if already connected
-    const isConnected = await ProfilesRepository.isInCircle(payload.user_id, payload.connected_user_id);
-    if (isConnected) {
-      return new ConflictException('User is already in your Circle');
-    }
+    // // Check if already connected
+    // const isConnected = await ProfilesRepository.isInCircle(payload.user_id, payload.connected_user_id);
+    // if (isConnected) {
+    //   return new ConflictException('User is already in your Circle');
+    // }
 
     return await ProfilesRepository.sendCircleRequest(payload);
   };

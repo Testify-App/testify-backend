@@ -232,8 +232,6 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
     }
   }
 
-  // Circle methods
-
   public async sendCircleRequest(
     payload: dtos.SendCircleRequestDTO
   ): Promise<BadException | entities.CircleRequestEntity> {

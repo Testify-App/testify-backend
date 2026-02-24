@@ -14,3 +14,4 @@ DROP TABLE IF EXISTS users;
 DROP TYPE IF EXISTS post_visibility;
 DROP TYPE IF EXISTS post_type;
 DROP TYPE IF EXISTS status;
+DROP TYPE IF EXISTS user_connection_status;

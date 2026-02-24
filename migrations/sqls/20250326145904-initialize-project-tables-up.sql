@@ -10,6 +10,14 @@ CREATE TYPE status AS ENUM (
   'failed'
 );
 
+DROP TYPE IF EXISTS user_connection_status;
+CREATE TYPE user_connection_status AS ENUM (
+  'inactive',
+  'active',
+  'deactivated',
+  'pending'
+);
+
 CREATE TABLE IF NOT EXISTS users (
   id VARCHAR PRIMARY KEY DEFAULT LOWER(CAST(uuid_generate_v1mc() As VARCHAR(50))),
   first_name CITEXT NULL,
@@ -136,7 +144,7 @@ CREATE TABLE IF NOT EXISTS user_connections (
   id VARCHAR PRIMARY KEY DEFAULT LOWER(CAST(uuid_generate_v1mc() As VARCHAR(50))),
   user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   connected_user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  status VARCHAR NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),
+  status user_connection_status DEFAULT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, connected_user_id)
@@ -186,5 +194,4 @@ CREATE INDEX idx_user_follows_created_at ON user_follows(created_at DESC);
 -- User connections Indexes
 CREATE INDEX idx_user_connections_user_id ON user_connections(user_id);
 CREATE INDEX idx_user_connections_connected_user_id ON user_connections(connected_user_id);
-CREATE INDEX idx_user_connections_status ON user_connections(status);
 CREATE INDEX idx_user_connections_created_at ON user_connections(created_at DESC);

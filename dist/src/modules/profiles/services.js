@@ -61,18 +61,6 @@ class ProfilesServiceImpl {
             if (payload.user_id === payload.connected_user_id) {
                 return new errors_1.BadException('You cannot send a Circle request to yourself');
             }
-            const userExists = yield repositories_1.default.checkUserExists(payload.connected_user_id);
-            if (!userExists) {
-                return new errors_1.NotFoundException('User not found');
-            }
-            const hasPending = yield repositories_1.default.hasPendingRequest(payload.user_id, payload.connected_user_id);
-            if (hasPending) {
-                return new errors_1.ConflictException('A Circle request is already pending');
-            }
-            const isConnected = yield repositories_1.default.isInCircle(payload.user_id, payload.connected_user_id);
-            if (isConnected) {
-                return new errors_1.ConflictException('User is already in your Circle');
-            }
             return yield repositories_1.default.sendCircleRequest(payload);
         });
         this.acceptCircleRequest = (payload) => __awaiter(this, void 0, void 0, function* () {
