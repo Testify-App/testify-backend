@@ -135,7 +135,6 @@ class ProfilesController {
             const query = new dtos.FetchProfilePostHistoryByIdDTO(req.query);
             query.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
             query.following_id = req.params.following_id;
-            console.log('query -> ', query);
             const response = yield services_1.default.fetchProfilePostHistoryById(query);
             if (response instanceof errors_1.NotFoundException) {
                 logger_1.default.error(response.message, 'profiles.controller.ts');

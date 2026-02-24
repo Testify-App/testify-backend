@@ -37,7 +37,7 @@ exports.default = {
     LEFT JOIN (
       SELECT user_id, COUNT(*) as count 
       FROM user_connections 
-      WHERE status = 'accepted'
+      WHERE status = 'active'
       GROUP BY user_id
     ) circles_count ON u.id = circles_count.user_id
     WHERE u.id = $1;
