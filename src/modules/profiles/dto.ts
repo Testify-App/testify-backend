@@ -16,6 +16,7 @@ export class UpdateProfileDTO extends BaseEntity<UpdateProfileDTO> {
   phone_number?: string;
   avatar?: string;
   display_name?: string;
+  header_image?: string;
   username?: string;
   bio?: string;
   instagram?: string;

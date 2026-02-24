@@ -56,12 +56,13 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
         payload.country_code || null,
         payload.phone_number || null,
         payload.avatar || null,
-        payload.display_name || null,
         payload.username || null,
         payload.bio || null,
         payload.instagram || null,
         payload.youtube || null,
         payload.twitter || null,
+        payload.display_name || null,
+        payload.header_image || null,
       ]);
 
       return new entities.ProfileEntity(profile);

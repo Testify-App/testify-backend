@@ -97,6 +97,10 @@ profilesRouter.get(
  *               display_name:
  *                 type: string
  *                 example: benny
+ *               header_image:
+ *                 type: string
+ *                 format: uri
+ *                 example: https://example.com/header_image.jpg
  *               instagram:
  *                 type: string
  *                 format: uri

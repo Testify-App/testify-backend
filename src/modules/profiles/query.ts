@@ -75,6 +75,7 @@ export default {
       youtube = COALESCE($10, youtube),
       twitter = COALESCE($11, twitter),
       display_name = COALESCE($12, first_name),
+      header_image = COALESCE($13, header_image),
       updated_at = NOW()
     WHERE id = $1
     RETURNING id, first_name, last_name, country_code, phone_number, email, avatar, username, header_image, display_name, bio, instagram, youtube, twitter, created_at, updated_at;
@@ -139,58 +140,6 @@ export default {
     WHERE p.user_id = $3
     ORDER BY p.created_at DESC
   `,
-
-  // fetchProfilePostHistoryById: `
-  //   WITH profile_data AS (
-  //     SELECT 
-  //       u.id,
-  //       u.first_name,
-  //       u.last_name,
-  //       u.country_code,
-  //       u.phone_number,
-  //       u.email,
-  //       u.avatar,
-  //       u.username,
-  //       u.bio,
-  //       COALESCE(tribe_members.count, 0) as tribe_members_count,
-  //     FROM users u
-  //     LEFT JOIN (
-  //       SELECT following_id, COUNT(*) as count 
-  //       FROM user_follows 
-  //       GROUP BY following_id
-  //     ) tribe_members ON u.id = tribe_members.following_id
-  //     LEFT JOIN (
-  //       SELECT user_id, COUNT(*) as count 
-  //       FROM posts 
-  //       WHERE deleted_at IS NULL
-  //       GROUP BY user_id
-  //     ) posts_count ON u.id = posts_count.user_id
-  //     WHERE u.id = $3
-  //   )
-  //   SELECT COUNT(*) OVER () as count,
-  //     pd.id,
-  //     pd.first_name,
-  //     pd.last_name,
-  //     pd.country_code,
-  //     pd.phone_number,
-  //     pd.email,
-  //     pd.avatar,
-  //     pd.username,
-  //     pd.bio,
-  //     pd.tribe_members_count,
-  //     pd.prayer_count,
-  //     p.id as post_id,
-  //     p.content,
-  //     p.created_at as post_created_at,
-  //     p.user_id as post_user_id
-  //   FROM profile_data pd
-  //   CROSS JOIN LATERAL (
-  //     SELECT id, content, created_at, user_id
-  //     FROM posts 
-  //     WHERE user_id = pd.id AND deleted_at IS NULL
-  //     ORDER BY created_at DESC
-  //   ) p
-  // `,
 
   getTribeCount: `
     SELECT COUNT(*) as total FROM user_follows
