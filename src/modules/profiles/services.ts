@@ -68,7 +68,7 @@ export class ProfilesServiceImpl implements ProfilesInterface {
 
   public fetchProfilePostHistoryById = async (
     payload: dtos.FetchProfilePostHistoryByIdDTO
-  ): Promise<NotFoundException | any> => {
+  ): Promise<NotFoundException | FetchPaginatedResponse> => {
     return await ProfilesRepository.fetchProfilePostHistoryById(payload);
   };
 

@@ -163,7 +163,7 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
 
   public async fetchProfilePostHistoryById(
     payload: dtos.FetchProfilePostHistoryByIdDTO
-  ): Promise<NotFoundException | any> {
+  ): Promise<NotFoundException | FetchPaginatedResponse> {
     try {
       const { page = '1', limit = '20' } = payload as { page?: string; limit?: string; };
 
