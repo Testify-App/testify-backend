@@ -231,10 +231,61 @@ const options = {
               format: 'date-time',
               example: '2024-01-15T10:30:00Z',
             },
+            sensitive_content: {
+              type: 'boolean',
+              example: false,
+              description: 'Set by the author at creation time. When true, triggers async AI moderation and populates content_flags.',
+            },
+            archived_at: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+              description: 'Set when the post has been archived by the owner',
+            },
+            content_flags: {
+              nullable: true,
+              description: 'Populated asynchronously after creation by the content moderation pipeline. Null if not yet classified or no text content.',
+              $ref: '#/components/schemas/ContentFlags',
+            },
             updated_at: {
               type: 'string',
               format: 'date-time',
               nullable: true,
+            },
+          },
+        },
+        ContentFlags: {
+          type: 'object',
+          nullable: true,
+          description: 'Result of async AI content moderation via OpenAI Moderation API',
+          properties: {
+            is_sensitive: {
+              type: 'boolean',
+              example: true,
+              description: 'True if OpenAI flagged the content in any category',
+            },
+            flagged_at: {
+              type: 'string',
+              format: 'date-time',
+              example: '2026-06-15T10:00:00Z',
+              description: 'Timestamp when classification completed',
+            },
+            categories: {
+              type: 'array',
+              items: { type: 'string' },
+              example: ['sexual', 'violence'],
+              description: 'List of categories the content was flagged under',
+            },
+            scores: {
+              type: 'object',
+              additionalProperties: { type: 'number' },
+              example: { sexual: 0.912, violence: 0.431, hate: 0.003 },
+              description: 'Per-category confidence scores (0–1)',
+            },
+            source: {
+              type: 'string',
+              enum: ['openai_moderation'],
+              example: 'openai_moderation',
             },
           },
         },

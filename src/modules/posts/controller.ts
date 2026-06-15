@@ -19,6 +19,7 @@ interface AuthenticatedRequest extends Request {
 export class PostsController {
   public createPost: fnRequest = async (req: AuthenticatedRequest, res) => {
     const payload = new dtos.CreatePostDTO(req.body);
+    console.log('createPost -> ', payload);
     payload.user_id = req.user?.id as string;
     const response = await PostsService.createPost(payload);
     if (response instanceof BadException) {

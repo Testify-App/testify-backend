@@ -17,6 +17,7 @@ export const createPostValidator = Joi.object({
   ).optional(),
   parent_post_id: Joi.string().uuid().optional(),
   quote_text: Joi.string().min(1).max(500).optional(),
+  sensitive_content: Joi.boolean().optional(),
 });
 
 export const updatePostValidator = Joi.object({

@@ -17,6 +17,7 @@ export class CreatePostDTO extends BaseEntity<CreatePostDTO> {
   }>;
   parent_post_id?: string;
   quote_text?: string;
+  sensitive_content?: boolean;
 }
 
 export class UpdatePostDTO extends BaseEntity<UpdatePostDTO> {

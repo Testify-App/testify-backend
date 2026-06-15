@@ -54,9 +54,13 @@ const postsRouter = Router();
  *                 type: string
  *                 maxLength: 500
  *                 description: Additional text when quoting
+ *               sensitive_content:
+ *                 type: boolean
+ *                 default: false
+ *                 description: When true, the post content is sent to the AI moderation pipeline and content_flags is populated asynchronously
  *     responses:
  *       201:
- *         description: Post created successfully
+ *         description: Post created successfully. Content moderation runs asynchronously — `content_flags` will be null initially and populated shortly after.
  *         content:
  *           application/json:
  *             schema:
@@ -268,21 +272,26 @@ postsRouter.put(
  *           format: uuid
  *     responses:
  *       200:
- *         description: Post archived successfully or already archived
+ *         description: Post archived successfully, or already archived (idempotent)
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 message:
  *                   type: string
+ *                   example: Post archived successfully
  *                 data:
  *                   type: object
  *                   properties:
  *                     is_archived:
  *                       type: boolean
+ *                       example: true
  *       400:
- *         description: No permission to archive
+ *         description: Bad request
  *       404:
  *         description: Post not found
  */

@@ -320,6 +320,12 @@ export default {
     LIMIT $2 OFFSET $3;
   `,
 
+  updateContentFlags: `
+    UPDATE posts
+    SET content_flags = $2, updated_at = NOW()
+    WHERE id = $1 AND deleted_at IS NULL;
+  `,
+
   isPostOwner: `
     SELECT EXISTS(SELECT 1 FROM posts WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL);
   `,

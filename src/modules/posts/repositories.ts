@@ -13,6 +13,7 @@ import {
   fetchResourceByPage,
   FetchPaginatedResponse,
 } from '../../shared/helpers';
+import { classifyContent } from '../../shared/services/moderation';
 
 export class PostsRepositoryImpl implements PostsInterface {
   public async createPost(
@@ -64,6 +65,15 @@ export class PostsRepositoryImpl implements PostsInterface {
 
         return new entities.PostEntity(post);
       });
+
+      if (payload.sensitive_content && payload.content) {
+        classifyContent(payload.content).then((flags) => {
+          if (flags) {
+            db.none(PostsQuery.updateContentFlags, [response.id, JSON.stringify(flags)]).catch(() => {});
+          }
+        });
+      }
+
       return response;
     } catch (error) {
       return new BadException(`${error.message}`);

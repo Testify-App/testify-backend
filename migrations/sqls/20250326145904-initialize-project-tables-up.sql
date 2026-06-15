@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS posts (
   quotes_count INTEGER DEFAULT 0,
   deleted_at TIMESTAMPTZ DEFAULT NULL,
   deleted_by VARCHAR NULL REFERENCES users(id),
+  content_flags JSONB DEFAULT NULL,
   status post_status DEFAULT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NULL
