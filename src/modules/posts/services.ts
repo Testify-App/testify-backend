@@ -130,12 +130,12 @@ export class PostsServiceImpl implements PostsInterface {
     return await PostsRepository.unlikeComment(userId, commentId);
   };
 
-  public getUserPosts = async (
+  public getPostsByUserId = async (
     userId: string,
     targetUserId: string,
     query: dtos.GetPostsQueryDTO
   ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> => {
-    return await PostsRepository.getUserPosts(userId, targetUserId, query);
+    return await PostsRepository.getPostsByUserId(userId, targetUserId, query);
   };
 
   public getUserBookmarks = async (
@@ -143,6 +143,13 @@ export class PostsServiceImpl implements PostsInterface {
     query: dtos.GetPostsQueryDTO
   ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> => {
     return await PostsRepository.getUserBookmarks(userId, query);
+  };
+
+  public archivePost = async (
+    postId: string,
+    userId: string,
+  ): Promise<BadException | NotFoundException | { message: string; is_archived: boolean }> => {
+    return await PostsRepository.archivePost(postId, userId);
   };
 }
 

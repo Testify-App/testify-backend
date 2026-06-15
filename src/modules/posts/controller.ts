@@ -267,17 +267,34 @@ export class PostsController {
     return ResponseBuilder.success(res, response.message, StatusCodes.OK);
   };
 
-  public getUserPosts: fnRequest = async (req: AuthenticatedRequest, res) => {
+  public getPostsByUserId: fnRequest = async (req: AuthenticatedRequest, res) => {
     const targetUserId = req.params.userId;
-    const query = new dtos.GetPostsQueryDTO(req.query);
     const userId = req.user?.id as string;
-    const response = await PostsService.getUserPosts(userId, targetUserId, query);
+    const query = new dtos.GetPostsQueryDTO(req.query);
+    console.log('getPostsByUserId -> ', targetUserId, query);
+    const response = await PostsService.getPostsByUserId(userId, targetUserId, query);
     if (response instanceof BadException) {
       logger.error(`${response.message}`, 'posts.controller.ts');
       return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
     }
     logger.info('User posts retrieved successfully', 'posts.controller.ts');
     return ResponseBuilder.success(res, 'User posts retrieved successfully', StatusCodes.OK, response);
+  };
+
+  public archivePost: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const postId = req.params.post_id;
+    const userId = req.user?.id as string;
+    const response = await PostsService.archivePost(postId, userId);
+    if (response instanceof NotFoundException) {
+      logger.error(response.message, 'posts.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
+    }
+    if (response instanceof BadException) {
+      logger.error(`${response.message}`, 'posts.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    logger.info(response.message, 'posts.controller.ts');
+    return ResponseBuilder.success(res, response.message, StatusCodes.OK, { is_archived: response.is_archived });
   };
 
   public getUserBookmarks: fnRequest = async (req: AuthenticatedRequest, res) => {

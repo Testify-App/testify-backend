@@ -7,8 +7,9 @@ export default {
       visibility,
       media_attachments,
       parent_post_id,
-      quote_text
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      quote_text,
+      status
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'published')
     RETURNING *;
   `,
 
@@ -54,7 +55,7 @@ export default {
       );
   `,
 
-  getUserPosts: `
+  getPostsByUserId: `
     SELECT COUNT(*) OVER () as count,
       p.*,
       u.id as user_id,
@@ -66,7 +67,7 @@ export default {
       AND p.deleted_at IS NULL
       AND p.parent_post_id IS NULL
     ORDER BY p.created_at DESC
-    LIMIT $1 OFFSET $2;
+    LIMIT $2 OFFSET $1;
   `,
 
   getUserPostsCount: `
@@ -89,7 +90,7 @@ export default {
 
   softDeletePost: `
     UPDATE posts 
-    SET deleted_at = NOW(), deleted_by = $2, updated_at = NOW()
+    SET deleted_at = NOW(), deleted_by = $2, updated_at = NOW(), status = 'deleted'
     WHERE id = $1 AND deleted_at IS NULL;
   `,
 

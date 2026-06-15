@@ -25,7 +25,7 @@ export class PostsRepositoryImpl implements PostsInterface {
         if (payload.media_attachments && payload.media_attachments.length > 0) {
           const types = new Set(payload.media_attachments.map(m => m.type));
           if (types.size === 1) {
-            postType = types.values().next().value;
+            postType = types.values().next().value!;
           } else {
             postType = 'mixed';
           }
@@ -564,7 +564,7 @@ export class PostsRepositoryImpl implements PostsInterface {
     }
   }
 
-  public async getUserPosts(
+  public async getPostsByUserId(
     userId: string,
     targetUserId: string,
     query: dtos.GetPostsQueryDTO
@@ -574,7 +574,7 @@ export class PostsRepositoryImpl implements PostsInterface {
       const [{ count }, posts] = await fetchResourceByPage({
         page,
         limit,
-        getResources: PostsQuery.getUserPosts,
+        getResources: PostsQuery.getPostsByUserId,
         params: [targetUserId],
       });
 
@@ -644,6 +644,32 @@ export class PostsRepositoryImpl implements PostsInterface {
         posts: postsWithEngagement,
         pagination: { page: String(page), limit: String(limit), total: count, totalPages: calcPages(count, limit) },
       };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async archivePost(
+    postId: string,
+    userId: string,
+  ): Promise<BadException | NotFoundException | { message: string; is_archived: boolean }> {
+    try {
+      const post = await db.oneOrNone(PostsQuery.getPostById, [postId]);
+      if (!post) {
+        throw new NotFoundException('Post not found');
+      }
+
+      if (post.user_id !== userId) {
+        throw new BadException('You do not have permission to archive this post');
+      }
+
+      if (post.archived_at) {
+        throw { message: 'Post is already archived', is_archived: true };
+      }
+
+      await db.none('UPDATE posts SET archived_at = NOW(), updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL', [postId]);
+
+      return { message: 'Post archived successfully', is_archived: true };
     } catch (error) {
       return new BadException(`${error.message}`);
     }

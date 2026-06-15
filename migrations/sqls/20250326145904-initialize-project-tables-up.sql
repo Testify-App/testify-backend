@@ -18,6 +18,17 @@ CREATE TYPE user_connection_status AS ENUM (
   'pending'
 );
 
+DROP TYPE IF EXISTS post_status;
+CREATE TYPE post_status AS ENUM (
+  'deleted',
+  'archived'
+  'draft',
+  'published',
+  'scheduled',
+  'failed',
+  'flagged'
+);
+
 CREATE TABLE IF NOT EXISTS users (
   id VARCHAR PRIMARY KEY DEFAULT LOWER(CAST(uuid_generate_v1mc() As VARCHAR(50))),
   first_name CITEXT NULL,
@@ -72,6 +83,7 @@ CREATE TABLE IF NOT EXISTS posts (
   quotes_count INTEGER DEFAULT 0,
   deleted_at TIMESTAMPTZ DEFAULT NULL,
   deleted_by VARCHAR NULL REFERENCES users(id),
+  status post_status DEFAULT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NULL
 );

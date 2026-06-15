@@ -63,7 +63,7 @@ export interface PostsInterface {
     commentId: string
   ): Promise<BadException | NotFoundException | { message: string }>;
   
-  getUserPosts(
+  getPostsByUserId(
     userId: string,
     targetUserId: string,
     query: dtos.GetPostsQueryDTO
@@ -73,4 +73,9 @@ export interface PostsInterface {
     userId: string,
     query: dtos.GetPostsQueryDTO
   ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }>;
+
+  archivePost(
+    postId: string,
+    userId: string,
+  ): Promise<BadException | NotFoundException | { message: string; is_archived: boolean }>;
 }

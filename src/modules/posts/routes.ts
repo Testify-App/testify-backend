@@ -215,6 +215,48 @@ postsRouter.put(
 
 /**
  * @swagger
+ * /posts/{post_id}/archive:
+ *   patch:
+ *     summary: Archive a post
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: post_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Post archived successfully or already archived
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     is_archived:
+ *                       type: boolean
+ *       400:
+ *         description: No permission to archive
+ *       404:
+ *         description: Post not found
+ */
+postsRouter.patch(
+  '/:post_id/archive',
+  verifyAuth,
+  validateDataMiddleware(postsValidator.postIdValidator, 'params'),
+  WatchAsyncController(postsController.archivePost)
+);
+
+/**
+ * @swagger
  * /posts/{id}:
  *   delete:
  *     summary: Delete a post
@@ -696,7 +738,7 @@ postsRouter.get(
   verifyAuth,
   validateDataMiddleware(postsValidator.userIdValidator, 'params'),
   validateDataMiddleware(postsValidator.getPostsQueryValidator, 'query'),
-  WatchAsyncController(postsController.getUserPosts)
+  WatchAsyncController(postsController.getPostsByUserId)
 );
 
 /**

@@ -10,7 +10,7 @@ export const validateDataMiddleware =
       params: req.params,
       query: req.query,
       headers: req.headers,
-      file: req.file,
+      file: (req as any).file,
     };
 
     const options = { messages: { key: '{{key}} ' }, abortEarly: false };
