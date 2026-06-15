@@ -649,22 +649,40 @@ export class PostsRepositoryImpl implements PostsInterface {
     }
   }
 
-  public async archivePost(
-    postId: string,
+  public async getMyPosts(
     userId: string,
+    query: dtos.GetPostsQueryDTO
+  ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> {
+    try {
+      const { page = '1', limit = '20' } = query as { page?: string; limit?: string };
+      const search = (query as any).search as string | undefined;
+      const [{ count }, posts] = await fetchResourceByPage({
+        page,
+        limit,
+        getResources: PostsQuery.getMyPosts,
+        params: [userId, search ?? null],
+      });
+
+      return {
+        posts: posts,
+        pagination: { page: String(page), limit: String(limit), total: count, totalPages: calcPages(count, limit) },
+      };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async archivePost(
+    postId: string
   ): Promise<BadException | NotFoundException | { message: string; is_archived: boolean }> {
     try {
       const post = await db.oneOrNone(PostsQuery.getPostById, [postId]);
       if (!post) {
-        throw new NotFoundException('Post not found');
-      }
-
-      if (post.user_id !== userId) {
-        throw new BadException('You do not have permission to archive this post');
+        return new NotFoundException('Post not found');
       }
 
       if (post.archived_at) {
-        throw { message: 'Post is already archived', is_archived: true };
+        return { message: 'Post is already archived', is_archived: true };
       }
 
       await db.none('UPDATE posts SET archived_at = NOW(), updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL', [postId]);

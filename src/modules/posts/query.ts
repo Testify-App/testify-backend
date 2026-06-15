@@ -70,6 +70,23 @@ export default {
     LIMIT $2 OFFSET $1;
   `,
 
+  getMyPosts: `
+    SELECT COUNT(*) OVER () as count,
+      p.*,
+      u.id as user_id,
+      u.username,
+      CONCAT(u.first_name, ' ', u.last_name) as display_name,
+      u.avatar
+    FROM posts p
+    JOIN users u ON p.user_id = u.id
+    WHERE p.user_id = $3
+      AND p.deleted_at IS NULL
+      AND p.parent_post_id IS NULL
+      AND ($4::text IS NULL OR p.content ILIKE '%' || $4 || '%')
+    ORDER BY p.created_at DESC
+    LIMIT $2 OFFSET $1;
+  `,
+
   getUserPostsCount: `
     SELECT COUNT(*) as total FROM posts 
     WHERE user_id = $1 

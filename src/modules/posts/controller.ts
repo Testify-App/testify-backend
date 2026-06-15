@@ -271,7 +271,6 @@ export class PostsController {
     const targetUserId = req.params.userId;
     const userId = req.user?.id as string;
     const query = new dtos.GetPostsQueryDTO(req.query);
-    console.log('getPostsByUserId -> ', targetUserId, query);
     const response = await PostsService.getPostsByUserId(userId, targetUserId, query);
     if (response instanceof BadException) {
       logger.error(`${response.message}`, 'posts.controller.ts');
@@ -281,10 +280,21 @@ export class PostsController {
     return ResponseBuilder.success(res, 'User posts retrieved successfully', StatusCodes.OK, response);
   };
 
+  public getMyPosts: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const userId = req.user?.id as string;
+    const query = new dtos.GetPostsQueryDTO(req.query);
+    const response = await PostsService.getMyPosts(userId, query);
+    if (response instanceof BadException) {
+      logger.error(`${response.message}`, 'posts.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    logger.info('My posts retrieved successfully', 'posts.controller.ts');
+    return ResponseBuilder.success(res, 'Posts retrieved successfully', StatusCodes.OK, response);
+  };
+
   public archivePost: fnRequest = async (req: AuthenticatedRequest, res) => {
     const postId = req.params.post_id;
-    const userId = req.user?.id as string;
-    const response = await PostsService.archivePost(postId, userId);
+    const response = await PostsService.archivePost(postId);
     if (response instanceof NotFoundException) {
       logger.error(response.message, 'posts.controller.ts');
       return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);

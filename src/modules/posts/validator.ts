@@ -53,6 +53,12 @@ export const createCommentValidator = Joi.object({
   ).optional(),
 });
 
+export const getMyPostsQueryValidator = Joi.object({
+  page: Joi.number().integer().min(1).optional(),
+  limit: Joi.number().integer().min(1).max(100).optional(),
+  search: Joi.string().max(200).optional(),
+});
+
 export const getPostsQueryValidator = Joi.object({
   page: Joi.number().integer().min(1).optional(),
   limit: Joi.number().integer().min(1).max(100).optional(),

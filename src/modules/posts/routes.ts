@@ -139,6 +139,44 @@ postsRouter.get(
   WatchAsyncController(postsController.getPosts)
 );
 
+// My posts
+/**
+ * @swagger
+ * /posts/me:
+ *   get:
+ *     summary: Get logged-in user's posts
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           maximum: 100
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *           maxLength: 200
+ *         description: Filter posts by content
+ *     responses:
+ *       200:
+ *         description: Posts retrieved successfully
+ */
+postsRouter.get(
+  '/me',
+  verifyAuth,
+  validateDataMiddleware(postsValidator.getMyPostsQueryValidator, 'query'),
+  WatchAsyncController(postsController.getMyPosts)
+);
+
 /**
  * @swagger
  * /posts/{id}:

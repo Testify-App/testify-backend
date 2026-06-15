@@ -145,11 +145,17 @@ export class PostsServiceImpl implements PostsInterface {
     return await PostsRepository.getUserBookmarks(userId, query);
   };
 
-  public archivePost = async (
-    postId: string,
+  public getMyPosts = async (
     userId: string,
+    query: dtos.GetPostsQueryDTO
+  ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> => {
+    return await PostsRepository.getMyPosts(userId, query);
+  };
+
+  public archivePost = async (
+    postId: string
   ): Promise<BadException | NotFoundException | { message: string; is_archived: boolean }> => {
-    return await PostsRepository.archivePost(postId, userId);
+    return await PostsRepository.archivePost(postId);
   };
 }
 
