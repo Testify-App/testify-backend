@@ -70,11 +70,17 @@ class PostsServiceImpl {
         this.unlikeComment = (userId, commentId) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.unlikeComment(userId, commentId);
         });
-        this.getUserPosts = (userId, targetUserId, query) => __awaiter(this, void 0, void 0, function* () {
-            return yield repositories_1.default.getUserPosts(userId, targetUserId, query);
+        this.getPostsByUserId = (userId, targetUserId, query) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.getPostsByUserId(userId, targetUserId, query);
         });
         this.getUserBookmarks = (userId, query) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.getUserBookmarks(userId, query);
+        });
+        this.getMyPosts = (userId, query) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.getMyPosts(userId, query);
+        });
+        this.archivePost = (postId) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.archivePost(postId);
         });
     }
 }

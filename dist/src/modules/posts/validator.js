@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.userIdValidator = exports.commentIdValidator = exports.postIdValidator = exports.getRepostsQueryValidator = exports.getLikesQueryValidator = exports.getCommentsQueryValidator = exports.getPostsQueryValidator = exports.createCommentValidator = exports.updatePostValidator = exports.createPostValidator = void 0;
+exports.userIdValidator = exports.commentIdValidator = exports.postIdValidator = exports.getRepostsQueryValidator = exports.getLikesQueryValidator = exports.getCommentsQueryValidator = exports.getPostsQueryValidator = exports.getMyPostsQueryValidator = exports.createCommentValidator = exports.updatePostValidator = exports.createPostValidator = void 0;
 const joi_1 = __importDefault(require("joi"));
 exports.createPostValidator = joi_1.default.object({
     content: joi_1.default.string().min(1).max(5000).optional(),
@@ -20,6 +20,7 @@ exports.createPostValidator = joi_1.default.object({
     })).optional(),
     parent_post_id: joi_1.default.string().uuid().optional(),
     quote_text: joi_1.default.string().min(1).max(500).optional(),
+    sensitive_content: joi_1.default.boolean().optional(),
 });
 exports.updatePostValidator = joi_1.default.object({
     content: joi_1.default.string().min(1).max(5000).optional(),
@@ -48,6 +49,11 @@ exports.createCommentValidator = joi_1.default.object({
         filename: joi_1.default.string().optional(),
         order_index: joi_1.default.number().optional(),
     })).optional(),
+});
+exports.getMyPostsQueryValidator = joi_1.default.object({
+    page: joi_1.default.number().integer().min(1).optional(),
+    limit: joi_1.default.number().integer().min(1).max(100).optional(),
+    search: joi_1.default.string().max(200).optional(),
 });
 exports.getPostsQueryValidator = joi_1.default.object({
     page: joi_1.default.number().integer().min(1).optional(),

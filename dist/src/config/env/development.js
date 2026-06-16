@@ -16,6 +16,7 @@ const development = {
     MAIL_USER: process.env.TESTIFY_MAIL_USER,
     MAIL_APP_PASSWORD: process.env.TESTIFY_MAIL_APP_PASSWORD,
     REDIS_URL: process.env.TESTIFY_REDIS_URL,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
 };
 exports.default = development;
 //# sourceMappingURL=development.js.map

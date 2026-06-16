@@ -51,6 +51,7 @@ const query_1 = __importDefault(require("./query"));
 const database_1 = require("../../config/database");
 const errors_1 = require("../../shared/lib/errors");
 const helpers_1 = require("../../shared/helpers");
+const moderation_1 = require("../../shared/services/moderation");
 class PostsRepositoryImpl {
     createPost(payload) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -92,6 +93,13 @@ class PostsRepositoryImpl {
                     }
                     return new entities.PostEntity(post);
                 }));
+                if (payload.sensitive_content && payload.content) {
+                    (0, moderation_1.classifyContent)(payload.content).then((flags) => {
+                        if (flags) {
+                            database_1.db.none(query_1.default.updateContentFlags, [response.id, JSON.stringify(flags)]).catch(() => { });
+                        }
+                    });
+                }
                 return response;
             }
             catch (error) {
@@ -509,14 +517,14 @@ class PostsRepositoryImpl {
             }
         });
     }
-    getUserPosts(userId, targetUserId, query) {
+    getPostsByUserId(userId, targetUserId, query) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const { page = '1', limit = '20' } = query;
                 const [{ count }, posts] = yield (0, helpers_1.fetchResourceByPage)({
                     page,
                     limit,
-                    getResources: query_1.default.getUserPosts,
+                    getResources: query_1.default.getPostsByUserId,
                     params: [targetUserId],
                 });
                 const postsWithEngagement = yield Promise.all(posts.map((post) => __awaiter(this, void 0, void 0, function* () {
@@ -563,6 +571,45 @@ class PostsRepositoryImpl {
                     posts: postsWithEngagement,
                     pagination: { page: String(page), limit: String(limit), total: count, totalPages: (0, helpers_1.calcPages)(count, limit) },
                 };
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    getMyPosts(userId, query) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { page = '1', limit = '20' } = query;
+                const search = query.search;
+                const [{ count }, posts] = yield (0, helpers_1.fetchResourceByPage)({
+                    page,
+                    limit,
+                    getResources: query_1.default.getMyPosts,
+                    params: [userId, search !== null && search !== void 0 ? search : null],
+                });
+                return {
+                    posts: posts,
+                    pagination: { page: String(page), limit: String(limit), total: count, totalPages: (0, helpers_1.calcPages)(count, limit) },
+                };
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    archivePost(postId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const post = yield database_1.db.oneOrNone(query_1.default.getPostById, [postId]);
+                if (!post) {
+                    return new errors_1.NotFoundException('Post not found');
+                }
+                if (post.archived_at) {
+                    return { message: 'Post is already archived', is_archived: true };
+                }
+                yield database_1.db.none('UPDATE posts SET archived_at = NOW(), updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL', [postId]);
+                return { message: 'Post archived successfully', is_archived: true };
             }
             catch (error) {
                 return new errors_1.BadException(`${error.message}`);
