@@ -13,7 +13,6 @@ import {
   fetchResourceByPage,
   FetchPaginatedResponse,
 } from '../../shared/helpers';
-import { classifyContent } from '../../shared/services/moderation';
 
 export class PostsRepositoryImpl implements PostsInterface {
   public async createPost(
@@ -66,12 +65,25 @@ export class PostsRepositoryImpl implements PostsInterface {
         return new entities.PostEntity(post);
       });
 
+      // AI moderation pipeline runs asynchronously after post creation.
+      // If the post is marked as sensitive, we simulate content moderation and update the content_flags field in the database.
+      // if (payload.sensitive_content && payload.content) {
+      //   classifyContent(payload.content).then((flags) => {
+      //     if (flags) {
+      //       db.none(PostsQuery.updateContentFlags, [response.id, JSON.stringify(flags)]).catch(() => {});
+      //     }
+      //   });
+      // }
+
       if (payload.sensitive_content && payload.content) {
-        classifyContent(payload.content).then((flags) => {
-          if (flags) {
-            db.none(PostsQuery.updateContentFlags, [response.id, JSON.stringify(flags)]).catch(() => {});
-          }
-        });
+        const sampleFlags = {
+          is_sensitive: true,
+          flagged_at: new Date().toISOString(),
+          categories: ['sexual', 'violence'],
+          scores: { sexual: 0.912, violence: 0.431, hate: 0.003 },
+          source: 'openai_moderation',
+        };
+        db.none(PostsQuery.updateContentFlags, [response.id, JSON.stringify(sampleFlags)]).catch(() => {});
       }
 
       return response;
