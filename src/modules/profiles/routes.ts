@@ -130,7 +130,7 @@ profilesRouter.get(
  *                 data:
  *                   $ref: '#/components/schemas/Profile'
  *       400:
- *         $ref: '#/components/responses/Error'
+ *         description: Bad request
  *     securitySchemes:
  *       bearerAuth:
  *         type: http

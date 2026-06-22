@@ -33,7 +33,8 @@ export default {
       p.*,
       u.id as user_id,
       u.username,
-      u.avatar
+      u.avatar,
+      u.display_name
     FROM posts p
     JOIN users u ON p.user_id = u.id
     WHERE p.deleted_at IS NULL
@@ -60,7 +61,8 @@ export default {
       p.*,
       u.id as user_id,
       u.username,
-      u.avatar
+      u.avatar,
+      u.display_name
     FROM posts p
     JOIN users u ON p.user_id = u.id
     WHERE p.user_id = $3
@@ -75,7 +77,7 @@ export default {
       p.*,
       u.id as user_id,
       u.username,
-      CONCAT(u.first_name, ' ', u.last_name) as display_name,
+      u.display_name,
       u.avatar
     FROM posts p
     JOIN users u ON p.user_id = u.id

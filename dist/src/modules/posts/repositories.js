@@ -537,6 +537,7 @@ class PostsRepositoryImpl {
                             id: post.user_id,
                             username: post.username,
                             avatar: post.avatar,
+                            display_name: post.display_name,
                         } }));
                 })));
                 return {

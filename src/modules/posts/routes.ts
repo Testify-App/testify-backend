@@ -75,7 +75,7 @@ const postsRouter = Router();
  *                 data:
  *                   $ref: '#/components/schemas/Post'
  *       400:
- *         $ref: '#/components/responses/Error'
+ *         description: Bad request
  *     securitySchemes:
  *       bearerAuth:
  *         type: http
@@ -244,7 +244,7 @@ postsRouter.get(
  *                     pagination:
  *                       $ref: '#/components/schemas/Pagination'
  *       400:
- *         $ref: '#/components/responses/Error'
+ *         description: Bad request
  */
 postsRouter.get(
   '/archived',
