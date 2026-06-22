@@ -21,7 +21,7 @@ CREATE TYPE user_connection_status AS ENUM (
 DROP TYPE IF EXISTS post_status;
 CREATE TYPE post_status AS ENUM (
   'deleted',
-  'archived'
+  'archived',
   'draft',
   'published',
   'scheduled',

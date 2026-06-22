@@ -154,8 +154,21 @@ export class PostsServiceImpl implements PostsInterface {
 
   public archivePost = async (
     postId: string
-  ): Promise<BadException | NotFoundException | { message: string; is_archived: boolean }> => {
+  ): Promise<BadException | { message: string; is_archived: boolean }> => {
     return await PostsRepository.archivePost(postId);
+  };
+
+  public unarchivePost = async (
+    postId: string
+  ): Promise<BadException | { message: string; is_archived: boolean }> => {
+    return await PostsRepository.unarchivePost(postId);
+  };
+
+  public getArchivedPosts = async (
+    userId: string,
+    query: dtos.GetPostsQueryDTO
+  ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> => {
+    return await PostsRepository.getArchivedPosts(userId, query);
   };
 }
 

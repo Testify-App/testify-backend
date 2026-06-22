@@ -292,19 +292,38 @@ export class PostsController {
     return ResponseBuilder.success(res, 'Posts retrieved successfully', StatusCodes.OK, response);
   };
 
-  public archivePost: fnRequest = async (req: AuthenticatedRequest, res) => {
+  public unarchivePost: fnRequest = async (req: AuthenticatedRequest, res) => {
     const postId = req.params.post_id;
-    const response = await PostsService.archivePost(postId);
-    if (response instanceof NotFoundException) {
-      logger.error(response.message, 'posts.controller.ts');
-      return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
-    }
+    const response = await PostsService.unarchivePost(postId);
     if (response instanceof BadException) {
       logger.error(`${response.message}`, 'posts.controller.ts');
       return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
     }
     logger.info(response.message, 'posts.controller.ts');
-    return ResponseBuilder.success(res, response.message, StatusCodes.OK, { is_archived: response.is_archived });
+    return ResponseBuilder.success(res, response.message, StatusCodes.OK);
+  };
+
+  public archivePost: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const postId = req.params.post_id;
+    const response = await PostsService.archivePost(postId);
+    if (response instanceof BadException) {
+      logger.error(`${response.message}`, 'posts.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    logger.info(response.message, 'posts.controller.ts');
+    return ResponseBuilder.success(res, response.message, StatusCodes.OK);
+  };
+
+  public getArchivedPosts: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const query = new dtos.GetPostsQueryDTO(req.query);
+    const userId = req.user?.id as string;
+    const response = await PostsService.getArchivedPosts(userId, query);
+    if (response instanceof BadException) {
+      logger.error(`${response.message}`, 'posts.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    logger.info('Archived posts retrieved successfully', 'posts.controller.ts');
+    return ResponseBuilder.success(res, 'Archived posts retrieved successfully', StatusCodes.OK, response);
   };
 
   public getUserBookmarks: fnRequest = async (req: AuthenticatedRequest, res) => {

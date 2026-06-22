@@ -288,6 +288,26 @@ exports.default = {
     SET content_flags = $2, updated_at = NOW()
     WHERE id = $1 AND deleted_at IS NULL;
   `,
+    unarchivePost: `
+    UPDATE posts
+    SET status = 'published', updated_at = NOW()
+    WHERE id = $1 AND deleted_at IS NULL
+    RETURNING *;
+  `,
+    getArchivedPosts: `
+    SELECT COUNT(*) OVER () as count,
+      p.*,
+      u.id as user_id,
+      u.username,
+      u.avatar
+    FROM posts p
+    JOIN users u ON p.user_id = u.id
+    WHERE p.user_id = $3
+      AND p.deleted_at IS NULL
+      AND p.status = 'archived'
+    ORDER BY p.updated_at DESC
+    LIMIT $2 OFFSET $1;
+  `,
     isPostOwner: `
     SELECT EXISTS(SELECT 1 FROM posts WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL);
   `,

@@ -82,6 +82,12 @@ class PostsServiceImpl {
         this.archivePost = (postId) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.archivePost(postId);
         });
+        this.unarchivePost = (postId) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.unarchivePost(postId);
+        });
+        this.getArchivedPosts = (userId, query) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.getArchivedPosts(userId, query);
+        });
     }
 }
 exports.PostsServiceImpl = PostsServiceImpl;

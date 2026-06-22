@@ -183,6 +183,78 @@ postsRouter.get(
 
 /**
  * @swagger
+ * /posts/bookmarks:
+ *   get:
+ *     summary: Get user's bookmarked posts
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Bookmarks retrieved successfully
+ */
+postsRouter.get(
+  '/bookmarks',
+  verifyAuth,
+  validateDataMiddleware(postsValidator.getPostsQueryValidator, 'query'),
+  WatchAsyncController(postsController.getUserBookmarks)
+);
+
+/**
+ * @swagger
+ * /posts/archived:
+ *   get:
+ *     summary: Get authenticated user's archived posts
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           maximum: 100
+ *     responses:
+ *       200:
+ *         description: Archived posts retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Archived posts retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     posts:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Post'
+ *                     pagination:
+ *                       $ref: '#/components/schemas/Pagination'
+ *       400:
+ *         $ref: '#/components/responses/Error'
+ */
+postsRouter.get(
+  '/archived',
+  verifyAuth,
+  validateDataMiddleware(postsValidator.getPostsQueryValidator, 'query'),
+  WatchAsyncController(postsController.getArchivedPosts)
+);
+
+/**
+ * @swagger
  * /posts/{id}:
  *   get:
  *     summary: Get a single post
@@ -284,22 +356,53 @@ postsRouter.put(
  *                 message:
  *                   type: string
  *                   example: Post archived successfully
- *                 data:
- *                   type: object
- *                   properties:
- *                     is_archived:
- *                       type: boolean
- *                       example: true
  *       400:
- *         description: Bad request
- *       404:
- *         description: Post not found
+ *         description: Bad request or post not found
  */
 postsRouter.patch(
   '/:post_id/archive',
   verifyAuth,
   validateDataMiddleware(postsValidator.postIdValidator, 'params'),
   WatchAsyncController(postsController.archivePost)
+);
+
+/**
+ * @swagger
+ * /posts/{post_id}/unarchive:
+ *   patch:
+ *     summary: Unarchive a post
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: post_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Post unarchived successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Post unarchived successfully
+ *       400:
+ *         description: Bad request or post not found
+ */
+postsRouter.patch(
+  '/:post_id/unarchive',
+  verifyAuth,
+  validateDataMiddleware(postsValidator.postIdValidator, 'params'),
+  WatchAsyncController(postsController.unarchivePost)
 );
 
 /**
@@ -760,7 +863,7 @@ postsRouter.delete(
   WatchAsyncController(postsController.unlikeComment)
 );
 
-// User posts and bookmarks
+// User posts
 /**
  * @swagger
  * /posts/user/{userId}:
@@ -786,25 +889,6 @@ postsRouter.get(
   validateDataMiddleware(postsValidator.userIdValidator, 'params'),
   validateDataMiddleware(postsValidator.getPostsQueryValidator, 'query'),
   WatchAsyncController(postsController.getPostsByUserId)
-);
-
-/**
- * @swagger
- * /posts/bookmarks:
- *   get:
- *     summary: Get user's bookmarked posts
- *     tags: [Posts]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Bookmarks retrieved successfully
- */
-postsRouter.get(
-  '/bookmarks',
-  verifyAuth,
-  validateDataMiddleware(postsValidator.getPostsQueryValidator, 'query'),
-  WatchAsyncController(postsController.getUserBookmarks)
 );
 
 export default postsRouter;

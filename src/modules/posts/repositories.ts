@@ -696,20 +696,63 @@ export class PostsRepositoryImpl implements PostsInterface {
 
   public async archivePost(
     postId: string
-  ): Promise<BadException | NotFoundException | { message: string; is_archived: boolean }> {
+  ): Promise<BadException | { message: string; is_archived: boolean }> {
     try {
       const post = await db.oneOrNone(PostsQuery.getPostById, [postId]);
       if (!post) {
-        return new NotFoundException('Post not found');
+        return new BadException('Post not found');
       }
 
-      if (post.archived_at) {
+      if (post.status === 'archived') {
         return { message: 'Post is already archived', is_archived: true };
       }
 
-      await db.none('UPDATE posts SET archived_at = NOW(), updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL', [postId]);
+      await db.none("UPDATE posts SET status = 'archived', updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL", [postId]);
 
       return { message: 'Post archived successfully', is_archived: true };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async unarchivePost(
+    postId: string
+  ): Promise<BadException | { message: string; is_archived: boolean }> {
+    try {
+      const post = await db.oneOrNone(PostsQuery.getPostById, [postId]);
+      if (!post) {
+        return new BadException('Post not found');
+      }
+
+      if (post.status !== 'archived') {
+        return { message: 'Post is not archived', is_archived: false };
+      }
+
+      await db.one(PostsQuery.unarchivePost, [postId]);
+
+      return { message: 'Post unarchived successfully', is_archived: false };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async getArchivedPosts(
+    userId: string,
+    query: dtos.GetPostsQueryDTO
+  ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> {
+    try {
+      const { page = '1', limit = '20' } = query as { page?: string; limit?: string };
+      const [{ count }, archivedPosts] = await fetchResourceByPage({
+        page,
+        limit,
+        getResources: PostsQuery.getArchivedPosts,
+        params: [userId],
+      });
+
+      return {
+        posts: archivedPosts,
+        pagination: { page: String(page), limit: String(limit), total: count, totalPages: calcPages(count, limit) },
+      };
     } catch (error) {
       return new BadException(`${error.message}`);
     }

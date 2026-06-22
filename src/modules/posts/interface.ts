@@ -81,5 +81,14 @@ export interface PostsInterface {
 
   archivePost(
     postId: string
-  ): Promise<BadException | NotFoundException | { message: string; is_archived: boolean }>;
+  ): Promise<BadException | { message: string; is_archived: boolean }>;
+
+  unarchivePost(
+    postId: string
+  ): Promise<BadException | { message: string; is_archived: boolean }>;
+
+  getArchivedPosts(
+    userId: string,
+    query: dtos.GetPostsQueryDTO
+  ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }>;
 }

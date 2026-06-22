@@ -605,13 +605,51 @@ class PostsRepositoryImpl {
             try {
                 const post = yield database_1.db.oneOrNone(query_1.default.getPostById, [postId]);
                 if (!post) {
-                    return new errors_1.NotFoundException('Post not found');
+                    return new errors_1.BadException('Post not found');
                 }
-                if (post.archived_at) {
+                if (post.status === 'archived') {
                     return { message: 'Post is already archived', is_archived: true };
                 }
-                yield database_1.db.none('UPDATE posts SET archived_at = NOW(), updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL', [postId]);
+                yield database_1.db.none("UPDATE posts SET status = 'archived', updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL", [postId]);
                 return { message: 'Post archived successfully', is_archived: true };
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    unarchivePost(postId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const post = yield database_1.db.oneOrNone(query_1.default.getPostById, [postId]);
+                if (!post) {
+                    return new errors_1.BadException('Post not found');
+                }
+                if (post.status !== 'archived') {
+                    return { message: 'Post is not archived', is_archived: false };
+                }
+                yield database_1.db.one(query_1.default.unarchivePost, [postId]);
+                return { message: 'Post unarchived successfully', is_archived: false };
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    getArchivedPosts(userId, query) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { page = '1', limit = '20' } = query;
+                const [{ count }, archivedPosts] = yield (0, helpers_1.fetchResourceByPage)({
+                    page,
+                    limit,
+                    getResources: query_1.default.getArchivedPosts,
+                    params: [userId],
+                });
+                return {
+                    posts: archivedPosts,
+                    pagination: { page: String(page), limit: String(limit), total: count, totalPages: (0, helpers_1.calcPages)(count, limit) },
+                };
             }
             catch (error) {
                 return new errors_1.BadException(`${error.message}`);

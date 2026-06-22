@@ -326,19 +326,37 @@ class PostsController {
             logger_1.default.info('My posts retrieved successfully', 'posts.controller.ts');
             return ResponseBuilder.success(res, 'Posts retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
         });
-        this.archivePost = (req, res) => __awaiter(this, void 0, void 0, function* () {
+        this.unarchivePost = (req, res) => __awaiter(this, void 0, void 0, function* () {
             const postId = req.params.post_id;
-            const response = yield services_1.default.archivePost(postId);
-            if (response instanceof errors_1.NotFoundException) {
-                logger_1.default.error(response.message, 'posts.controller.ts');
-                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.NOT_FOUND);
-            }
+            const response = yield services_1.default.unarchivePost(postId);
             if (response instanceof errors_1.BadException) {
                 logger_1.default.error(`${response.message}`, 'posts.controller.ts');
                 return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
             }
             logger_1.default.info(response.message, 'posts.controller.ts');
-            return ResponseBuilder.success(res, response.message, http_status_codes_1.StatusCodes.OK, { is_archived: response.is_archived });
+            return ResponseBuilder.success(res, response.message, http_status_codes_1.StatusCodes.OK);
+        });
+        this.archivePost = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            const postId = req.params.post_id;
+            const response = yield services_1.default.archivePost(postId);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(`${response.message}`, 'posts.controller.ts');
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
+            }
+            logger_1.default.info(response.message, 'posts.controller.ts');
+            return ResponseBuilder.success(res, response.message, http_status_codes_1.StatusCodes.OK);
+        });
+        this.getArchivedPosts = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const query = new dtos.GetPostsQueryDTO(req.query);
+            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const response = yield services_1.default.getArchivedPosts(userId, query);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(`${response.message}`, 'posts.controller.ts');
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
+            }
+            logger_1.default.info('Archived posts retrieved successfully', 'posts.controller.ts');
+            return ResponseBuilder.success(res, 'Archived posts retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
         });
         this.getUserBookmarks = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
