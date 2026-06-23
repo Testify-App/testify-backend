@@ -4,6 +4,7 @@ import * as Response from '../../shared/lib/api-response';
 import authenticationRouter from '../../modules/authentication/routes';
 import postsRouter from '../../modules/posts/routes';
 import profilesRouter from '../../modules/profiles/routes';
+import hashtagsRouter from '../../modules/hashtags/routes';
 
 const appRouter = express.Router();
 
@@ -20,5 +21,7 @@ appRouter.use("/auth", authenticationRouter);
 appRouter.use("/posts", postsRouter);
 
 appRouter.use("/profiles", profilesRouter);
+
+appRouter.use("/hashtags", hashtagsRouter);
 
 export const Router = appRouter;

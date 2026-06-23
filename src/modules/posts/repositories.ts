@@ -54,6 +54,15 @@ export class PostsRepositoryImpl implements PostsInterface {
           await t.none('UPDATE posts SET quotes_count = quotes_count + 1 WHERE id = $1', [payload.parent_post_id]);
         }
 
+        // Extract and persist hashtags
+        if (payload.content) {
+          const tags = this.extractHashtags(payload.content);
+          for (const tag of tags) {
+            const hashtag = await t.one(PostsQuery.upsertHashtag, [tag]);
+            await t.none(PostsQuery.createPostHashtag, [post.id, hashtag.id]);
+          }
+        }
+
         // Extract and create mentions
         if (payload.content) {
           const mentions = this.extractMentions(payload.content);
@@ -141,6 +150,22 @@ export class PostsRepositoryImpl implements PostsInterface {
         if (!isOwner.exists) {
           throw new BadException('Post not found or you do not have permission to update it');
         }
+
+        // Re-sync hashtags when content is updated
+        if (payload.content) {
+          const oldTagRows = await t.manyOrNone(PostsQuery.getHashtagIdsByPostId, [payload.post_id]);
+          for (const row of oldTagRows) {
+            await t.none(PostsQuery.decrementHashtagCount, [row.hashtag_id]);
+          }
+          await t.none(PostsQuery.deletePostHashtags, [payload.post_id]);
+
+          const newTags = this.extractHashtags(payload.content);
+          for (const tag of newTags) {
+            const hashtag = await t.one(PostsQuery.upsertHashtag, [tag]);
+            await t.none(PostsQuery.createPostHashtag, [payload.post_id, hashtag.id]);
+          }
+        }
+
         const post = await t.one(PostsQuery.updatePost, [
           payload.post_id,
           payload.content || null,
@@ -164,6 +189,12 @@ export class PostsRepositoryImpl implements PostsInterface {
         const isOwner = await t.one(PostsQuery.isPostOwner, [payload.post_id, payload.user_id]);
         if (!isOwner.exists) {
           throw new NotFoundException('Post not found or you do not have permission to delete it');
+        }
+
+        // Decrement counts for all hashtags on this post before soft-deleting
+        const tagRows = await t.manyOrNone(PostsQuery.getHashtagIdsByPostId, [payload.post_id]);
+        for (const row of tagRows) {
+          await t.none(PostsQuery.decrementHashtagCount, [row.hashtag_id]);
         }
 
         await t.none(PostsQuery.softDeletePost, [payload.post_id, payload.user_id]);
@@ -759,13 +790,19 @@ export class PostsRepositoryImpl implements PostsInterface {
     }
   }
 
+  private extractHashtags(content: string): string[] {
+    const regex = /#([a-zA-Z0-9]+)/g;
+    const matches = content.match(regex) ?? [];
+    const unique = [...new Set(matches.map(m => m.substring(1).toLowerCase()))];
+    return unique.slice(0, 10);
+  }
+
   private extractMentions(content: string): string[] {
     const mentionRegex = /@([a-zA-Z0-9_]+)/g;
     const mentions = content.match(mentionRegex);
     if (!mentions) {
       return [];
     }
-    // Return just the usernames without @
     return mentions.map(m => m.substring(1));
   }
 }

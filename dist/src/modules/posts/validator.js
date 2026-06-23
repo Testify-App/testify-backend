@@ -5,8 +5,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.userIdValidator = exports.commentIdValidator = exports.postIdValidator = exports.getRepostsQueryValidator = exports.getLikesQueryValidator = exports.getCommentsQueryValidator = exports.getPostsQueryValidator = exports.getMyPostsQueryValidator = exports.createCommentValidator = exports.updatePostValidator = exports.createPostValidator = void 0;
 const joi_1 = __importDefault(require("joi"));
+const hashtagContentRule = joi_1.default.string().min(1).max(5000).custom((value, helpers) => {
+    var _a;
+    const regex = /#([a-zA-Z0-9]+)/g;
+    const matches = (_a = value.match(regex)) !== null && _a !== void 0 ? _a : [];
+    const unique = [...new Set(matches.map((m) => m.toLowerCase()))];
+    if (unique.length > 10) {
+        return helpers.error('any.invalid', { message: 'Posts may contain a maximum of 10 hashtags' });
+    }
+    return value;
+}).optional();
 exports.createPostValidator = joi_1.default.object({
-    content: joi_1.default.string().min(1).max(5000).optional(),
+    content: hashtagContentRule,
     visibility: joi_1.default.string().valid('public', 'followers_only', 'mentioned_only', 'private').optional(),
     media_attachments: joi_1.default.array().max(10).items(joi_1.default.object({
         type: joi_1.default.string().valid('image', 'video', 'audio').required(),
@@ -23,7 +33,7 @@ exports.createPostValidator = joi_1.default.object({
     sensitive_content: joi_1.default.boolean().optional(),
 });
 exports.updatePostValidator = joi_1.default.object({
-    content: joi_1.default.string().min(1).max(5000).optional(),
+    content: hashtagContentRule,
     visibility: joi_1.default.string().valid('public', 'followers_only', 'mentioned_only', 'private').optional(),
     media_attachments: joi_1.default.array().max(10).items(joi_1.default.object({
         type: joi_1.default.string().valid('image', 'video', 'audio').required(),

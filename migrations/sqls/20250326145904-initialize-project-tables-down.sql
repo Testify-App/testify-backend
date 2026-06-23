@@ -8,6 +8,8 @@ DROP TABLE IF EXISTS comments;
 DROP TABLE IF EXISTS posts;
 DROP TABLE IF EXISTS user_follows;
 DROP TABLE IF EXISTS user_connections;
+DROP TABLE IF EXISTS post_hashtags;
+DROP TABLE IF EXISTS hashtags;
 
 DROP TABLE IF EXISTS users;
 

@@ -85,6 +85,13 @@ class PostsRepositoryImpl {
                         yield t.none('UPDATE posts SET quotes_count = quotes_count + 1 WHERE id = $1', [payload.parent_post_id]);
                     }
                     if (payload.content) {
+                        const tags = this.extractHashtags(payload.content);
+                        for (const tag of tags) {
+                            const hashtag = yield t.one(query_1.default.upsertHashtag, [tag]);
+                            yield t.none(query_1.default.createPostHashtag, [post.id, hashtag.id]);
+                        }
+                    }
+                    if (payload.content) {
                         const mentions = this.extractMentions(payload.content);
                         for (const mentionedUserId of mentions) {
                             yield t.none(query_1.default.createPostMention, [post.id, mentionedUserId, 'content']);
@@ -158,6 +165,18 @@ class PostsRepositoryImpl {
                     if (!isOwner.exists) {
                         throw new errors_1.BadException('Post not found or you do not have permission to update it');
                     }
+                    if (payload.content) {
+                        const oldTagRows = yield t.manyOrNone(query_1.default.getHashtagIdsByPostId, [payload.post_id]);
+                        for (const row of oldTagRows) {
+                            yield t.none(query_1.default.decrementHashtagCount, [row.hashtag_id]);
+                        }
+                        yield t.none(query_1.default.deletePostHashtags, [payload.post_id]);
+                        const newTags = this.extractHashtags(payload.content);
+                        for (const tag of newTags) {
+                            const hashtag = yield t.one(query_1.default.upsertHashtag, [tag]);
+                            yield t.none(query_1.default.createPostHashtag, [payload.post_id, hashtag.id]);
+                        }
+                    }
                     const post = yield t.one(query_1.default.updatePost, [
                         payload.post_id,
                         payload.content || null,
@@ -181,6 +200,10 @@ class PostsRepositoryImpl {
                     const isOwner = yield t.one(query_1.default.isPostOwner, [payload.post_id, payload.user_id]);
                     if (!isOwner.exists) {
                         throw new errors_1.NotFoundException('Post not found or you do not have permission to delete it');
+                    }
+                    const tagRows = yield t.manyOrNone(query_1.default.getHashtagIdsByPostId, [payload.post_id]);
+                    for (const row of tagRows) {
+                        yield t.none(query_1.default.decrementHashtagCount, [row.hashtag_id]);
                     }
                     yield t.none(query_1.default.softDeletePost, [payload.post_id, payload.user_id]);
                     return { message: 'Post deleted successfully' };
@@ -656,6 +679,13 @@ class PostsRepositoryImpl {
                 return new errors_1.BadException(`${error.message}`);
             }
         });
+    }
+    extractHashtags(content) {
+        var _a;
+        const regex = /#([a-zA-Z0-9]+)/g;
+        const matches = (_a = content.match(regex)) !== null && _a !== void 0 ? _a : [];
+        const unique = [...new Set(matches.map(m => m.substring(1).toLowerCase()))];
+        return unique.slice(0, 10);
     }
     extractMentions(content) {
         const mentionRegex = /@([a-zA-Z0-9_]+)/g;

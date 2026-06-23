@@ -1,7 +1,17 @@
 import Joi from 'joi';
 
+const hashtagContentRule = Joi.string().min(1).max(5000).custom((value, helpers) => {
+  const regex = /#([a-zA-Z0-9]+)/g;
+  const matches = value.match(regex) ?? [];
+  const unique = [...new Set(matches.map((m: string) => m.toLowerCase()))];
+  if (unique.length > 10) {
+    return helpers.error('any.invalid', { message: 'Posts may contain a maximum of 10 hashtags' });
+  }
+  return value;
+}).optional();
+
 export const createPostValidator = Joi.object({
-  content: Joi.string().min(1).max(5000).optional(),
+  content: hashtagContentRule,
   visibility: Joi.string().valid('public', 'followers_only', 'mentioned_only', 'private').optional(),
   media_attachments: Joi.array().max(10).items(
     Joi.object({
@@ -21,7 +31,7 @@ export const createPostValidator = Joi.object({
 });
 
 export const updatePostValidator = Joi.object({
-  content: Joi.string().min(1).max(5000).optional(),
+  content: hashtagContentRule,
   visibility: Joi.string().valid('public', 'followers_only', 'mentioned_only', 'private').optional(),
   media_attachments: Joi.array().max(10).items(
     Joi.object({

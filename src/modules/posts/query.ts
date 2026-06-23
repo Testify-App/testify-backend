@@ -357,4 +357,40 @@ export default {
   isCommentOnPost: `
     SELECT EXISTS(SELECT 1 FROM comments WHERE id = $1 AND post_id = $2);
   `,
+
+  upsertHashtag: `
+    INSERT INTO hashtags (tag)
+    VALUES ($1)
+    ON CONFLICT (tag) DO UPDATE
+      SET posts_count = hashtags.posts_count + 1
+    RETURNING id, tag, posts_count;
+  `,
+
+  createPostHashtag: `
+    INSERT INTO post_hashtags (post_id, hashtag_id)
+    VALUES ($1, $2)
+    ON CONFLICT (post_id, hashtag_id) DO NOTHING;
+  `,
+
+  decrementHashtagCount: `
+    UPDATE hashtags
+    SET posts_count = GREATEST(posts_count - 1, 0)
+    WHERE id = $1;
+  `,
+
+  deletePostHashtags: `
+    DELETE FROM post_hashtags WHERE post_id = $1;
+  `,
+
+  getHashtagIdsByPostId: `
+    SELECT hashtag_id FROM post_hashtags WHERE post_id = $1;
+  `,
+
+  getPostHashtags: `
+    SELECT h.tag
+    FROM post_hashtags ph
+    JOIN hashtags h ON ph.hashtag_id = h.id
+    WHERE ph.post_id = $1
+    ORDER BY h.tag;
+  `,
 };

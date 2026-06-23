@@ -39,6 +39,7 @@ export class PostEntity extends BaseEntity<PostEntity> {
   comments_count?: number;
   reposts_count?: number;
   quotes_count?: number;
+  hashtags?: string[];
   deleted_at?: Date;
   deleted_by?: string;
   created_at?: Date;
@@ -109,6 +110,7 @@ export class PostWithUserEntity extends BaseEntity<PostWithUserEntity> {
   comments_count?: number;
   reposts_count?: number;
   quotes_count?: number;
+  hashtags?: string[];
   created_at?: Date;
   updated_at?: Date;
   is_liked?: boolean;

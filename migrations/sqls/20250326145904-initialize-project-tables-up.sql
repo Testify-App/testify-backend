@@ -163,6 +163,28 @@ CREATE TABLE IF NOT EXISTS user_connections (
   UNIQUE(user_id, connected_user_id)
 );
 
+-- hashtags: canonical tag registry (one row per unique tag)
+CREATE TABLE hashtags (
+  id          VARCHAR(36)  PRIMARY KEY DEFAULT uuid_generate_v1mc(),
+  tag         CITEXT       NOT NULL UNIQUE,
+  posts_count INTEGER      NOT NULL DEFAULT 0,
+  created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_hashtags_tag         ON hashtags (tag);
+CREATE INDEX idx_hashtags_posts_count ON hashtags (posts_count DESC);
+
+-- post_hashtags: junction table linking posts to their hashtags
+CREATE TABLE post_hashtags (
+  post_id     VARCHAR(36)  NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  hashtag_id  VARCHAR(36)  NOT NULL REFERENCES hashtags(id),
+  created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (post_id, hashtag_id)
+);
+
+CREATE INDEX idx_post_hashtags_post_id    ON post_hashtags (post_id);
+CREATE INDEX idx_post_hashtags_hashtag_id ON post_hashtags (hashtag_id);
+
 -- Posts indexes
 CREATE INDEX idx_posts_user_id ON posts(user_id);
 CREATE INDEX idx_posts_created_at ON posts(created_at DESC);
