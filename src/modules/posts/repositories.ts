@@ -726,6 +726,49 @@ export class PostsRepositoryImpl implements PostsInterface {
     }
   }
 
+  public async getFollowingFeed(
+    userId: string,
+    query: dtos.GetPostsQueryDTO
+  ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> {
+    try {
+      const { page = '1', limit = '20' } = query as { page?: string; limit?: string };
+      const [{ count }, posts] = await fetchResourceByPage({
+        page,
+        limit,
+        getResources: PostsQuery.getFollowingFeed,
+        params: [userId],
+      });
+
+      const postsWithEngagement = await Promise.all(
+        posts.map(async (post: any) => {
+          const isLiked = await db.one(PostsQuery.isPostLiked, [post.id, userId]);
+          const isReposted = await db.one(PostsQuery.isReposted, [post.id, userId]);
+          const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
+
+          return new entities.PostWithUserEntity({
+            ...post,
+            is_liked: isLiked.exists,
+            is_reposted: isReposted.exists,
+            is_bookmarked: isBookmarked.exists,
+            user: {
+              id: post.user_id,
+              username: post.username,
+              avatar: post.avatar,
+              display_name: post.display_name,
+            },
+          });
+        })
+      );
+
+      return {
+        posts: postsWithEngagement,
+        pagination: { page: String(page), limit: String(limit), total: count, totalPages: calcPages(count, limit) },
+      };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
   public async archivePost(
     postId: string
   ): Promise<BadException | { message: string; is_archived: boolean }> {

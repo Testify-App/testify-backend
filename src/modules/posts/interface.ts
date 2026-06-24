@@ -91,4 +91,9 @@ export interface PostsInterface {
     userId: string,
     query: dtos.GetPostsQueryDTO
   ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }>;
+
+  getFollowingFeed(
+    userId: string,
+    query: dtos.GetPostsQueryDTO
+  ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }>;
 }

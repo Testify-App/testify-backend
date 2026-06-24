@@ -624,6 +624,37 @@ class PostsRepositoryImpl {
             }
         });
     }
+    getFollowingFeed(userId, query) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { page = '1', limit = '20' } = query;
+                const [{ count }, posts] = yield (0, helpers_1.fetchResourceByPage)({
+                    page,
+                    limit,
+                    getResources: query_1.default.getFollowingFeed,
+                    params: [userId],
+                });
+                const postsWithEngagement = yield Promise.all(posts.map((post) => __awaiter(this, void 0, void 0, function* () {
+                    const isLiked = yield database_1.db.one(query_1.default.isPostLiked, [post.id, userId]);
+                    const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, userId]);
+                    const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, userId]);
+                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
+                            id: post.user_id,
+                            username: post.username,
+                            avatar: post.avatar,
+                            display_name: post.display_name,
+                        } }));
+                })));
+                return {
+                    posts: postsWithEngagement,
+                    pagination: { page: String(page), limit: String(limit), total: count, totalPages: (0, helpers_1.calcPages)(count, limit) },
+                };
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
     archivePost(postId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {

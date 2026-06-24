@@ -358,6 +358,18 @@ class PostsController {
             logger_1.default.info('Archived posts retrieved successfully', 'posts.controller.ts');
             return ResponseBuilder.success(res, 'Archived posts retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
         });
+        this.getFollowingFeed = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const query = new dtos.GetPostsQueryDTO(req.query);
+            const response = yield services_1.default.getFollowingFeed(userId, query);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(`${response.message}`, 'posts.controller.ts');
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
+            }
+            logger_1.default.info('Following feed retrieved successfully', 'posts.controller.ts');
+            return ResponseBuilder.success(res, 'Following feed retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
         this.getUserBookmarks = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
             const query = new dtos.GetPostsQueryDTO(req.query);

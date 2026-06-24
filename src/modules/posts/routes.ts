@@ -255,6 +255,55 @@ postsRouter.get(
 
 /**
  * @swagger
+ * /posts/following-feed:
+ *   get:
+ *     summary: Get posts from users the authenticated user follows
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           maximum: 100
+ *     responses:
+ *       200:
+ *         description: Following feed retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     posts:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Post'
+ *                     pagination:
+ *                       $ref: '#/components/schemas/Pagination'
+ *       400:
+ *         description: Bad request
+ */
+postsRouter.get(
+  '/following-feed',
+  verifyAuth,
+  validateDataMiddleware(postsValidator.getPostsQueryValidator, 'query'),
+  WatchAsyncController(postsController.getFollowingFeed)
+);
+
+/**
+ * @swagger
  * /posts/{id}:
  *   get:
  *     summary: Get a single post

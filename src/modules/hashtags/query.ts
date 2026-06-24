@@ -30,7 +30,7 @@ export default {
   `,
 
   getTrendingHashtags: `
-    SELECT id, tag, posts_count, created_at
+    SELECT id, tag, created_at
     FROM hashtags
     WHERE posts_count > 0
     ORDER BY posts_count DESC

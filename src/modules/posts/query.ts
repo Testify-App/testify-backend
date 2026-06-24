@@ -353,6 +353,34 @@ export default {
     LIMIT $2 OFFSET $1;
   `,
 
+  getFollowingFeed: `
+    WITH recent_posts AS (
+      SELECT
+        p.*,
+        u.id          AS user_id,
+        u.username,
+        u.avatar,
+        u.display_name,
+        ROW_NUMBER() OVER (PARTITION BY p.user_id ORDER BY p.created_at DESC) AS rn
+      FROM posts p
+      JOIN users u        ON p.user_id = u.id
+      JOIN user_follows uf ON uf.following_id = p.user_id
+      WHERE uf.follower_id = $3
+        AND p.deleted_at IS NULL
+        AND p.status != 'archived'
+        AND p.parent_post_id IS NULL
+    )
+    SELECT
+      COUNT(*) OVER () AS count,
+      *,
+      (likes_count * 3 + reposts_count * 2 + comments_count * 1)
+        - (EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 * 0.5) AS score
+    FROM recent_posts
+    WHERE rn <= 5
+    ORDER BY score DESC
+    LIMIT $2 OFFSET $1;
+  `,
+
   isPostOwner: `
     SELECT EXISTS(SELECT 1 FROM posts WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL);
   `,
@@ -362,8 +390,8 @@ export default {
   `,
 
   upsertHashtag: `
-    INSERT INTO hashtags (tag)
-    VALUES ($1)
+    INSERT INTO hashtags (tag, posts_count)
+    VALUES ($1, 1)
     ON CONFLICT (tag) DO UPDATE
       SET posts_count = hashtags.posts_count + 1
     RETURNING id, tag, posts_count;

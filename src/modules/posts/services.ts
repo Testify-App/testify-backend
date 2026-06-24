@@ -170,6 +170,13 @@ export class PostsServiceImpl implements PostsInterface {
   ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> => {
     return await PostsRepository.getArchivedPosts(userId, query);
   };
+
+  public getFollowingFeed = async (
+    userId: string,
+    query: dtos.GetPostsQueryDTO
+  ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> => {
+    return await PostsRepository.getFollowingFeed(userId, query);
+  };
 }
 
 const PostsService = new PostsServiceImpl();

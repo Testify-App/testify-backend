@@ -88,6 +88,9 @@ class PostsServiceImpl {
         this.getArchivedPosts = (userId, query) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.getArchivedPosts(userId, query);
         });
+        this.getFollowingFeed = (userId, query) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.getFollowingFeed(userId, query);
+        });
     }
 }
 exports.PostsServiceImpl = PostsServiceImpl;
