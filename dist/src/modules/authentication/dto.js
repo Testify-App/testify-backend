@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LoginDTO = exports.ResetPasswordDTO = exports.verifyForgotPasswordOTP = exports.ForgotPasswordDTO = exports.UsernameAvailabilityDTO = exports.ActivateRegistrationDTO = exports.RegisterDTO = void 0;
+exports.UpdateFcmTokenDTO = exports.LoginDTO = exports.ResetPasswordDTO = exports.verifyForgotPasswordOTP = exports.ForgotPasswordDTO = exports.UsernameAvailabilityDTO = exports.ActivateRegistrationDTO = exports.RegisterDTO = void 0;
 const base_entity_1 = require("../../shared/utils/base-entity");
 class RegisterDTO extends base_entity_1.BaseEntity {
 }
@@ -29,5 +29,9 @@ exports.ResetPasswordDTO = ResetPasswordDTO;
 class LoginDTO extends base_entity_1.BaseEntity {
 }
 exports.LoginDTO = LoginDTO;
+;
+class UpdateFcmTokenDTO extends base_entity_1.BaseEntity {
+}
+exports.UpdateFcmTokenDTO = UpdateFcmTokenDTO;
 ;
 //# sourceMappingURL=dto.js.map

@@ -858,6 +858,49 @@ postsRouter.get(
 
 /**
  * @swagger
+ * /posts/comments/{id}:
+ *   delete:
+ *     summary: Delete a comment (soft delete)
+ *     description: Soft-deletes a comment by setting `deleted_at` and `deleted_by`. Only the comment author can delete their own comment. The parent post's `comments_count` is decremented.
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID of the comment to delete
+ *     responses:
+ *       200:
+ *         description: Comment deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Comment deleted successfully
+ *       400:
+ *         description: Not the comment owner
+ *       404:
+ *         description: Comment not found
+ */
+postsRouter.delete(
+  '/comments/:id',
+  verifyAuth,
+  validateDataMiddleware(postsValidator.commentIdValidator, 'params'),
+  WatchAsyncController(postsController.deleteComment)
+);
+
+/**
+ * @swagger
  * /posts/comments/{id}/like:
  *   post:
  *     summary: Like a comment

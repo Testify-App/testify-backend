@@ -50,6 +50,9 @@ class AuthenticationServiceImpl {
         this.login = (payload) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.login(payload);
         });
+        this.updateFcmToken = (userId, payload) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.updateFcmToken(userId, payload);
+        });
     }
     forgotPassword(payload) {
         return __awaiter(this, void 0, void 0, function* () {

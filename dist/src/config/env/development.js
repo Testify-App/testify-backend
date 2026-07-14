@@ -17,6 +17,10 @@ const development = {
     MAIL_APP_PASSWORD: process.env.TESTIFY_MAIL_APP_PASSWORD,
     REDIS_URL: process.env.TESTIFY_REDIS_URL,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
+    FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL,
+    FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY,
+    FIREBASE_STORAGE_BUCKET: process.env.FIREBASE_STORAGE_BUCKET,
 };
 exports.default = development;
 //# sourceMappingURL=development.js.map

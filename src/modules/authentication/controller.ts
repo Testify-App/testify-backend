@@ -4,6 +4,7 @@ import { fnRequest } from '../../shared/types';
 import AuthenticationService from './services';
 import logger from '../../shared/services/logger';
 import * as Response from '../../shared/lib/api-response';
+import { ExtendedRequest } from '../../shared/middlewares/auth.middleware';
 import {
   BadException,
   NotFoundException,
@@ -87,6 +88,18 @@ export class AuthenticationController {
     }
     logger.info(`Successfully logged in.`, 'authentication.controller.ts');
     return Response.success(res, `Successfully logged in.`, StatusCodes.OK, response);
+  };
+
+  public updateFcmToken: fnRequest = async (req, res) => {
+    const userId = (req as ExtendedRequest).user?.id as string;
+    const payload = new dtos.UpdateFcmTokenDTO(req.body);
+    const response = await AuthenticationService.updateFcmToken(userId, payload);
+    if (response instanceof BadException) {
+      logger.error(`${response.message}`, 'authentication.controller.ts');
+      return Response.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    logger.info('FCM token updated successfully', 'authentication.controller.ts');
+    return Response.success(res, response.message, StatusCodes.OK);
   };
 }
 

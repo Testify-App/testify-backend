@@ -5,6 +5,7 @@ import authenticationRouter from '../../modules/authentication/routes';
 import postsRouter from '../../modules/posts/routes';
 import profilesRouter from '../../modules/profiles/routes';
 import hashtagsRouter from '../../modules/hashtags/routes';
+import searchRouter from '../../modules/search/routes';
 
 const appRouter = express.Router();
 
@@ -23,5 +24,7 @@ appRouter.use("/posts", postsRouter);
 appRouter.use("/profiles", profilesRouter);
 
 appRouter.use("/hashtags", hashtagsRouter);
+
+appRouter.use("/search", searchRouter);
 
 export const Router = appRouter;

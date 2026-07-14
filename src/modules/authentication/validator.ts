@@ -64,6 +64,8 @@ export const loginPayloadValidator = Joi.object({
   password: joiPassword
     .string()
     .required(),
+
+  fcm_token: Joi.string().optional(),
 });
 
 export const usernameAvailabilityQueryValidator = Joi.object({
@@ -81,6 +83,11 @@ export const activateRegistrationPayloadValidator = Joi.object({
   token: Joi.string()
     .pattern(/^[0-9]{4}$/)
     .required(),
+  fcm_token: Joi.string().optional(),
+});
+
+export const updateFcmTokenValidator = Joi.object({
+  fcm_token: Joi.string().required(),
 });
 
 export const forgotPasswordPayloadValidator = Joi.object({

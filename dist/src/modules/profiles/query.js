@@ -113,8 +113,8 @@ exports.default = {
       u.bio,
       u.created_at
     FROM users u
-    WHERE LOWER(u.username) LIKE LOWER($3)
-    ORDER BY u.created_at DESC
+    WHERE u.search_vector @@ plainto_tsquery('simple', $3)
+    ORDER BY ts_rank(u.search_vector, plainto_tsquery('simple', $3)) DESC, u.created_at DESC
   `,
     fetchProfilePostHistoryById: `
     SELECT COUNT(*) OVER () as count,
@@ -193,7 +193,7 @@ exports.default = {
     JOIN users u ON uc.connected_user_id = u.id
     WHERE uc.user_id = $3
       AND uc.status = 'accepted'
-      AND LOWER(u.username) LIKE LOWER($4)
+      AND u.search_vector @@ plainto_tsquery('simple', $4)
     ORDER BY uc.updated_at DESC;
   `,
     getCircleCount: `

@@ -116,6 +116,13 @@ export class PostsServiceImpl implements PostsInterface {
     return await PostsRepository.getComments(userId, postId, query);
   };
 
+  public deleteComment = async (
+    userId: string,
+    commentId: string
+  ): Promise<BadException | NotFoundException | { message: string }> => {
+    return await PostsRepository.deleteComment(userId, commentId);
+  };
+
   public likeComment = async (
     userId: string,
     commentId: string

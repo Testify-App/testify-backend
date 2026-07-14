@@ -51,6 +51,7 @@ const query_1 = __importDefault(require("./query"));
 const database_1 = require("../../config/database");
 const errors_1 = require("../../shared/lib/errors");
 const helpers_1 = require("../../shared/helpers");
+const notification_1 = __importDefault(require("../../shared/services/notification"));
 class PostsRepositoryImpl {
     createPost(payload) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -445,6 +446,9 @@ class PostsRepositoryImpl {
                     yield t.none(query_1.default.incrementPostCommentsCounter, [postId]);
                     return new entities.CommentEntity(comment);
                 }));
+                if (payload.content) {
+                    this.notifyMentionedUsers(payload.content, userId).catch(() => { });
+                }
                 return response;
             }
             catch (error) {
@@ -453,6 +457,21 @@ class PostsRepositoryImpl {
                 }
                 return new errors_1.BadException(`${error.message}`);
             }
+        });
+    }
+    notifyMentionedUsers(content, commentAuthorId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const usernames = this.extractMentions(content);
+            if (!usernames.length)
+                return;
+            const mentioned = yield database_1.db.manyOrNone(query_1.default.getMentionedUserTokens, [usernames]);
+            if (!(mentioned === null || mentioned === void 0 ? void 0 : mentioned.length))
+                return;
+            const targets = mentioned.filter((u) => u.id !== commentAuthorId);
+            if (!targets.length)
+                return;
+            const tokens = targets.map((u) => u.fcm_token);
+            yield notification_1.default.sendToMultipleDevices(tokens, 'You were mentioned in a comment', content.length > 100 ? `${content.slice(0, 97)}...` : content, { type: 'mention', source: 'comment' });
         });
     }
     getComments(userId, postId, query) {
@@ -486,6 +505,32 @@ class PostsRepositoryImpl {
                 if (error instanceof errors_1.NotFoundException) {
                     return error;
                 }
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    deleteComment(userId, commentId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const response = yield database_1.db.tx((t) => __awaiter(this, void 0, void 0, function* () {
+                    const comment = yield t.oneOrNone(query_1.default.getCommentById, [commentId]);
+                    if (!comment) {
+                        throw new errors_1.NotFoundException('Comment not found');
+                    }
+                    if (comment.user_id !== userId) {
+                        throw new errors_1.BadException('You do not have permission to delete this comment');
+                    }
+                    yield t.one(query_1.default.softDeleteComment, [commentId, userId]);
+                    yield t.none('UPDATE posts SET comments_count = GREATEST(comments_count - 1, 0) WHERE id = $1', [comment.post_id]);
+                    return { message: 'Comment deleted successfully' };
+                }));
+                return response;
+            }
+            catch (error) {
+                if (error instanceof errors_1.NotFoundException)
+                    return error;
+                if (error instanceof errors_1.BadException)
+                    return error;
                 return new errors_1.BadException(`${error.message}`);
             }
         });

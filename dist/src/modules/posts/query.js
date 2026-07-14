@@ -83,7 +83,7 @@ exports.default = {
       AND p.deleted_at IS NULL
       AND p.status != 'archived'
       AND p.parent_post_id IS NULL
-      AND ($4::text IS NULL OR p.content ILIKE '%' || $4 || '%')
+      AND ($4::text IS NULL OR p.search_vector @@ plainto_tsquery('english', $4))
     ORDER BY p.created_at DESC
     LIMIT $2 OFFSET $1;
   `,
@@ -375,6 +375,13 @@ exports.default = {
     JOIN hashtags h ON ph.hashtag_id = h.id
     WHERE ph.post_id = $1
     ORDER BY h.tag;
+  `,
+    getMentionedUserTokens: `
+    SELECT id, username, fcm_token
+    FROM users
+    WHERE username = ANY($1::text[])
+      AND fcm_token IS NOT NULL
+      AND fcm_token != '';
   `,
 };
 //# sourceMappingURL=query.js.map

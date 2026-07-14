@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_changed_count INTEGER DEFAULT 0,
   session_id VARCHAR DEFAULT NULL,
   last_login TIMESTAMPTZ DEFAULT NULL,
-  device_token VARCHAR DEFAULT NULL,
+  fcm_token VARCHAR DEFAULT NULL,
   hash_id_key TEXT NULL,
   bio TEXT NULL,
   instagram TEXT NULL,
@@ -59,7 +59,14 @@ CREATE TABLE IF NOT EXISTS users (
   youtube TEXT NULL,
   terms_and_condition BOOLEAN DEFAULT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NULL
+  updated_at TIMESTAMPTZ DEFAULT NULL,
+  search_vector tsvector GENERATED ALWAYS AS (
+    to_tsvector('simple',
+      coalesce(username, '') || ' ' ||
+      coalesce(display_name, '') || ' ' ||
+      coalesce(bio, '')
+    )
+  ) STORED
 );
 
 DROP TYPE IF EXISTS post_type;
@@ -86,7 +93,10 @@ CREATE TABLE IF NOT EXISTS posts (
   content_flags JSONB DEFAULT NULL,
   status post_status DEFAULT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NULL
+  updated_at TIMESTAMPTZ DEFAULT NULL,
+  search_vector tsvector GENERATED ALWAYS AS (
+    to_tsvector('english', coalesce(content, ''))
+  ) STORED
 );
 
 CREATE TABLE IF NOT EXISTS comments (
@@ -230,3 +240,7 @@ CREATE INDEX idx_user_follows_created_at ON user_follows(created_at DESC);
 CREATE INDEX idx_user_connections_user_id ON user_connections(user_id);
 CREATE INDEX idx_user_connections_connected_user_id ON user_connections(connected_user_id);
 CREATE INDEX idx_user_connections_created_at ON user_connections(created_at DESC);
+
+-- Full-text search indexes
+CREATE INDEX idx_posts_search ON posts USING GIN (search_vector);
+CREATE INDEX idx_users_search ON users USING GIN (search_vector);

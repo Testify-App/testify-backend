@@ -126,6 +126,18 @@ class AuthenticationController {
             logger_1.default.info(`Successfully logged in.`, 'authentication.controller.ts');
             return Response.success(res, `Successfully logged in.`, http_status_codes_1.StatusCodes.OK, response);
         });
+        this.updateFcmToken = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const payload = new dtos.UpdateFcmTokenDTO(req.body);
+            const response = yield services_1.default.updateFcmToken(userId, payload);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(`${response.message}`, 'authentication.controller.ts');
+                return Response.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
+            }
+            logger_1.default.info('FCM token updated successfully', 'authentication.controller.ts');
+            return Response.success(res, response.message, http_status_codes_1.StatusCodes.OK);
+        });
     }
 }
 exports.AuthenticationController = AuthenticationController;

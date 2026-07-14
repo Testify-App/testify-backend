@@ -62,6 +62,11 @@ export interface PostsInterface {
     userId: string,
     commentId: string
   ): Promise<BadException | NotFoundException | { message: string }>;
+
+  deleteComment(
+    userId: string,
+    commentId: string
+  ): Promise<BadException | NotFoundException | { message: string }>;
   
   getPostsByUserId(
     userId: string,
