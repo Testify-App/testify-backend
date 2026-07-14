@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resetPasswordPayloadValidator = exports.verifyForgotPasswordOTPPayloadValidator = exports.forgotPasswordPayloadValidator = exports.activateRegistrationPayloadValidator = exports.usernameAvailabilityQueryValidator = exports.loginPayloadValidator = exports.registerPayloadValidator = exports.passwordSchema = void 0;
+exports.resetPasswordPayloadValidator = exports.verifyForgotPasswordOTPPayloadValidator = exports.forgotPasswordPayloadValidator = exports.updateFcmTokenValidator = exports.activateRegistrationPayloadValidator = exports.usernameAvailabilityQueryValidator = exports.loginPayloadValidator = exports.registerPayloadValidator = exports.passwordSchema = void 0;
 const joi_1 = __importDefault(require("joi"));
 const joi_password_1 = require("joi-password");
 const joiPassword = joi_1.default.extend(joi_password_1.joiPasswordExtendCore);
@@ -55,6 +55,7 @@ exports.loginPayloadValidator = joi_1.default.object({
     password: joiPassword
         .string()
         .required(),
+    fcm_token: joi_1.default.string().optional(),
 });
 exports.usernameAvailabilityQueryValidator = joi_1.default.object({
     username: joi_1.default.string()
@@ -69,6 +70,10 @@ exports.activateRegistrationPayloadValidator = joi_1.default.object({
     token: joi_1.default.string()
         .pattern(/^[0-9]{4}$/)
         .required(),
+    fcm_token: joi_1.default.string().optional(),
+});
+exports.updateFcmTokenValidator = joi_1.default.object({
+    fcm_token: joi_1.default.string().required(),
 });
 exports.forgotPasswordPayloadValidator = joi_1.default.object({
     email: joi_1.default.string().email().required(),

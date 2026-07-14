@@ -1,8 +1,11 @@
-import { Router } from 'express';
+import { Router, RequestHandler } from 'express';
 import * as authValidator from './validator';
 import authenticationController from './controller';
+import * as AuthenticationMiddleware from '../../shared/middlewares/auth.middleware';
 import { WatchAsyncController } from '../../shared/utils/watch-async-controller';
 import { validateDataMiddleware } from '../../shared/middlewares/request-validator.middleware';
+
+const verifyAuth: RequestHandler = AuthenticationMiddleware.verifyAuthTokenMiddleware as RequestHandler;
 
 /**
  * @swagger
@@ -275,6 +278,53 @@ authenticationRouter.patch(
   '/forgot-password/reset',
   validateDataMiddleware(authValidator.resetPasswordPayloadValidator, 'body'),
   WatchAsyncController(authenticationController.resetPassword),
+);
+
+/**
+ * @swagger
+ * /auth/fcm-token:
+ *   patch:
+ *     summary: Update FCM device token
+ *     description: Saves or refreshes the FCM token for the authenticated user. Call this on login, signup activation, and whenever the Firebase SDK fires onTokenRefresh.
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - fcm_token
+ *             properties:
+ *               fcm_token:
+ *                 type: string
+ *                 example: "fME9z8...firebase-token"
+ *     responses:
+ *       200:
+ *         description: FCM token updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: FCM token updated successfully
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ */
+authenticationRouter.patch(
+  '/fcm-token',
+  verifyAuth,
+  validateDataMiddleware(authValidator.updateFcmTokenValidator, 'body'),
+  WatchAsyncController(authenticationController.updateFcmToken)
 );
 
 export default authenticationRouter;

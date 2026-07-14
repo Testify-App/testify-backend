@@ -75,6 +75,13 @@ export class AuthenticationServiceImpl implements AuthenticationInterface {
   ): Promise<BadException | entities.UserEntity> => {
     return await AuthenticationRepository.login(payload);
   };
+
+  public updateFcmToken = async (
+    userId: string,
+    payload: dtos.UpdateFcmTokenDTO
+  ): Promise<BadException | { message: string }> => {
+    return await AuthenticationRepository.updateFcmToken(userId, payload);
+  };
 }
 
 const AuthenticationServices = new AuthenticationServiceImpl();

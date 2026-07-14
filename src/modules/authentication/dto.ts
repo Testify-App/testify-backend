@@ -12,6 +12,7 @@ export class RegisterDTO extends BaseEntity<RegisterDTO> {
 export class ActivateRegistrationDTO extends BaseEntity<ActivateRegistrationDTO> {
   id: string;
   token: string;
+  fcm_token?: string;
 };
 
 export class UsernameAvailabilityDTO extends BaseEntity<UsernameAvailabilityDTO> {
@@ -37,4 +38,9 @@ export class ResetPasswordDTO extends BaseEntity<ResetPasswordDTO> {
 export class LoginDTO extends BaseEntity<LoginDTO> {
   email: string;
   password: string;
+  fcm_token?: string;
+};
+
+export class UpdateFcmTokenDTO extends BaseEntity<UpdateFcmTokenDTO> {
+  fcm_token: string;
 };

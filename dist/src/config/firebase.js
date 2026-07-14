@@ -32,19 +32,32 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.firebaseMessaging = void 0;
+exports.firebaseMessaging = exports.firebaseFirestore = exports.firebaseAuth = void 0;
 const admin = __importStar(require("firebase-admin"));
-const env_1 = __importDefault(require("../shared/utils/env"));
-admin.initializeApp({
-    credential: admin.credential.cert({
-        privateKey: env_1.default.get('KOINS_FIREBASE_PRIVATE_KEY').replace(/\\n/gm, '\n'),
-        projectId: env_1.default.get('KOINS_FIREBASE_PROJECT_ID'),
-        clientEmail: env_1.default.get('KOINS_FIREBASE_CLIENT_EMAIL'),
-    }),
-});
-exports.firebaseMessaging = admin.messaging();
+function buildCredential() {
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+    if (!projectId || !clientEmail || !privateKey) {
+        throw new Error('Missing Firebase credentials. Set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY.');
+    }
+    if (!privateKey.startsWith('-----BEGIN')) {
+        privateKey = Buffer.from(privateKey, 'base64').toString('utf8');
+    }
+    privateKey = privateKey.replace(/\\n/g, '\n');
+    return { projectId, clientEmail, privateKey };
+}
+function initFirebase() {
+    if (admin.apps.length > 0) {
+        return admin.apps[0];
+    }
+    const storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
+    return admin.initializeApp(Object.assign({ credential: admin.credential.cert(buildCredential()) }, (storageBucket && { storageBucket })));
+}
+const firebaseApp = initFirebase();
+exports.firebaseAuth = admin.auth(firebaseApp);
+exports.firebaseFirestore = admin.firestore(firebaseApp);
+exports.firebaseMessaging = admin.messaging(firebaseApp);
+exports.default = firebaseApp;
 //# sourceMappingURL=firebase.js.map

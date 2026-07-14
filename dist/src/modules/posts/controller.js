@@ -269,6 +269,22 @@ class PostsController {
             logger_1.default.info('Comments retrieved successfully', 'posts.controller.ts');
             return ResponseBuilder.success(res, 'Comments retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
         });
+        this.deleteComment = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const commentId = req.params.id;
+            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const response = yield services_1.default.deleteComment(userId, commentId);
+            if (response instanceof errors_1.NotFoundException) {
+                logger_1.default.error(response.message, 'posts.controller.ts');
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.NOT_FOUND);
+            }
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(`${response.message}`, 'posts.controller.ts');
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
+            }
+            logger_1.default.info('Comment deleted successfully', 'posts.controller.ts');
+            return ResponseBuilder.success(res, response.message, http_status_codes_1.StatusCodes.OK);
+        });
         this.likeComment = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
             const commentId = req.params.id;

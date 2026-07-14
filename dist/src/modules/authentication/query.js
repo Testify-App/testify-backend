@@ -104,5 +104,10 @@ exports.default = {
       last_login = NOW()
     WHERE id = $1;
   `,
+    saveFcmToken: `
+    UPDATE users
+    SET fcm_token = $2, updated_at = NOW()
+    WHERE id = $1;
+  `,
 };
 //# sourceMappingURL=query.js.map

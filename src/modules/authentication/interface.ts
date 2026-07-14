@@ -14,4 +14,5 @@ export interface AuthenticationInterface {
   verifyForgotPasswordOTP(res: Response, payload: dtos.verifyForgotPasswordOTP): Promise<BadException | entities.UserEntity>;
   resetPassword(payload: dtos.ResetPasswordDTO): Promise<BadException | entities.UserEntity>;
   login(payload: dtos.LoginDTO): Promise<BadException | entities.UserEntity>;
+  updateFcmToken(userId: string, payload: dtos.UpdateFcmTokenDTO): Promise<BadException | { message: string }>;
 };

@@ -235,6 +235,22 @@ export class PostsController {
     return ResponseBuilder.success(res, 'Comments retrieved successfully', StatusCodes.OK, response);
   };
 
+  public deleteComment: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const commentId = req.params.id;
+    const userId = req.user?.id as string;
+    const response = await PostsService.deleteComment(userId, commentId);
+    if (response instanceof NotFoundException) {
+      logger.error(response.message, 'posts.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
+    }
+    if (response instanceof BadException) {
+      logger.error(`${response.message}`, 'posts.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    logger.info('Comment deleted successfully', 'posts.controller.ts');
+    return ResponseBuilder.success(res, response.message, StatusCodes.OK);
+  };
+
   public likeComment: fnRequest = async (req: AuthenticatedRequest, res) => {
     const commentId = req.params.id;
     const userId = req.user?.id as string;

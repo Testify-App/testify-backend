@@ -39,8 +39,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const authValidator = __importStar(require("./validator"));
 const controller_1 = __importDefault(require("./controller"));
+const AuthenticationMiddleware = __importStar(require("../../shared/middlewares/auth.middleware"));
 const watch_async_controller_1 = require("../../shared/utils/watch-async-controller");
 const request_validator_middleware_1 = require("../../shared/middlewares/request-validator.middleware");
+const verifyAuth = AuthenticationMiddleware.verifyAuthTokenMiddleware;
 const authenticationRouter = (0, express_1.Router)();
 authenticationRouter.post('/login', (0, request_validator_middleware_1.validateDataMiddleware)(authValidator.loginPayloadValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.login));
 authenticationRouter.post('/register', (0, request_validator_middleware_1.validateDataMiddleware)(authValidator.registerPayloadValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.register));
@@ -49,5 +51,6 @@ authenticationRouter.get('/username-availability', (0, request_validator_middlew
 authenticationRouter.post('/forgot-password', (0, request_validator_middleware_1.validateDataMiddleware)(authValidator.forgotPasswordPayloadValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.forgotPassword));
 authenticationRouter.post('/forgot-password/verify', (0, request_validator_middleware_1.validateDataMiddleware)(authValidator.verifyForgotPasswordOTPPayloadValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.verifyForgotPasswordOTP));
 authenticationRouter.patch('/forgot-password/reset', (0, request_validator_middleware_1.validateDataMiddleware)(authValidator.resetPasswordPayloadValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.resetPassword));
+authenticationRouter.patch('/fcm-token', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(authValidator.updateFcmTokenValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.updateFcmToken));
 exports.default = authenticationRouter;
 //# sourceMappingURL=routes.js.map

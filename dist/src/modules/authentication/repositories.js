@@ -110,6 +110,9 @@ class AuthenticationRepositoryImpl {
                     if (!isValid) {
                         throw new errors_1.BadException('Invalid or expired OTP credentials.');
                     }
+                    if (payload.fcm_token) {
+                        yield t.none(query_1.default.saveFcmToken, [user.id, payload.fcm_token]);
+                    }
                     const signedData = {
                         id: user.id,
                         email: user.email,
@@ -236,6 +239,9 @@ class AuthenticationRepositoryImpl {
                     }
                     const session_id = crypto_1.default.randomBytes(32).toString('hex');
                     const setLoginTime = yield (0, helpers_1.setLastLoginTime)([user.id, session_id], 'user', t);
+                    if (payload.fcm_token) {
+                        yield t.none(query_1.default.saveFcmToken, [user.id, payload.fcm_token]);
+                    }
                     const signedData = {
                         id: user.id,
                         email: user.email,
@@ -257,6 +263,18 @@ class AuthenticationRepositoryImpl {
                     return data;
                 }));
                 return response;
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    ;
+    updateFcmToken(userId, payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield database_1.db.none(query_1.default.saveFcmToken, [userId, payload.fcm_token]);
+                return { message: 'FCM token updated successfully' };
             }
             catch (error) {
                 return new errors_1.BadException(`${error.message}`);

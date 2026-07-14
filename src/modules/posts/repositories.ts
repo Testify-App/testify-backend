@@ -13,6 +13,7 @@ import {
   fetchResourceByPage,
   FetchPaginatedResponse,
 } from '../../shared/helpers';
+import NotificationService from '../../shared/services/notification';
 
 export class PostsRepositoryImpl implements PostsInterface {
   public async createPost(
@@ -493,6 +494,12 @@ export class PostsRepositoryImpl implements PostsInterface {
 
         return new entities.CommentEntity(comment);
       });
+
+      // Fire mention push notifications asynchronously — never block the response
+      if (payload.content) {
+        this.notifyMentionedUsers(payload.content, userId).catch(() => {});
+      }
+
       return response;
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -500,6 +507,29 @@ export class PostsRepositoryImpl implements PostsInterface {
       }
       return new BadException(`${error.message}`);
     }
+  }
+
+  private async notifyMentionedUsers(content: string, commentAuthorId: string): Promise<void> {
+    const usernames = this.extractMentions(content);
+    if (!usernames.length) return;
+
+    const mentioned: Array<{ id: string; username: string; fcm_token: string }> =
+      await db.manyOrNone(PostsQuery.getMentionedUserTokens, [usernames]);
+
+    if (!mentioned?.length) return;
+
+    // Exclude the commenter themselves from receiving a notification
+    const targets = mentioned.filter((u) => u.id !== commentAuthorId);
+    if (!targets.length) return;
+
+    const tokens = targets.map((u) => u.fcm_token);
+
+    await NotificationService.sendToMultipleDevices(
+      tokens,
+      'You were mentioned in a comment',
+      content.length > 100 ? `${content.slice(0, 97)}...` : content,
+      { type: 'mention', source: 'comment' },
+    );
   }
 
   public async getComments(
@@ -545,6 +575,37 @@ export class PostsRepositoryImpl implements PostsInterface {
       if (error instanceof NotFoundException) {
         return error;
       }
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async deleteComment(
+    userId: string,
+    commentId: string
+  ): Promise<BadException | NotFoundException | { message: string }> {
+    try {
+      const response = await db.tx(async (t) => {
+        const comment = await t.oneOrNone(PostsQuery.getCommentById, [commentId]);
+        if (!comment) {
+          throw new NotFoundException('Comment not found');
+        }
+
+        if (comment.user_id !== userId) {
+          throw new BadException('You do not have permission to delete this comment');
+        }
+
+        await t.one(PostsQuery.softDeleteComment, [commentId, userId]);
+        await t.none(
+          'UPDATE posts SET comments_count = GREATEST(comments_count - 1, 0) WHERE id = $1',
+          [comment.post_id]
+        );
+
+        return { message: 'Comment deleted successfully' };
+      });
+      return response;
+    } catch (error) {
+      if (error instanceof NotFoundException) return error;
+      if (error instanceof BadException) return error;
       return new BadException(`${error.message}`);
     }
   }
