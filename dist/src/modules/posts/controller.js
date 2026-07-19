@@ -79,7 +79,9 @@ class PostsController {
             return ResponseBuilder.success(res, 'Posts retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
         });
         this.getPost = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
             const query = new dtos.GetPostQueryDTO(req.params);
+            query.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
             const response = yield services_1.default.getPost(query);
             if (response instanceof errors_1.NotFoundException) {
                 logger_1.default.error(response.message, 'posts.controller.ts');

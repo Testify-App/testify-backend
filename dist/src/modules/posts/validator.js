@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.userIdValidator = exports.commentIdValidator = exports.postIdValidator = exports.getRepostsQueryValidator = exports.getLikesQueryValidator = exports.getCommentsQueryValidator = exports.getPostsQueryValidator = exports.getMyPostsQueryValidator = exports.createCommentValidator = exports.updatePostValidator = exports.createPostValidator = void 0;
+exports.userIdValidator = exports.commentIdValidator = exports.idValidator = exports.postIdValidator = exports.getRepostsQueryValidator = exports.getLikesQueryValidator = exports.getCommentsQueryValidator = exports.getPostsQueryValidator = exports.getMyPostsQueryValidator = exports.createCommentValidator = exports.updatePostValidator = exports.createPostValidator = void 0;
 const joi_1 = __importDefault(require("joi"));
 const hashtagContentRule = joi_1.default.string().min(1).max(5000).custom((value, helpers) => {
     var _a;
@@ -89,6 +89,9 @@ exports.getRepostsQueryValidator = joi_1.default.object({
 });
 exports.postIdValidator = joi_1.default.object({
     post_id: joi_1.default.string().uuid().required(),
+});
+exports.idValidator = joi_1.default.object({
+    id: joi_1.default.string().uuid().required(),
 });
 exports.commentIdValidator = joi_1.default.object({
     id: joi_1.default.string().uuid().required(),
