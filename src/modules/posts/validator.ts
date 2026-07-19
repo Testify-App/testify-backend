@@ -100,6 +100,10 @@ export const postIdValidator = Joi.object({
   post_id: Joi.string().uuid().required(),
 });
 
+export const idValidator = Joi.object({
+  id: Joi.string().uuid().required(),
+});
+
 export const commentIdValidator = Joi.object({
   id: Joi.string().uuid().required(),
 });

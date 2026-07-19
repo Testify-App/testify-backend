@@ -114,11 +114,31 @@ export class PostsRepositoryImpl implements PostsInterface {
         params: [user_id],
       });
 
+      const postsWithEngagement = await Promise.all(
+        posts.map(async (post: any) => {
+          const isLiked = await db.one(PostsQuery.isPostLiked, [post.id, user_id]);
+          const isReposted = await db.one(PostsQuery.isReposted, [post.id, user_id]);
+          const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, user_id]);
+
+          return new entities.PostWithUserEntity({
+            ...post,
+            is_liked: isLiked.exists,
+            is_reposted: isReposted.exists,
+            is_bookmarked: isBookmarked.exists,
+            user: {
+              id: post.user_id,
+              username: post.username,
+              avatar: post.avatar,
+            },
+          });
+        })
+      );
+
       return {
         total: count,
         currentPage: page,
         totalPages: calcPages(count, limit),
-        posts: posts,
+        posts: postsWithEngagement,
       };
     } catch (error) {
       return new InternalServerErrorException(`${error.message}`);
@@ -134,7 +154,21 @@ export class PostsRepositoryImpl implements PostsInterface {
         return new NotFoundException('Post not found');
       }
 
-      return new entities.PostWithUserEntity(post);
+      const isLiked = await db.one(PostsQuery.isPostLiked, [post.id, payload.user_id]);
+      const isReposted = await db.one(PostsQuery.isReposted, [post.id, payload.user_id]);
+      const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, payload.user_id]);
+
+      return new entities.PostWithUserEntity({
+        ...post,
+        is_liked: isLiked.exists,
+        is_reposted: isReposted.exists,
+        is_bookmarked: isBookmarked.exists,
+        user: {
+          id: post.user_id,
+          username: post.username,
+          avatar: post.avatar,
+        },
+      });
     } catch (error) {
       return new NotFoundException(`${error.message}`);
     }
@@ -778,8 +812,28 @@ export class PostsRepositoryImpl implements PostsInterface {
         params: [userId, search ?? null],
       });
 
+      const postsWithEngagement = await Promise.all(
+        posts.map(async (post: any) => {
+          const isLiked = await db.one(PostsQuery.isPostLiked, [post.id, userId]);
+          const isReposted = await db.one(PostsQuery.isReposted, [post.id, userId]);
+          const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
+
+          return new entities.PostWithUserEntity({
+            ...post,
+            is_liked: isLiked.exists,
+            is_reposted: isReposted.exists,
+            is_bookmarked: isBookmarked.exists,
+            user: {
+              id: post.user_id,
+              username: post.username,
+              avatar: post.avatar,
+            },
+          });
+        })
+      );
+
       return {
-        posts: posts,
+        posts: postsWithEngagement,
         pagination: { page: String(page), limit: String(limit), total: count, totalPages: calcPages(count, limit) },
       };
     } catch (error) {
