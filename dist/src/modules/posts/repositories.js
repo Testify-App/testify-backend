@@ -128,11 +128,21 @@ class PostsRepositoryImpl {
                     getResources: query_1.default.getPostsFeed,
                     params: [user_id],
                 });
+                const postsWithEngagement = yield Promise.all(posts.map((post) => __awaiter(this, void 0, void 0, function* () {
+                    const isLiked = yield database_1.db.one(query_1.default.isPostLiked, [post.id, user_id]);
+                    const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, user_id]);
+                    const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, user_id]);
+                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
+                            id: post.user_id,
+                            username: post.username,
+                            avatar: post.avatar,
+                        } }));
+                })));
                 return {
                     total: count,
                     currentPage: page,
                     totalPages: (0, helpers_1.calcPages)(count, limit),
-                    posts: posts,
+                    posts: postsWithEngagement,
                 };
             }
             catch (error) {
@@ -148,7 +158,14 @@ class PostsRepositoryImpl {
                 if (!post) {
                     return new errors_1.NotFoundException('Post not found');
                 }
-                return new entities.PostWithUserEntity(post);
+                const isLiked = yield database_1.db.one(query_1.default.isPostLiked, [post.id, payload.user_id]);
+                const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, payload.user_id]);
+                const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, payload.user_id]);
+                return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
+                        id: post.user_id,
+                        username: post.username,
+                        avatar: post.avatar,
+                    } }));
             }
             catch (error) {
                 return new errors_1.NotFoundException(`${error.message}`);
@@ -659,8 +676,18 @@ class PostsRepositoryImpl {
                     getResources: query_1.default.getMyPosts,
                     params: [userId, search !== null && search !== void 0 ? search : null],
                 });
+                const postsWithEngagement = yield Promise.all(posts.map((post) => __awaiter(this, void 0, void 0, function* () {
+                    const isLiked = yield database_1.db.one(query_1.default.isPostLiked, [post.id, userId]);
+                    const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, userId]);
+                    const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, userId]);
+                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
+                            id: post.user_id,
+                            username: post.username,
+                            avatar: post.avatar,
+                        } }));
+                })));
                 return {
-                    posts: posts,
+                    posts: postsWithEngagement,
                     pagination: { page: String(page), limit: String(limit), total: count, totalPages: (0, helpers_1.calcPages)(count, limit) },
                 };
             }
