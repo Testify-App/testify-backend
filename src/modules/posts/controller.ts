@@ -43,6 +43,7 @@ export class PostsController {
 
   public getPost: fnRequest = async (req: AuthenticatedRequest, res) => {
     const query = new dtos.GetPostQueryDTO(req.params);
+    query.user_id = req.user?.id as string;
     const response = await PostsService.getPost(query);
     if (response instanceof NotFoundException) {
       logger.error(response.message, 'posts.controller.ts');
