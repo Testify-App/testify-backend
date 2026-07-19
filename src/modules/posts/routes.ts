@@ -814,7 +814,7 @@ postsRouter.delete(
 postsRouter.post(
   '/:id/comments',
   verifyAuth,
-  validateDataMiddleware(postsValidator.postIdValidator, 'params'),
+  validateDataMiddleware(postsValidator.idValidator, 'params'),
   validateDataMiddleware(postsValidator.createCommentValidator, 'body'),
   WatchAsyncController(postsController.createComment)
 );
@@ -851,7 +851,7 @@ postsRouter.post(
 postsRouter.get(
   '/:id/comments',
   verifyAuth,
-  validateDataMiddleware(postsValidator.postIdValidator, 'params'),
+  validateDataMiddleware(postsValidator.idValidator, 'params'),
   validateDataMiddleware(postsValidator.getCommentsQueryValidator, 'query'),
   WatchAsyncController(postsController.getComments)
 );

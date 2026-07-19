@@ -7,3 +7,5 @@ coverage
 package-lock.json
 yarn-error.log
 yarn.lock
+*firebase-adminsdk*.json
+*.serviceaccount.json
