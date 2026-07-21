@@ -8,7 +8,7 @@ const swagger_jsdoc_1 = __importDefault(require("swagger-jsdoc"));
 const env_1 = __importDefault(require("../../shared/utils/env"));
 const swaggerURL = env_1.default.get('NODE_ENV') === 'development'
     ? 'http://localhost:8081/api/v1'
-    : 'https://testify-backend-kgtv.onrender.com/api/v1';
+    : 'https://testify-backend-5k67.onrender.com/api/v1';
 const options = {
     definition: {
         openapi: '3.0.0',
