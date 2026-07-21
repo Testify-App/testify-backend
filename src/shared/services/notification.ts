@@ -50,7 +50,7 @@ class NotificationServiceImpl {
     }
 
     try {
-      const result = await firebaseMessaging.sendEachForMulticast({
+      const result = await firebaseMessaging.sendMulticast({
         tokens,
         ...buildPayload(title, body, data, imageUrl),
       });
