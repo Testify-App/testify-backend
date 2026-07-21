@@ -32,7 +32,7 @@ class NotificationServiceImpl {
                 return { successCount: 0, failureCount: 0, responses: [] };
             }
             try {
-                const result = yield firebase_1.firebaseMessaging.sendEachForMulticast(Object.assign({ tokens }, buildPayload(title, body, data, imageUrl)));
+                const result = yield firebase_1.firebaseMessaging.sendMulticast(Object.assign({ tokens }, buildPayload(title, body, data, imageUrl)));
                 return {
                     successCount: result.successCount,
                     failureCount: result.failureCount,
