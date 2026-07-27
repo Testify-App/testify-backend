@@ -154,7 +154,7 @@ exports.default = {
       AND c.deleted_at IS NULL
       AND c.parent_comment_id IS NULL
     ORDER BY c.created_at DESC
-    LIMIT $1 OFFSET $2;
+    LIMIT $2 OFFSET $1;
   `,
     getPostCommentsCount: `
     SELECT COUNT(*) as total FROM comments 
