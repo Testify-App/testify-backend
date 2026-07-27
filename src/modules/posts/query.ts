@@ -137,8 +137,7 @@ export default {
     SET 
       comments_count = comments_count + 1,
       updated_at = NOW()
-    WHERE id = $1
-    RETURNING *;
+    WHERE id = $1;
   `,
 
   createComment: `
@@ -226,8 +225,7 @@ export default {
   likeComment: `
     INSERT INTO comment_likes (comment_id, user_id)
     VALUES ($1, $2)
-    ON CONFLICT (comment_id, user_id) DO NOTHING
-    RETURNING *;
+    ON CONFLICT (comment_id, user_id) DO NOTHING;
   `,
 
   unlikeComment: `
@@ -269,15 +267,13 @@ export default {
   createPostMention: `
     INSERT INTO post_mentions (post_id, mentioned_user_id, mention_type)
     VALUES ($1, $2, $3)
-    ON CONFLICT (post_id, mentioned_user_id) DO NOTHING
-    RETURNING *;
+    ON CONFLICT (post_id, mentioned_user_id) DO NOTHING;
   `,
 
   bookmarkPost: `
     INSERT INTO post_bookmarks (post_id, user_id)
     VALUES ($1, $2)
-    ON CONFLICT (post_id, user_id) DO NOTHING
-    RETURNING *;
+    ON CONFLICT (post_id, user_id) DO NOTHING;
   `,
 
   unbookmarkPost: `
