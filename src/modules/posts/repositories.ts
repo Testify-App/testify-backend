@@ -66,13 +66,22 @@ export class PostsRepositoryImpl implements PostsInterface {
 
         // Extract and create mentions
         if (payload.content) {
-          const mentions = this.extractMentions(payload.content);
-          for (const mentionedUserId of mentions) {
-            await t.none(PostsQuery.createPostMention, [post.id, mentionedUserId, 'content']);
+          const usernames = this.extractMentions(payload.content);
+          if (usernames.length > 0) {
+            const mentionedUsers: Array<{ id: string }> = await t.manyOrNone(
+              PostsQuery.getMentionedUserIds,
+              [usernames]
+            );
+            for (const user of mentionedUsers) {
+              await t.none(PostsQuery.createPostMention, [post.id, user.id, 'content']);
+            }
           }
         }
 
-        return new entities.PostEntity(post);
+        const content_segments = payload.content
+          ? await this.parseContentSegments(payload.content)
+          : [];
+        return Object.assign(new entities.PostEntity(post), { content_segments });
       });
 
       // AI moderation pipeline runs asynchronously after post creation.
@@ -119,9 +128,11 @@ export class PostsRepositoryImpl implements PostsInterface {
           const isLiked = await db.one(PostsQuery.isPostLiked, [post.id, user_id]);
           const isReposted = await db.one(PostsQuery.isReposted, [post.id, user_id]);
           const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, user_id]);
+          const content_segments = await this.parseContentSegments(post.content);
 
           return new entities.PostWithUserEntity({
             ...post,
+            content_segments,
             is_liked: isLiked.exists,
             is_reposted: isReposted.exists,
             is_bookmarked: isBookmarked.exists,
@@ -157,9 +168,11 @@ export class PostsRepositoryImpl implements PostsInterface {
       const isLiked = await db.one(PostsQuery.isPostLiked, [post.id, payload.user_id]);
       const isReposted = await db.one(PostsQuery.isReposted, [post.id, payload.user_id]);
       const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, payload.user_id]);
+      const content_segments = await this.parseContentSegments(post.content);
 
       return new entities.PostWithUserEntity({
         ...post,
+        content_segments,
         is_liked: isLiked.exists,
         is_reposted: isReposted.exists,
         is_bookmarked: isBookmarked.exists,
@@ -526,7 +539,10 @@ export class PostsRepositoryImpl implements PostsInterface {
 
         await t.none(PostsQuery.incrementPostCommentsCounter, [postId]);
 
-        return new entities.CommentEntity(comment);
+        const content_segments = payload.content
+          ? await this.parseContentSegments(payload.content)
+          : [];
+        return Object.assign(new entities.CommentEntity(comment), { content_segments });
       });
 
       // Fire mention push notifications asynchronously — never block the response
@@ -588,9 +604,11 @@ export class PostsRepositoryImpl implements PostsInterface {
       const commentsWithEngagement = await Promise.all(
         comments.map(async (comment: any) => {
           const isLiked = await db.one(PostsQuery.isCommentLiked, [comment.id, userId]);
+          const content_segments = await this.parseContentSegments(comment.content);
 
           return new entities.CommentWithUserEntity({
             ...comment,
+            content_segments,
             is_liked: isLiked.exists,
             user: {
               id: comment.user_id,
@@ -731,9 +749,11 @@ export class PostsRepositoryImpl implements PostsInterface {
           const isLiked = await db.one(PostsQuery.isPostLiked, [post.id, userId]);
           const isReposted = await db.one(PostsQuery.isReposted, [post.id, userId]);
           const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
+          const content_segments = await this.parseContentSegments(post.content);
 
           return new entities.PostWithUserEntity({
             ...post,
+            content_segments,
             is_liked: isLiked.exists,
             is_reposted: isReposted.exists,
             is_bookmarked: isBookmarked.exists,
@@ -774,9 +794,11 @@ export class PostsRepositoryImpl implements PostsInterface {
           const isLiked = await db.one(PostsQuery.isPostLiked, [post.id, userId]);
           const isReposted = await db.one(PostsQuery.isReposted, [post.id, userId]);
           const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
+          const content_segments = await this.parseContentSegments(post.content);
 
           return new entities.PostWithUserEntity({
             ...post,
+            content_segments,
             is_liked: isLiked.exists,
             is_reposted: isReposted.exists,
             is_bookmarked: isBookmarked.exists,
@@ -817,9 +839,11 @@ export class PostsRepositoryImpl implements PostsInterface {
           const isLiked = await db.one(PostsQuery.isPostLiked, [post.id, userId]);
           const isReposted = await db.one(PostsQuery.isReposted, [post.id, userId]);
           const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
+          const content_segments = await this.parseContentSegments(post.content);
 
           return new entities.PostWithUserEntity({
             ...post,
+            content_segments,
             is_liked: isLiked.exists,
             is_reposted: isReposted.exists,
             is_bookmarked: isBookmarked.exists,
@@ -859,9 +883,11 @@ export class PostsRepositoryImpl implements PostsInterface {
           const isLiked = await db.one(PostsQuery.isPostLiked, [post.id, userId]);
           const isReposted = await db.one(PostsQuery.isReposted, [post.id, userId]);
           const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
+          const content_segments = await this.parseContentSegments(post.content);
 
           return new entities.PostWithUserEntity({
             ...post,
+            content_segments,
             is_liked: isLiked.exists,
             is_reposted: isReposted.exists,
             is_bookmarked: isBookmarked.exists,
@@ -946,6 +972,46 @@ export class PostsRepositoryImpl implements PostsInterface {
     } catch (error) {
       return new BadException(`${error.message}`);
     }
+  }
+
+  private async parseContentSegments(content: string): Promise<entities.ContentSegment[]> {
+    if (!content) return [];
+
+    const tokenRegex = /(@[a-zA-Z0-9_]+|#[a-zA-Z0-9]+)/g;
+    const parts = content.split(tokenRegex);
+
+    const mentionUsernames = parts
+      .filter(p => p.startsWith('@'))
+      .map(p => p.substring(1));
+
+    const userMap = new Map<string, string>();
+    if (mentionUsernames.length > 0) {
+      const users: Array<{ id: string; username: string }> = await db.manyOrNone(
+        PostsQuery.getMentionedUserIds,
+        [mentionUsernames]
+      );
+      for (const u of users) {
+        userMap.set(u.username.toLowerCase(), u.id);
+      }
+    }
+
+    const segments: entities.ContentSegment[] = [];
+    for (const part of parts) {
+      if (!part) continue;
+      if (part.startsWith('@')) {
+        const username = part.substring(1);
+        segments.push({
+          type: 'mention',
+          value: part,
+          user_id: userMap.get(username.toLowerCase()),
+        });
+      } else if (part.startsWith('#')) {
+        segments.push({ type: 'hashtag', value: part });
+      } else if (part.trim()) {
+        segments.push({ type: 'text', value: part });
+      }
+    }
+    return segments;
   }
 
   private extractHashtags(content: string): string[] {

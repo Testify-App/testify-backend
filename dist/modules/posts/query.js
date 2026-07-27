@@ -372,6 +372,9 @@ exports.default = {
     WHERE ph.post_id = $1
     ORDER BY h.tag;
   `,
+    getMentionedUserIds: `
+    SELECT id, username FROM users WHERE username = ANY($1::text[]);
+  `,
     getMentionedUserTokens: `
     SELECT id, username, fcm_token
     FROM users
