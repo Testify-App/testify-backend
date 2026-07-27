@@ -256,7 +256,6 @@ class PostsController {
         });
         this.getComments = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
-            console.log('getComments');
             const postId = req.params.id;
             const query = new dtos.GetCommentsQueryDTO(req.query);
             const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
