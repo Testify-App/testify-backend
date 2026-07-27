@@ -127,8 +127,7 @@ exports.default = {
     SET 
       comments_count = comments_count + 1,
       updated_at = NOW()
-    WHERE id = $1
-    RETURNING *;
+    WHERE id = $1;
   `,
     createComment: `
     INSERT INTO comments (
@@ -204,8 +203,7 @@ exports.default = {
     likeComment: `
     INSERT INTO comment_likes (comment_id, user_id)
     VALUES ($1, $2)
-    ON CONFLICT (comment_id, user_id) DO NOTHING
-    RETURNING *;
+    ON CONFLICT (comment_id, user_id) DO NOTHING;
   `,
     unlikeComment: `
     DELETE FROM comment_likes WHERE comment_id = $1 AND user_id = $2;
@@ -239,14 +237,12 @@ exports.default = {
     createPostMention: `
     INSERT INTO post_mentions (post_id, mentioned_user_id, mention_type)
     VALUES ($1, $2, $3)
-    ON CONFLICT (post_id, mentioned_user_id) DO NOTHING
-    RETURNING *;
+    ON CONFLICT (post_id, mentioned_user_id) DO NOTHING;
   `,
     bookmarkPost: `
     INSERT INTO post_bookmarks (post_id, user_id)
     VALUES ($1, $2)
-    ON CONFLICT (post_id, user_id) DO NOTHING
-    RETURNING *;
+    ON CONFLICT (post_id, user_id) DO NOTHING;
   `,
     unbookmarkPost: `
     DELETE FROM post_bookmarks WHERE post_id = $1 AND user_id = $2;
