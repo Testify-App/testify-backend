@@ -421,6 +421,10 @@ export default {
     ORDER BY h.tag;
   `,
 
+  getMentionedUserIds: `
+    SELECT id, username FROM users WHERE username = ANY($1::text[]);
+  `,
+
   // Returns id, username, and fcm_token for each mentioned username that has an FCM token
   getMentionedUserTokens: `
     SELECT id, username, fcm_token

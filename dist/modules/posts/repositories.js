@@ -93,12 +93,18 @@ class PostsRepositoryImpl {
                         }
                     }
                     if (payload.content) {
-                        const mentions = this.extractMentions(payload.content);
-                        for (const mentionedUserId of mentions) {
-                            yield t.none(query_1.default.createPostMention, [post.id, mentionedUserId, 'content']);
+                        const usernames = this.extractMentions(payload.content);
+                        if (usernames.length > 0) {
+                            const mentionedUsers = yield t.manyOrNone(query_1.default.getMentionedUserIds, [usernames]);
+                            for (const user of mentionedUsers) {
+                                yield t.none(query_1.default.createPostMention, [post.id, user.id, 'content']);
+                            }
                         }
                     }
-                    return new entities.PostEntity(post);
+                    const content_segments = payload.content
+                        ? yield this.parseContentSegments(payload.content)
+                        : [];
+                    return Object.assign(new entities.PostEntity(post), { content_segments });
                 }));
                 if (payload.sensitive_content && payload.content) {
                     const sampleFlags = {
@@ -132,7 +138,8 @@ class PostsRepositoryImpl {
                     const isLiked = yield database_1.db.one(query_1.default.isPostLiked, [post.id, user_id]);
                     const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, user_id]);
                     const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, user_id]);
-                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
+                    const content_segments = yield this.parseContentSegments(post.content);
+                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
                             id: post.user_id,
                             username: post.username,
                             avatar: post.avatar,
@@ -161,7 +168,8 @@ class PostsRepositoryImpl {
                 const isLiked = yield database_1.db.one(query_1.default.isPostLiked, [post.id, payload.user_id]);
                 const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, payload.user_id]);
                 const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, payload.user_id]);
-                return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
+                const content_segments = yield this.parseContentSegments(post.content);
+                return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
                         id: post.user_id,
                         username: post.username,
                         avatar: post.avatar,
@@ -461,7 +469,10 @@ class PostsRepositoryImpl {
                         JSON.stringify(payload.media_attachments || []),
                     ]);
                     yield t.none(query_1.default.incrementPostCommentsCounter, [postId]);
-                    return new entities.CommentEntity(comment);
+                    const content_segments = payload.content
+                        ? yield this.parseContentSegments(payload.content)
+                        : [];
+                    return Object.assign(new entities.CommentEntity(comment), { content_segments });
                 }));
                 if (payload.content) {
                     this.notifyMentionedUsers(payload.content, userId).catch(() => { });
@@ -507,7 +518,8 @@ class PostsRepositoryImpl {
                 });
                 const commentsWithEngagement = yield Promise.all(comments.map((comment) => __awaiter(this, void 0, void 0, function* () {
                     const isLiked = yield database_1.db.one(query_1.default.isCommentLiked, [comment.id, userId]);
-                    return new entities.CommentWithUserEntity(Object.assign(Object.assign({}, comment), { is_liked: isLiked.exists, user: {
+                    const content_segments = yield this.parseContentSegments(comment.content);
+                    return new entities.CommentWithUserEntity(Object.assign(Object.assign({}, comment), { content_segments, is_liked: isLiked.exists, user: {
                             id: comment.user_id,
                             username: comment.username,
                             avatar: comment.avatar,
@@ -618,7 +630,8 @@ class PostsRepositoryImpl {
                     const isLiked = yield database_1.db.one(query_1.default.isPostLiked, [post.id, userId]);
                     const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, userId]);
                     const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, userId]);
-                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
+                    const content_segments = yield this.parseContentSegments(post.content);
+                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
                             id: post.user_id,
                             username: post.username,
                             avatar: post.avatar,
@@ -649,7 +662,8 @@ class PostsRepositoryImpl {
                     const isLiked = yield database_1.db.one(query_1.default.isPostLiked, [post.id, userId]);
                     const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, userId]);
                     const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, userId]);
-                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
+                    const content_segments = yield this.parseContentSegments(post.content);
+                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
                             id: post.user_id,
                             username: post.username,
                             avatar: post.avatar,
@@ -680,7 +694,8 @@ class PostsRepositoryImpl {
                     const isLiked = yield database_1.db.one(query_1.default.isPostLiked, [post.id, userId]);
                     const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, userId]);
                     const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, userId]);
-                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
+                    const content_segments = yield this.parseContentSegments(post.content);
+                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
                             id: post.user_id,
                             username: post.username,
                             avatar: post.avatar,
@@ -710,7 +725,8 @@ class PostsRepositoryImpl {
                     const isLiked = yield database_1.db.one(query_1.default.isPostLiked, [post.id, userId]);
                     const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, userId]);
                     const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, userId]);
-                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
+                    const content_segments = yield this.parseContentSegments(post.content);
+                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
                             id: post.user_id,
                             username: post.username,
                             avatar: post.avatar,
@@ -781,6 +797,44 @@ class PostsRepositoryImpl {
             catch (error) {
                 return new errors_1.BadException(`${error.message}`);
             }
+        });
+    }
+    parseContentSegments(content) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!content)
+                return [];
+            const tokenRegex = /(@[a-zA-Z0-9_]+|#[a-zA-Z0-9]+)/g;
+            const parts = content.split(tokenRegex);
+            const mentionUsernames = parts
+                .filter(p => p.startsWith('@'))
+                .map(p => p.substring(1));
+            const userMap = new Map();
+            if (mentionUsernames.length > 0) {
+                const users = yield database_1.db.manyOrNone(query_1.default.getMentionedUserIds, [mentionUsernames]);
+                for (const u of users) {
+                    userMap.set(u.username.toLowerCase(), u.id);
+                }
+            }
+            const segments = [];
+            for (const part of parts) {
+                if (!part)
+                    continue;
+                if (part.startsWith('@')) {
+                    const username = part.substring(1);
+                    segments.push({
+                        type: 'mention',
+                        value: part,
+                        user_id: userMap.get(username.toLowerCase()),
+                    });
+                }
+                else if (part.startsWith('#')) {
+                    segments.push({ type: 'hashtag', value: part });
+                }
+                else if (part.trim()) {
+                    segments.push({ type: 'text', value: part });
+                }
+            }
+            return segments;
         });
     }
     extractHashtags(content) {

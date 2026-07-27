@@ -15,6 +15,12 @@ export enum PostVisibility {
   PRIVATE = 'private',
 }
 
+export interface ContentSegment {
+  type: 'text' | 'mention' | 'hashtag';
+  value: string;
+  user_id?: string;
+}
+
 export interface MediaAttachment {
   type: 'image' | 'video' | 'audio';
   url: string;
@@ -101,6 +107,7 @@ export class PostWithUserEntity extends BaseEntity<PostWithUserEntity> {
   id?: string;
   user_id?: string;
   content?: string;
+  content_segments?: ContentSegment[];
   post_type?: PostType;
   visibility?: PostVisibility;
   media_attachments?: MediaAttachment[];
@@ -129,6 +136,7 @@ export class CommentWithUserEntity extends BaseEntity<CommentWithUserEntity> {
   user_id?: string;
   parent_comment_id?: string;
   content?: string;
+  content_segments?: ContentSegment[];
   media_attachments?: MediaAttachment[];
   likes_count?: number;
   replies_count?: number;
