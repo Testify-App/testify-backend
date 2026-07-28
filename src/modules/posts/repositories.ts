@@ -539,6 +539,10 @@ export class PostsRepositoryImpl implements PostsInterface {
 
         await t.none(PostsQuery.incrementPostCommentsCounter, [postId]);
 
+        if (payload.parent_comment_id) {
+          await t.none(PostsQuery.incrementCommentRepliesCounter, [payload.parent_comment_id]);
+        }
+
         const content_segments = payload.content
           ? await this.parseContentSegments(payload.content)
           : [];

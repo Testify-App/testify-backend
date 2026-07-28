@@ -469,6 +469,9 @@ class PostsRepositoryImpl {
                         JSON.stringify(payload.media_attachments || []),
                     ]);
                     yield t.none(query_1.default.incrementPostCommentsCounter, [postId]);
+                    if (payload.parent_comment_id) {
+                        yield t.none(query_1.default.incrementCommentRepliesCounter, [payload.parent_comment_id]);
+                    }
                     const content_segments = payload.content
                         ? yield this.parseContentSegments(payload.content)
                         : [];
