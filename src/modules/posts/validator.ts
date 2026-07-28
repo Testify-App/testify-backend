@@ -108,6 +108,10 @@ export const commentIdValidator = Joi.object({
   id: Joi.string().uuid().required(),
 });
 
+export const commentReplyParamValidator = Joi.object({
+  comment_id: Joi.string().uuid().required(),
+});
+
 export const userIdValidator = Joi.object({
   userId: Joi.string().uuid().required(),
 });

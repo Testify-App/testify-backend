@@ -538,6 +538,42 @@ class PostsRepositoryImpl {
             }
         });
     }
+    getCommentReplies(userId, commentId, query) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const parent = yield database_1.db.oneOrNone(query_1.default.getCommentById, [commentId]);
+                if (!parent) {
+                    return new errors_1.NotFoundException('Comment not found');
+                }
+                const { page = '1', limit = '20' } = query;
+                const [{ count }, replies] = yield (0, helpers_1.fetchResourceByPage)({
+                    page,
+                    limit,
+                    getResources: query_1.default.getCommentReplies,
+                    params: [commentId],
+                });
+                const repliesWithEngagement = yield Promise.all(replies.map((comment) => __awaiter(this, void 0, void 0, function* () {
+                    const isLiked = yield database_1.db.one(query_1.default.isCommentLiked, [comment.id, userId]);
+                    const content_segments = yield this.parseContentSegments(comment.content);
+                    return new entities.CommentWithUserEntity(Object.assign(Object.assign({}, comment), { content_segments, is_liked: isLiked.exists, user: {
+                            id: comment.user_id,
+                            username: comment.username,
+                            avatar: comment.avatar,
+                        } }));
+                })));
+                return {
+                    comments: repliesWithEngagement,
+                    pagination: { page: String(page), limit: String(limit), total: count, totalPages: (0, helpers_1.calcPages)(count, limit) },
+                };
+            }
+            catch (error) {
+                if (error instanceof errors_1.NotFoundException) {
+                    return error;
+                }
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
     deleteComment(userId, commentId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {

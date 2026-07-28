@@ -116,6 +116,14 @@ export class PostsServiceImpl implements PostsInterface {
     return await PostsRepository.getComments(userId, postId, query);
   };
 
+  public getCommentReplies = async (
+    userId: string,
+    commentId: string,
+    query: dtos.GetCommentsQueryDTO
+  ): Promise<BadException | NotFoundException | { comments: entities.CommentWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> => {
+    return await PostsRepository.getCommentReplies(userId, commentId, query);
+  };
+
   public deleteComment = async (
     userId: string,
     commentId: string

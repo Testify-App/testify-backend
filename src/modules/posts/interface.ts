@@ -52,7 +52,13 @@ export interface PostsInterface {
     postId: string,
     query: dtos.GetCommentsQueryDTO
   ): Promise<BadException | NotFoundException | { comments: entities.CommentWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }>;
-  
+
+  getCommentReplies(
+    userId: string,
+    commentId: string,
+    query: dtos.GetCommentsQueryDTO
+  ): Promise<BadException | NotFoundException | { comments: entities.CommentWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }>;
+
   likeComment(
     userId: string,
     commentId: string

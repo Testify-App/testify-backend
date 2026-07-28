@@ -858,6 +858,47 @@ postsRouter.get(
 
 /**
  * @swagger
+ * /posts/comments/{comment_id}/replies:
+ *   get:
+ *     summary: Get replies to a comment (comment thread)
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: comment_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID of the parent comment
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           maximum: 100
+ *     responses:
+ *       200:
+ *         description: Replies retrieved successfully
+ *       404:
+ *         description: Comment not found
+ */
+postsRouter.get(
+  '/comments/:comment_id/replies',
+  verifyAuth,
+  validateDataMiddleware(postsValidator.commentReplyParamValidator, 'params'),
+  validateDataMiddleware(postsValidator.getCommentsQueryValidator, 'query'),
+  WatchAsyncController(postsController.getCommentReplies)
+);
+
+/**
+ * @swagger
  * /posts/comments/{id}:
  *   delete:
  *     summary: Delete a comment (soft delete)

@@ -257,6 +257,16 @@ export class ProfilesController {
     logger.info('Sent Circle requests retrieved', 'profiles.controller.ts');
     return ResponseBuilder.success(res, 'Sent requests retrieved', StatusCodes.OK, response);
   };
+
+  public getGuestProfile: fnRequest = async (req, res) => {
+    const payload = new dtos.GetByUsernameDTO({ username: req.params.username });
+    const response = await ProfilesService.getByUsername(payload);
+    if (response instanceof NotFoundException) {
+      logger.error(response.message, 'profiles.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
+    }
+    return ResponseBuilder.success(res, 'Profile retrieved successfully', StatusCodes.OK, response);
+  };
 }
 
 const profilesController = new ProfilesController();

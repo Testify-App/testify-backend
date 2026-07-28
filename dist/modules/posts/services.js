@@ -64,6 +64,9 @@ class PostsServiceImpl {
         this.getComments = (userId, postId, query) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.getComments(userId, postId, query);
         });
+        this.getCommentReplies = (userId, commentId, query) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.getCommentReplies(userId, commentId, query);
+        });
         this.deleteComment = (userId, commentId) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.deleteComment(userId, commentId);
         });
