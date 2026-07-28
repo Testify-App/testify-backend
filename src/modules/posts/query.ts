@@ -133,9 +133,17 @@ export default {
   `,
 
   incrementPostCommentsCounter: `
-    UPDATE posts 
-    SET 
+    UPDATE posts
+    SET
       comments_count = comments_count + 1,
+      updated_at = NOW()
+    WHERE id = $1;
+  `,
+
+  incrementCommentRepliesCounter: `
+    UPDATE comments
+    SET
+      replies_count = replies_count + 1,
       updated_at = NOW()
     WHERE id = $1;
   `,
