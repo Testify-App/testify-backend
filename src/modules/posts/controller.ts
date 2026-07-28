@@ -41,6 +41,17 @@ export class PostsController {
     return ResponseBuilder.success(res, 'Posts retrieved successfully', StatusCodes.OK, response);
   };
 
+  public getGuestPosts: fnRequest = async (req, res) => {
+    const query = new dtos.GetPostsQueryDTO(req.query);
+    query.user_id = '';
+    const response = await PostsService.getPosts(query);
+    if (response instanceof InternalServerErrorException) {
+      logger.error(`${response.message}`, 'posts.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.INTERNAL_SERVER_ERROR);
+    }
+    return ResponseBuilder.success(res, 'Posts retrieved successfully', StatusCodes.OK, response);
+  };
+
   public getPost: fnRequest = async (req: AuthenticatedRequest, res) => {
     const query = new dtos.GetPostQueryDTO(req.params);
     query.user_id = req.user?.id as string;
@@ -234,6 +245,22 @@ export class PostsController {
     }
     logger.info('Comments retrieved successfully', 'posts.controller.ts');
     return ResponseBuilder.success(res, 'Comments retrieved successfully', StatusCodes.OK, response);
+  };
+
+  public getCommentReplies: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const commentId = req.params.comment_id;
+    const query = new dtos.GetCommentsQueryDTO(req.query);
+    const userId = req.user?.id as string;
+    const response = await PostsService.getCommentReplies(userId, commentId, query);
+    if (response instanceof NotFoundException) {
+      logger.error(response.message, 'posts.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
+    }
+    if (response instanceof BadException) {
+      logger.error(`${response.message}`, 'posts.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    return ResponseBuilder.success(res, 'Replies retrieved successfully', StatusCodes.OK, response);
   };
 
   public deleteComment: fnRequest = async (req: AuthenticatedRequest, res) => {

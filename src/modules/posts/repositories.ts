@@ -631,6 +631,55 @@ export class PostsRepositoryImpl implements PostsInterface {
     }
   }
 
+  public async getCommentReplies(
+    userId: string,
+    commentId: string,
+    query: dtos.GetCommentsQueryDTO
+  ): Promise<BadException | NotFoundException | { comments: entities.CommentWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> {
+    try {
+      const parent = await db.oneOrNone(PostsQuery.getCommentById, [commentId]);
+      if (!parent) {
+        return new NotFoundException('Comment not found');
+      }
+
+      const { page = '1', limit = '20' } = query as { page?: string; limit?: string };
+      const [{ count }, replies] = await fetchResourceByPage({
+        page,
+        limit,
+        getResources: PostsQuery.getCommentReplies,
+        params: [commentId],
+      });
+
+      const repliesWithEngagement = await Promise.all(
+        replies.map(async (comment: any) => {
+          const isLiked = await db.one(PostsQuery.isCommentLiked, [comment.id, userId]);
+          const content_segments = await this.parseContentSegments(comment.content);
+
+          return new entities.CommentWithUserEntity({
+            ...comment,
+            content_segments,
+            is_liked: isLiked.exists,
+            user: {
+              id: comment.user_id,
+              username: comment.username,
+              avatar: comment.avatar,
+            },
+          });
+        })
+      );
+
+      return {
+        comments: repliesWithEngagement,
+        pagination: { page: String(page), limit: String(limit), total: count, totalPages: calcPages(count, limit) },
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        return error;
+      }
+      return new BadException(`${error.message}`);
+    }
+  }
+
   public async deleteComment(
     userId: string,
     commentId: string

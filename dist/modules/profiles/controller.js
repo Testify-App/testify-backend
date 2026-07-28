@@ -269,6 +269,15 @@ class ProfilesController {
             logger_1.default.info('Sent Circle requests retrieved', 'profiles.controller.ts');
             return ResponseBuilder.success(res, 'Sent requests retrieved', http_status_codes_1.StatusCodes.OK, response);
         });
+        this.getGuestProfile = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            const payload = new dtos.GetByUsernameDTO({ username: req.params.username });
+            const response = yield services_1.default.getByUsername(payload);
+            if (response instanceof errors_1.NotFoundException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.NOT_FOUND);
+            }
+            return ResponseBuilder.success(res, 'Profile retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
     }
 }
 exports.ProfilesController = ProfilesController;

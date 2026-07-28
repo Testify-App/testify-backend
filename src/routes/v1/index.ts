@@ -6,6 +6,7 @@ import postsRouter from '../../modules/posts/routes';
 import profilesRouter from '../../modules/profiles/routes';
 import hashtagsRouter from '../../modules/hashtags/routes';
 import searchRouter from '../../modules/search/routes';
+import guestRouter from '../../modules/guest/routes';
 
 const appRouter = express.Router();
 
@@ -26,5 +27,7 @@ appRouter.use("/profiles", profilesRouter);
 appRouter.use("/hashtags", hashtagsRouter);
 
 appRouter.use("/search", searchRouter);
+
+appRouter.use("/guest", guestRouter);
 
 export const Router = appRouter;

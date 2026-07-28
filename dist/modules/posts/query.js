@@ -157,10 +157,23 @@ exports.default = {
     LIMIT $2 OFFSET $1;
   `,
     getPostCommentsCount: `
-    SELECT COUNT(*) as total FROM comments 
-    WHERE post_id = $1 
+    SELECT COUNT(*) as total FROM comments
+    WHERE post_id = $1
       AND deleted_at IS NULL
       AND parent_comment_id IS NULL;
+  `,
+    getCommentReplies: `
+    SELECT COUNT(*) OVER () as count,
+      c.*,
+      u.id as user_id,
+      u.username,
+      u.avatar
+    FROM comments c
+    JOIN users u ON c.user_id = u.id
+    WHERE c.parent_comment_id = $3
+      AND c.deleted_at IS NULL
+    ORDER BY c.created_at ASC
+    LIMIT $2 OFFSET $1;
   `,
     updateComment: `
     UPDATE comments 

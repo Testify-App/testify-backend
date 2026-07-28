@@ -78,6 +78,16 @@ class PostsController {
             logger_1.default.info('Posts retrieved successfully', 'posts.controller.ts');
             return ResponseBuilder.success(res, 'Posts retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
         });
+        this.getGuestPosts = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            const query = new dtos.GetPostsQueryDTO(req.query);
+            query.user_id = '';
+            const response = yield services_1.default.getPosts(query);
+            if (response instanceof errors_1.InternalServerErrorException) {
+                logger_1.default.error(`${response.message}`, 'posts.controller.ts');
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR);
+            }
+            return ResponseBuilder.success(res, 'Posts retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
         this.getPost = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
             const query = new dtos.GetPostQueryDTO(req.params);
@@ -270,6 +280,22 @@ class PostsController {
             }
             logger_1.default.info('Comments retrieved successfully', 'posts.controller.ts');
             return ResponseBuilder.success(res, 'Comments retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
+        this.getCommentReplies = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const commentId = req.params.comment_id;
+            const query = new dtos.GetCommentsQueryDTO(req.query);
+            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const response = yield services_1.default.getCommentReplies(userId, commentId, query);
+            if (response instanceof errors_1.NotFoundException) {
+                logger_1.default.error(response.message, 'posts.controller.ts');
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.NOT_FOUND);
+            }
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(`${response.message}`, 'posts.controller.ts');
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
+            }
+            return ResponseBuilder.success(res, 'Replies retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
         });
         this.deleteComment = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
