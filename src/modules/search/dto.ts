@@ -4,4 +4,5 @@ export class SearchQueryDTO extends BaseEntity<SearchQueryDTO> {
   q: string;
   page?: string;
   limit?: string;
+  user_id?: string;
 }

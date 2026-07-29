@@ -2,7 +2,8 @@ import * as dtos from './dto';
 import SearchQuery from './query';
 import { db } from '../../config/database';
 import { BadException } from '../../shared/lib/errors';
-import { calcPages } from '../../shared/helpers';
+import { calcPages, parseContentSegments } from '../../shared/helpers';
+import PostsQuery from '../posts/query';
 
 export class SearchRepositoryImpl {
   public async search(
@@ -29,9 +30,21 @@ export class SearchRepositoryImpl {
 
       const postCount = postRows.length > 0 ? parseInt(postRows[0].count, 10) : 0;
       const profileCount = profileRows.length > 0 ? parseInt(profileRows[0].count, 10) : 0;
+      const userId = dto.user_id ?? '';
 
-      const posts = postRows.map(({ count: _c, rank: _r, ...row }) => row);
-      const profiles = profileRows.map(({ count: _c, rank: _r, ...row }) => row);
+      const posts = await Promise.all(
+        postRows.map(async ({ count: _c, rank: _r, ...row }) => ({
+          ...row,
+          content_segments: await parseContentSegments(row.content),
+        }))
+      );
+
+      const profiles = await Promise.all(
+        profileRows.map(async ({ count: _c, rank: _r, ...row }) => {
+          const isFollowing = await db.one(PostsQuery.isFollowingUser, [userId, row.id]);
+          return { ...row, is_following: isFollowing.exists };
+        })
+      );
 
       return {
         query: q,

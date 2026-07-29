@@ -55,7 +55,9 @@ const errors_1 = require("../../shared/lib/errors");
 class SearchController {
     constructor() {
         this.search = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             const dto = new dtos.SearchQueryDTO(req.query);
+            dto.user_id = (_b = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id) !== null && _b !== void 0 ? _b : '';
             const response = yield services_1.default.search(dto);
             if (response instanceof errors_1.BadException) {
                 logger_1.default.error(`${response.message}`, 'search.controller.ts');

@@ -67,6 +67,7 @@ exports.default = {
       AND p.deleted_at IS NULL
       AND p.status != 'archived'
       AND p.parent_post_id IS NULL
+      AND ($4::text IS NULL OR p.search_vector @@ plainto_tsquery('english', $4))
     ORDER BY p.created_at DESC
     LIMIT $2 OFFSET $1;
   `,
@@ -355,6 +356,18 @@ exports.default = {
     WHERE rn <= 5
     ORDER BY score DESC
     LIMIT $2 OFFSET $1;
+  `,
+    isFollowingUser: `
+    SELECT EXISTS(
+      SELECT 1 FROM user_follows
+      WHERE follower_id = $1 AND following_id = $2
+    );
+  `,
+    isInCircleWith: `
+    SELECT EXISTS(
+      SELECT 1 FROM user_connections
+      WHERE user_id = $1 AND connected_user_id = $2 AND status = 'accepted'
+    );
   `,
     isPostOwner: `
     SELECT EXISTS(SELECT 1 FROM posts WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL);

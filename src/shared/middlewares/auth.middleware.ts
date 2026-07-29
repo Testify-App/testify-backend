@@ -7,6 +7,21 @@ export interface ExtendedRequest extends Request {
   user: User;
 }
 
+export const optionalAuthMiddleware = (
+  req: Request & { user?: User }, _res: Response, next: NextFunction,
+) => {
+  const token = (req?.headers?.authorization as string)?.split(' ')[1];
+  if (token) {
+    try {
+      const decoded = jwtSigningService.verify(token) as SignedData;
+      req.user = decoded;
+    } catch {
+      // invalid token — continue as guest
+    }
+  }
+  return next();
+};
+
 export const verifyAuthTokenMiddleware = (
   req: ExtendedRequest, res: Response, next: NextFunction,
 ) => {

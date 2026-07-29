@@ -6,10 +6,16 @@ import { fnRequest } from '../../shared/types';
 import logger from '../../shared/services/logger';
 import * as ResponseBuilder from '../../shared/lib/api-response';
 import { BadException } from '../../shared/lib/errors';
+import { User } from '../../shared/interface';
+
+interface AuthenticatedRequest extends Request {
+  user?: User;
+}
 
 export class SearchController {
-  public search: fnRequest = async (req: Request, res: Response) => {
+  public search: fnRequest = async (req: AuthenticatedRequest, res: Response) => {
     const dto = new dtos.SearchQueryDTO(req.query as any);
+    dto.user_id = req.user?.id ?? '';
     const response = await SearchService.search(dto);
     if (response instanceof BadException) {
       logger.error(`${response.message}`, 'search.controller.ts');

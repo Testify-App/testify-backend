@@ -3,6 +3,7 @@ import * as searchValidator from './validator';
 import searchController from './controller';
 import { WatchAsyncController } from '../../shared/utils/watch-async-controller';
 import { validateDataMiddleware } from '../../shared/middlewares/request-validator.middleware';
+import { optionalAuthMiddleware } from '../../shared/middlewares/auth.middleware';
 
 /**
  * @swagger
@@ -92,6 +93,7 @@ const searchRouter = Router();
  */
 searchRouter.get(
   '/',
+  optionalAuthMiddleware,
   validateDataMiddleware(searchValidator.searchQueryValidator, 'query'),
   WatchAsyncController(searchController.search)
 );

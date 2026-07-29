@@ -77,6 +77,7 @@ export const getPostsQueryValidator = Joi.object({
   order: Joi.string().valid('ASC', 'DESC', 'asc', 'desc').optional(),
   user_id: Joi.string().uuid().optional(),
   visibility: Joi.string().valid('public', 'followers_only', 'mentioned_only', 'private').optional(),
+  search: Joi.string().max(200).optional(),
 });
 
 export const getCommentsQueryValidator = Joi.object({

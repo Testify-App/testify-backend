@@ -56,6 +56,7 @@ export class GetPostsQueryDTO extends BaseEntity<GetPostsQueryDTO> {
   user_id: string;
   page?: number;
   limit?: number;
+  search?: string;
 }
 
 export class GetPostQueryDTO extends BaseEntity<GetPostQueryDTO> {

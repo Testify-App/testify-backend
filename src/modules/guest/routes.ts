@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { WatchAsyncController } from '../../shared/utils/watch-async-controller';
 import postsController from '../posts/controller';
 import profilesController from '../profiles/controller';
+import * as postsValidator from '../posts/validator';
+import { validateDataMiddleware } from '../../shared/middlewares/request-validator.middleware';
 
 /**
  * @swagger
@@ -89,5 +91,12 @@ guestRouter.get('/posts', WatchAsyncController(postsController.getGuestPosts));
  *         description: Profile not found
  */
 guestRouter.get('/profiles/:username', WatchAsyncController(profilesController.getGuestProfile));
+
+guestRouter.get(
+  '/users/:userId/posts',
+  validateDataMiddleware(postsValidator.userIdValidator, 'params'),
+  validateDataMiddleware(postsValidator.getPostsQueryValidator, 'query'),
+  WatchAsyncController(postsController.getGuestPostsByUserId)
+);
 
 export default guestRouter;
