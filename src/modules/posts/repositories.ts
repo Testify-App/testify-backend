@@ -12,6 +12,7 @@ import {
   calcPages,
   fetchResourceByPage,
   parseContentSegments,
+  createNotification,
   FetchPaginatedResponse,
 } from '../../shared/helpers';
 import NotificationService from '../../shared/services/notification';
@@ -69,12 +70,26 @@ export class PostsRepositoryImpl implements PostsInterface {
         if (payload.content) {
           const usernames = this.extractMentions(payload.content);
           if (usernames.length > 0) {
-            const mentionedUsers: Array<{ id: string }> = await t.manyOrNone(
+            const mentionedUsers: Array<{ id: string; username: string }> = await t.manyOrNone(
               PostsQuery.getMentionedUserIds,
               [usernames]
             );
             for (const user of mentionedUsers) {
               await t.none(PostsQuery.createPostMention, [post.id, user.id, 'content']);
+            }
+            // Notify mentioned users (fire-and-forget after tx)
+            const snippet = payload.content.slice(0, 100);
+            for (const user of mentionedUsers) {
+              if (user.id !== payload.user_id) {
+                createNotification({
+                  user_id: user.id,
+                  actor_id: payload.user_id,
+                  type: 'mention',
+                  entity_type: 'post',
+                  entity_id: post.id,
+                  data: { post_snippet: snippet },
+                }).catch(() => {});
+              }
             }
           }
         }
@@ -284,9 +299,27 @@ export class PostsRepositoryImpl implements PostsInterface {
         await t.none(PostsQuery.likePost, [payload.post_id, payload.user_id]);
         await t.none(PostsQuery.incrementPostCounter, [payload.post_id]);
 
-        return { message: 'Post liked successfully', is_liked: true };
+        return { message: 'Post liked successfully', is_liked: true, _post_owner_id: post.user_id };
       });
-      return response;
+
+      // Notify post owner of the like (fire-and-forget)
+      if (response && !('message' in response && response.message === 'Post already liked')) {
+        const owner = (response as any)._post_owner_id;
+        if (owner) {
+          createNotification({
+            user_id: owner,
+            actor_id: payload.user_id,
+            type: 'post_like',
+            entity_type: 'post',
+            entity_id: payload.post_id,
+            data: {},
+          }).catch(() => {});
+        }
+      }
+
+      return response && '_post_owner_id' in response
+        ? { message: (response as any).message, is_liked: (response as any).is_liked }
+        : response;
     } catch (error) {
       return new NotFoundException(`${error.message}`);
     }
@@ -344,9 +377,27 @@ export class PostsRepositoryImpl implements PostsInterface {
         await t.none(PostsQuery.repost, [payload.post_id, payload.user_id]);
         await t.none('UPDATE posts SET reposts_count = reposts_count + 1 WHERE id = $1', [payload.post_id]);
 
-        return { message: 'Post reposted successfully', is_reposted: true };
+        return { message: 'Post reposted successfully', is_reposted: true, _post_owner_id: post.user_id };
       });
-      return response;
+
+      // Notify post owner of the repost (fire-and-forget)
+      if (response && '_post_owner_id' in response) {
+        const owner = (response as any)._post_owner_id;
+        if (owner) {
+          createNotification({
+            user_id: owner,
+            actor_id: payload.user_id,
+            type: 'repost',
+            entity_type: 'post',
+            entity_id: payload.post_id,
+            data: {},
+          }).catch(() => {});
+        }
+      }
+
+      return response && '_post_owner_id' in response
+        ? { message: (response as any).message, is_reposted: (response as any).is_reposted }
+        : response;
     } catch (error) {
       return new NotFoundException(`${error.message}`);
     }
@@ -554,12 +605,56 @@ export class PostsRepositoryImpl implements PostsInterface {
         const content_segments = payload.content
           ? await parseContentSegments(payload.content)
           : [];
-        return Object.assign(new entities.CommentEntity(comment), { content_segments });
+        const result = Object.assign(new entities.CommentEntity(comment), { content_segments });
+        return Object.assign(result, {
+          _post_owner_id: post.user_id,
+          _parent_comment_id: payload.parent_comment_id || null,
+        });
       });
+
+      // Fire-and-forget: notify post owner of new comment
+      if (response && '_post_owner_id' in response) {
+        const postOwner = (response as any)._post_owner_id;
+        const parentCommentId = (response as any)._parent_comment_id;
+        const snippet = payload.content?.slice(0, 100) ?? '';
+
+        if (postOwner && postOwner !== userId) {
+          createNotification({
+            user_id: postOwner,
+            actor_id: userId,
+            type: parentCommentId ? 'comment_reply' : 'post_comment',
+            entity_type: 'post',
+            entity_id: postId,
+            data: { post_snippet: snippet },
+          }).catch(() => {});
+        }
+
+        // If replying, also notify the parent comment's author
+        if (parentCommentId) {
+          db.oneOrNone(PostsQuery.getCommentById, [parentCommentId]).then((parent) => {
+            if (parent && parent.user_id !== userId && parent.user_id !== postOwner) {
+              createNotification({
+                user_id: parent.user_id,
+                actor_id: userId,
+                type: 'comment_reply',
+                entity_type: 'comment',
+                entity_id: parentCommentId,
+                data: { post_snippet: snippet },
+              }).catch(() => {});
+            }
+          }).catch(() => {});
+        }
+      }
 
       // Fire mention push notifications asynchronously — never block the response
       if (payload.content) {
         this.notifyMentionedUsers(payload.content, userId).catch(() => {});
+      }
+
+      // Strip internal fields before returning
+      if (response && '_post_owner_id' in response) {
+        const { _post_owner_id: _a, _parent_comment_id: _b, ...clean } = response as any;
+        return clean as entities.CommentEntity;
       }
 
       return response;

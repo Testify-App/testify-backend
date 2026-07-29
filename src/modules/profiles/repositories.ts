@@ -11,6 +11,7 @@ import {
 import {
   calcPages,
   fetchResourceByPage,
+  createNotification,
   FetchPaginatedResponse,
 } from '../../shared/helpers';
 
@@ -94,6 +95,16 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
       if (!result) {
         return new BadException('User is already in your Tribe');
       }
+
+      // Notify the followed user (fire-and-forget)
+      createNotification({
+        user_id: payload.following_id,
+        actor_id: payload.user_id,
+        type: 'follow',
+        entity_type: 'user',
+        entity_id: payload.user_id,
+        data: {},
+      }).catch(() => {});
 
       return new entities.UserFollowEntity(result);
     } catch (error) {
@@ -247,6 +258,16 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
         return new BadException('Circle request already exists');
       }
 
+      // Notify the target user of the circle request (fire-and-forget)
+      createNotification({
+        user_id: payload.connected_user_id,
+        actor_id: payload.user_id,
+        type: 'circle_request',
+        entity_type: 'user',
+        entity_id: payload.user_id,
+        data: {},
+      }).catch(() => {});
+
       return new entities.CircleRequestEntity(result);
     } catch (error) {
       return new BadException(`${error.message}`);
@@ -292,6 +313,17 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
         return new BadException('Circle request not found or already processed');
       }
 
+      // Notify the original requester that their request was accepted (fire-and-forget)
+      // result.user_id is the requester (the one who sent the original request)
+      createNotification({
+        user_id: result.user_id,
+        actor_id: payload.user_id,
+        type: 'circle_accepted',
+        entity_type: 'user',
+        entity_id: payload.user_id,
+        data: {},
+      }).catch(() => {});
+
       return new entities.UserConnectionEntity(result);
     } catch (error) {
       return new BadException(`${error.message}`);
@@ -325,6 +357,16 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
         payload.user_id,
         payload.connected_user_id,
       ]);
+
+      // Notify the removed user (fire-and-forget)
+      createNotification({
+        user_id: payload.connected_user_id,
+        actor_id: payload.user_id,
+        type: 'circle_removed',
+        entity_type: 'user',
+        entity_id: payload.user_id,
+        data: {},
+      }).catch(() => {});
 
       return;
     } catch (error) {

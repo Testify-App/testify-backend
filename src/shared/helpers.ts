@@ -74,6 +74,31 @@ export class FetchPaginatedResponse extends BaseEntity<FetchPaginatedResponse> {
   [key: string]: any;
 }
 
+export interface CreateNotificationPayload {
+  user_id: string;
+  actor_id: string;
+  type: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  data?: Record<string, any>;
+}
+
+export const createNotification = async (payload: CreateNotificationPayload): Promise<void> => {
+  if (payload.user_id === payload.actor_id) return;
+  await db.none(
+    `INSERT INTO notifications (user_id, actor_id, type, entity_type, entity_id, data)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [
+      payload.user_id,
+      payload.actor_id,
+      payload.type,
+      payload.entity_type,
+      payload.entity_id,
+      JSON.stringify(payload.data ?? {}),
+    ]
+  );
+};
+
 export const setLastLoginTime = async (
   payload: Array<string>,
   operation: 'backoffice' | 'user',
