@@ -102,7 +102,7 @@ class PostsRepositoryImpl {
                         }
                     }
                     const content_segments = payload.content
-                        ? yield this.parseContentSegments(payload.content)
+                        ? yield (0, helpers_1.parseContentSegments)(payload.content)
                         : [];
                     return Object.assign(new entities.PostEntity(post), { content_segments });
                 }));
@@ -127,6 +127,7 @@ class PostsRepositoryImpl {
     getPosts(payload) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
+                console.log('getPosts');
                 const { page = '1', limit = '20', user_id } = payload;
                 const [{ count }, posts] = yield (0, helpers_1.fetchResourceByPage)({
                     page,
@@ -135,14 +136,20 @@ class PostsRepositoryImpl {
                     params: [user_id],
                 });
                 const postsWithEngagement = yield Promise.all(posts.map((post) => __awaiter(this, void 0, void 0, function* () {
-                    const isLiked = yield database_1.db.one(query_1.default.isPostLiked, [post.id, user_id]);
-                    const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, user_id]);
-                    const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, user_id]);
-                    const content_segments = yield this.parseContentSegments(post.content);
+                    const [isLiked, isReposted, isBookmarked, isFollowing, isInCircle, content_segments] = yield Promise.all([
+                        database_1.db.one(query_1.default.isPostLiked, [post.id, user_id]),
+                        database_1.db.one(query_1.default.isReposted, [post.id, user_id]),
+                        database_1.db.one(query_1.default.isBookmarked, [post.id, user_id]),
+                        database_1.db.one(query_1.default.isFollowingUser, [user_id, post.user_id]),
+                        database_1.db.one(query_1.default.isInCircleWith, [user_id, post.user_id]),
+                        (0, helpers_1.parseContentSegments)(post.content),
+                    ]);
                     return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
                             id: post.user_id,
                             username: post.username,
                             avatar: post.avatar,
+                            is_following: isFollowing.exists,
+                            is_in_circle: isInCircle.exists,
                         } }));
                 })));
                 return {
@@ -168,7 +175,7 @@ class PostsRepositoryImpl {
                 const isLiked = yield database_1.db.one(query_1.default.isPostLiked, [post.id, payload.user_id]);
                 const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, payload.user_id]);
                 const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, payload.user_id]);
-                const content_segments = yield this.parseContentSegments(post.content);
+                const content_segments = yield (0, helpers_1.parseContentSegments)(post.content);
                 return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
                         id: post.user_id,
                         username: post.username,
@@ -473,7 +480,7 @@ class PostsRepositoryImpl {
                         yield t.none(query_1.default.incrementCommentRepliesCounter, [payload.parent_comment_id]);
                     }
                     const content_segments = payload.content
-                        ? yield this.parseContentSegments(payload.content)
+                        ? yield (0, helpers_1.parseContentSegments)(payload.content)
                         : [];
                     return Object.assign(new entities.CommentEntity(comment), { content_segments });
                 }));
@@ -521,7 +528,7 @@ class PostsRepositoryImpl {
                 });
                 const commentsWithEngagement = yield Promise.all(comments.map((comment) => __awaiter(this, void 0, void 0, function* () {
                     const isLiked = yield database_1.db.one(query_1.default.isCommentLiked, [comment.id, userId]);
-                    const content_segments = yield this.parseContentSegments(comment.content);
+                    const content_segments = yield (0, helpers_1.parseContentSegments)(comment.content);
                     return new entities.CommentWithUserEntity(Object.assign(Object.assign({}, comment), { content_segments, is_liked: isLiked.exists, user: {
                             id: comment.user_id,
                             username: comment.username,
@@ -557,7 +564,7 @@ class PostsRepositoryImpl {
                 });
                 const repliesWithEngagement = yield Promise.all(replies.map((comment) => __awaiter(this, void 0, void 0, function* () {
                     const isLiked = yield database_1.db.one(query_1.default.isCommentLiked, [comment.id, userId]);
-                    const content_segments = yield this.parseContentSegments(comment.content);
+                    const content_segments = yield (0, helpers_1.parseContentSegments)(comment.content);
                     return new entities.CommentWithUserEntity(Object.assign(Object.assign({}, comment), { content_segments, is_liked: isLiked.exists, user: {
                             id: comment.user_id,
                             username: comment.username,
@@ -659,17 +666,18 @@ class PostsRepositoryImpl {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const { page = '1', limit = '20' } = query;
+                const search = query.search;
                 const [{ count }, posts] = yield (0, helpers_1.fetchResourceByPage)({
                     page,
                     limit,
                     getResources: query_1.default.getPostsByUserId,
-                    params: [targetUserId],
+                    params: [targetUserId, search !== null && search !== void 0 ? search : null],
                 });
                 const postsWithEngagement = yield Promise.all(posts.map((post) => __awaiter(this, void 0, void 0, function* () {
                     const isLiked = yield database_1.db.one(query_1.default.isPostLiked, [post.id, userId]);
                     const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, userId]);
                     const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, userId]);
-                    const content_segments = yield this.parseContentSegments(post.content);
+                    const content_segments = yield (0, helpers_1.parseContentSegments)(post.content);
                     return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
                             id: post.user_id,
                             username: post.username,
@@ -701,7 +709,7 @@ class PostsRepositoryImpl {
                     const isLiked = yield database_1.db.one(query_1.default.isPostLiked, [post.id, userId]);
                     const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, userId]);
                     const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, userId]);
-                    const content_segments = yield this.parseContentSegments(post.content);
+                    const content_segments = yield (0, helpers_1.parseContentSegments)(post.content);
                     return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
                             id: post.user_id,
                             username: post.username,
@@ -733,7 +741,7 @@ class PostsRepositoryImpl {
                     const isLiked = yield database_1.db.one(query_1.default.isPostLiked, [post.id, userId]);
                     const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, userId]);
                     const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, userId]);
-                    const content_segments = yield this.parseContentSegments(post.content);
+                    const content_segments = yield (0, helpers_1.parseContentSegments)(post.content);
                     return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
                             id: post.user_id,
                             username: post.username,
@@ -764,7 +772,7 @@ class PostsRepositoryImpl {
                     const isLiked = yield database_1.db.one(query_1.default.isPostLiked, [post.id, userId]);
                     const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, userId]);
                     const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, userId]);
-                    const content_segments = yield this.parseContentSegments(post.content);
+                    const content_segments = yield (0, helpers_1.parseContentSegments)(post.content);
                     return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
                             id: post.user_id,
                             username: post.username,
@@ -836,44 +844,6 @@ class PostsRepositoryImpl {
             catch (error) {
                 return new errors_1.BadException(`${error.message}`);
             }
-        });
-    }
-    parseContentSegments(content) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!content)
-                return [];
-            const tokenRegex = /(@[a-zA-Z0-9_]+|#[a-zA-Z0-9]+)/g;
-            const parts = content.split(tokenRegex);
-            const mentionUsernames = parts
-                .filter(p => p.startsWith('@'))
-                .map(p => p.substring(1));
-            const userMap = new Map();
-            if (mentionUsernames.length > 0) {
-                const users = yield database_1.db.manyOrNone(query_1.default.getMentionedUserIds, [mentionUsernames]);
-                for (const u of users) {
-                    userMap.set(u.username.toLowerCase(), u.id);
-                }
-            }
-            const segments = [];
-            for (const part of parts) {
-                if (!part)
-                    continue;
-                if (part.startsWith('@')) {
-                    const username = part.substring(1);
-                    segments.push({
-                        type: 'mention',
-                        value: part,
-                        user_id: userMap.get(username.toLowerCase()),
-                    });
-                }
-                else if (part.startsWith('#')) {
-                    segments.push({ type: 'hashtag', value: part });
-                }
-                else if (part.trim()) {
-                    segments.push({ type: 'text', value: part });
-                }
-            }
-            return segments;
         });
     }
     extractHashtags(content) {

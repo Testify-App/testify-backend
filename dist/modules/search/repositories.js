@@ -28,10 +28,11 @@ const query_1 = __importDefault(require("./query"));
 const database_1 = require("../../config/database");
 const errors_1 = require("../../shared/lib/errors");
 const helpers_1 = require("../../shared/helpers");
+const query_2 = __importDefault(require("../posts/query"));
 class SearchRepositoryImpl {
     search(dto) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a, _b;
+            var _a, _b, _d;
             try {
                 const page = parseInt((_a = dto.page) !== null && _a !== void 0 ? _a : '1', 10);
                 const limit = Math.min(parseInt((_b = dto.limit) !== null && _b !== void 0 ? _b : '20', 10), 100);
@@ -44,14 +45,16 @@ class SearchRepositoryImpl {
                 ]);
                 const postCount = postRows.length > 0 ? parseInt(postRows[0].count, 10) : 0;
                 const profileCount = profileRows.length > 0 ? parseInt(profileRows[0].count, 10) : 0;
-                const posts = postRows.map((_a) => {
+                const userId = (_d = dto.user_id) !== null && _d !== void 0 ? _d : '';
+                const posts = yield Promise.all(postRows.map((_a) => __awaiter(this, void 0, void 0, function* () {
                     var { count: _c, rank: _r } = _a, row = __rest(_a, ["count", "rank"]);
-                    return row;
-                });
-                const profiles = profileRows.map((_a) => {
+                    return (Object.assign(Object.assign({}, row), { content_segments: yield (0, helpers_1.parseContentSegments)(row.content) }));
+                })));
+                const profiles = yield Promise.all(profileRows.map((_a) => __awaiter(this, void 0, void 0, function* () {
                     var { count: _c, rank: _r } = _a, row = __rest(_a, ["count", "rank"]);
-                    return row;
-                });
+                    const isFollowing = yield database_1.db.one(query_2.default.isFollowingUser, [userId, row.id]);
+                    return Object.assign(Object.assign({}, row), { is_following: isFollowing.exists });
+                })));
                 return {
                     query: q,
                     page: String(page),

@@ -72,6 +72,7 @@ exports.getPostsQueryValidator = joi_1.default.object({
     order: joi_1.default.string().valid('ASC', 'DESC', 'asc', 'desc').optional(),
     user_id: joi_1.default.string().uuid().optional(),
     visibility: joi_1.default.string().valid('public', 'followers_only', 'mentioned_only', 'private').optional(),
+    search: joi_1.default.string().max(200).optional(),
 });
 exports.getCommentsQueryValidator = joi_1.default.object({
     page: joi_1.default.number().integer().min(1).optional(),

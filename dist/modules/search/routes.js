@@ -41,7 +41,8 @@ const searchValidator = __importStar(require("./validator"));
 const controller_1 = __importDefault(require("./controller"));
 const watch_async_controller_1 = require("../../shared/utils/watch-async-controller");
 const request_validator_middleware_1 = require("../../shared/middlewares/request-validator.middleware");
+const auth_middleware_1 = require("../../shared/middlewares/auth.middleware");
 const searchRouter = (0, express_1.Router)();
-searchRouter.get('/', (0, request_validator_middleware_1.validateDataMiddleware)(searchValidator.searchQueryValidator, 'query'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.search));
+searchRouter.get('/', auth_middleware_1.optionalAuthMiddleware, (0, request_validator_middleware_1.validateDataMiddleware)(searchValidator.searchQueryValidator, 'query'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.search));
 exports.default = searchRouter;
 //# sourceMappingURL=routes.js.map

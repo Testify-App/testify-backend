@@ -358,6 +358,15 @@ class PostsController {
             logger_1.default.info('User posts retrieved successfully', 'posts.controller.ts');
             return ResponseBuilder.success(res, 'User posts retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
         });
+        this.getGuestPostsByUserId = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            const targetUserId = req.params.userId;
+            const query = new dtos.GetPostsQueryDTO(req.query);
+            const response = yield services_1.default.getPostsByUserId('', targetUserId, query);
+            if (response instanceof errors_1.BadException) {
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
+            }
+            return ResponseBuilder.success(res, 'User posts retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
         this.getMyPosts = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
             const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;

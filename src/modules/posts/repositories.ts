@@ -11,6 +11,7 @@ import {
 import {
   calcPages,
   fetchResourceByPage,
+  parseContentSegments,
   FetchPaginatedResponse,
 } from '../../shared/helpers';
 import NotificationService from '../../shared/services/notification';
@@ -79,7 +80,7 @@ export class PostsRepositoryImpl implements PostsInterface {
         }
 
         const content_segments = payload.content
-          ? await this.parseContentSegments(payload.content)
+          ? await parseContentSegments(payload.content)
           : [];
         return Object.assign(new entities.PostEntity(post), { content_segments });
       });
@@ -115,6 +116,7 @@ export class PostsRepositoryImpl implements PostsInterface {
     payload: dtos.GetPostsQueryDTO
   ): Promise<InternalServerErrorException | FetchPaginatedResponse> {
     try {
+      console.log('getPosts');
       const { page = '1', limit = '20', user_id } = payload as { page?: string; limit?: string; user_id: string };
       const [{ count }, posts] = await fetchResourceByPage({
         page,
@@ -125,10 +127,14 @@ export class PostsRepositoryImpl implements PostsInterface {
 
       const postsWithEngagement = await Promise.all(
         posts.map(async (post: any) => {
-          const isLiked = await db.one(PostsQuery.isPostLiked, [post.id, user_id]);
-          const isReposted = await db.one(PostsQuery.isReposted, [post.id, user_id]);
-          const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, user_id]);
-          const content_segments = await this.parseContentSegments(post.content);
+          const [isLiked, isReposted, isBookmarked, isFollowing, isInCircle, content_segments] = await Promise.all([
+            db.one(PostsQuery.isPostLiked, [post.id, user_id]),
+            db.one(PostsQuery.isReposted, [post.id, user_id]),
+            db.one(PostsQuery.isBookmarked, [post.id, user_id]),
+            db.one(PostsQuery.isFollowingUser, [user_id, post.user_id]),
+            db.one(PostsQuery.isInCircleWith, [user_id, post.user_id]),
+            parseContentSegments(post.content),
+          ]);
 
           return new entities.PostWithUserEntity({
             ...post,
@@ -140,6 +146,8 @@ export class PostsRepositoryImpl implements PostsInterface {
               id: post.user_id,
               username: post.username,
               avatar: post.avatar,
+              is_following: isFollowing.exists,
+              is_in_circle: isInCircle.exists,
             },
           });
         })
@@ -168,7 +176,7 @@ export class PostsRepositoryImpl implements PostsInterface {
       const isLiked = await db.one(PostsQuery.isPostLiked, [post.id, payload.user_id]);
       const isReposted = await db.one(PostsQuery.isReposted, [post.id, payload.user_id]);
       const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, payload.user_id]);
-      const content_segments = await this.parseContentSegments(post.content);
+      const content_segments = await parseContentSegments(post.content);
 
       return new entities.PostWithUserEntity({
         ...post,
@@ -544,7 +552,7 @@ export class PostsRepositoryImpl implements PostsInterface {
         }
 
         const content_segments = payload.content
-          ? await this.parseContentSegments(payload.content)
+          ? await parseContentSegments(payload.content)
           : [];
         return Object.assign(new entities.CommentEntity(comment), { content_segments });
       });
@@ -608,7 +616,7 @@ export class PostsRepositoryImpl implements PostsInterface {
       const commentsWithEngagement = await Promise.all(
         comments.map(async (comment: any) => {
           const isLiked = await db.one(PostsQuery.isCommentLiked, [comment.id, userId]);
-          const content_segments = await this.parseContentSegments(comment.content);
+          const content_segments = await parseContentSegments(comment.content);
 
           return new entities.CommentWithUserEntity({
             ...comment,
@@ -657,7 +665,7 @@ export class PostsRepositoryImpl implements PostsInterface {
       const repliesWithEngagement = await Promise.all(
         replies.map(async (comment: any) => {
           const isLiked = await db.one(PostsQuery.isCommentLiked, [comment.id, userId]);
-          const content_segments = await this.parseContentSegments(comment.content);
+          const content_segments = await parseContentSegments(comment.content);
 
           return new entities.CommentWithUserEntity({
             ...comment,
@@ -790,11 +798,12 @@ export class PostsRepositoryImpl implements PostsInterface {
   ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> {
     try {
       const { page = '1', limit = '20' } = query as { page?: string; limit?: string };
+      const search = (query as any).search as string | undefined;
       const [{ count }, posts] = await fetchResourceByPage({
         page,
         limit,
         getResources: PostsQuery.getPostsByUserId,
-        params: [targetUserId],
+        params: [targetUserId, search ?? null],
       });
 
       const postsWithEngagement = await Promise.all(
@@ -802,7 +811,7 @@ export class PostsRepositoryImpl implements PostsInterface {
           const isLiked = await db.one(PostsQuery.isPostLiked, [post.id, userId]);
           const isReposted = await db.one(PostsQuery.isReposted, [post.id, userId]);
           const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
-          const content_segments = await this.parseContentSegments(post.content);
+          const content_segments = await parseContentSegments(post.content);
 
           return new entities.PostWithUserEntity({
             ...post,
@@ -847,7 +856,7 @@ export class PostsRepositoryImpl implements PostsInterface {
           const isLiked = await db.one(PostsQuery.isPostLiked, [post.id, userId]);
           const isReposted = await db.one(PostsQuery.isReposted, [post.id, userId]);
           const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
-          const content_segments = await this.parseContentSegments(post.content);
+          const content_segments = await parseContentSegments(post.content);
 
           return new entities.PostWithUserEntity({
             ...post,
@@ -892,7 +901,7 @@ export class PostsRepositoryImpl implements PostsInterface {
           const isLiked = await db.one(PostsQuery.isPostLiked, [post.id, userId]);
           const isReposted = await db.one(PostsQuery.isReposted, [post.id, userId]);
           const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
-          const content_segments = await this.parseContentSegments(post.content);
+          const content_segments = await parseContentSegments(post.content);
 
           return new entities.PostWithUserEntity({
             ...post,
@@ -936,7 +945,7 @@ export class PostsRepositoryImpl implements PostsInterface {
           const isLiked = await db.one(PostsQuery.isPostLiked, [post.id, userId]);
           const isReposted = await db.one(PostsQuery.isReposted, [post.id, userId]);
           const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
-          const content_segments = await this.parseContentSegments(post.content);
+          const content_segments = await parseContentSegments(post.content);
 
           return new entities.PostWithUserEntity({
             ...post,
@@ -1025,46 +1034,6 @@ export class PostsRepositoryImpl implements PostsInterface {
     } catch (error) {
       return new BadException(`${error.message}`);
     }
-  }
-
-  private async parseContentSegments(content: string): Promise<entities.ContentSegment[]> {
-    if (!content) return [];
-
-    const tokenRegex = /(@[a-zA-Z0-9_]+|#[a-zA-Z0-9]+)/g;
-    const parts = content.split(tokenRegex);
-
-    const mentionUsernames = parts
-      .filter(p => p.startsWith('@'))
-      .map(p => p.substring(1));
-
-    const userMap = new Map<string, string>();
-    if (mentionUsernames.length > 0) {
-      const users: Array<{ id: string; username: string }> = await db.manyOrNone(
-        PostsQuery.getMentionedUserIds,
-        [mentionUsernames]
-      );
-      for (const u of users) {
-        userMap.set(u.username.toLowerCase(), u.id);
-      }
-    }
-
-    const segments: entities.ContentSegment[] = [];
-    for (const part of parts) {
-      if (!part) continue;
-      if (part.startsWith('@')) {
-        const username = part.substring(1);
-        segments.push({
-          type: 'mention',
-          value: part,
-          user_id: userMap.get(username.toLowerCase()),
-        });
-      } else if (part.startsWith('#')) {
-        segments.push({ type: 'hashtag', value: part });
-      } else if (part.trim()) {
-        segments.push({ type: 'text', value: part });
-      }
-    }
-    return segments;
   }
 
   private extractHashtags(content: string): string[] {
