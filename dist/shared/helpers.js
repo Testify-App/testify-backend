@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.setLastLoginTime = exports.FetchPaginatedResponse = exports.calcPages = exports.fetchResourceByPage = exports.parseContentSegments = void 0;
+exports.setLastLoginTime = exports.createNotification = exports.FetchPaginatedResponse = exports.calcPages = exports.fetchResourceByPage = exports.parseContentSegments = void 0;
 const database_1 = require("../config/database");
 const base_entity_1 = require("./utils/base-entity");
 const query_1 = __importDefault(require("../modules/authentication/query"));
@@ -62,6 +62,21 @@ exports.calcPages = calcPages;
 class FetchPaginatedResponse extends base_entity_1.BaseEntity {
 }
 exports.FetchPaginatedResponse = FetchPaginatedResponse;
+const createNotification = (payload) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    if (payload.user_id === payload.actor_id)
+        return;
+    yield database_1.db.none(`INSERT INTO notifications (user_id, actor_id, type, entity_type, entity_id, data)
+     VALUES ($1, $2, $3, $4, $5, $6)`, [
+        payload.user_id,
+        payload.actor_id,
+        payload.type,
+        payload.entity_type,
+        payload.entity_id,
+        JSON.stringify((_a = payload.data) !== null && _a !== void 0 ? _a : {}),
+    ]);
+});
+exports.createNotification = createNotification;
 const setLastLoginTime = (payload, operation, t) => __awaiter(void 0, void 0, void 0, function* () {
     operation === 'backoffice'
         ? yield t.none(query_1.default.setBackofficeLastLoginTime, [...payload])

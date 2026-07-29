@@ -7,6 +7,7 @@ import profilesRouter from '../../modules/profiles/routes';
 import hashtagsRouter from '../../modules/hashtags/routes';
 import searchRouter from '../../modules/search/routes';
 import guestRouter from '../../modules/guest/routes';
+import notificationsRouter from '../../modules/notifications/routes';
 
 const appRouter = express.Router();
 
@@ -29,5 +30,7 @@ appRouter.use("/hashtags", hashtagsRouter);
 appRouter.use("/search", searchRouter);
 
 appRouter.use("/guest", guestRouter);
+
+appRouter.use("/notifications", notificationsRouter);
 
 export const Router = appRouter;

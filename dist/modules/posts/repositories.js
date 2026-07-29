@@ -41,6 +41,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -98,6 +109,19 @@ class PostsRepositoryImpl {
                             const mentionedUsers = yield t.manyOrNone(query_1.default.getMentionedUserIds, [usernames]);
                             for (const user of mentionedUsers) {
                                 yield t.none(query_1.default.createPostMention, [post.id, user.id, 'content']);
+                            }
+                            const snippet = payload.content.slice(0, 100);
+                            for (const user of mentionedUsers) {
+                                if (user.id !== payload.user_id) {
+                                    (0, helpers_1.createNotification)({
+                                        user_id: user.id,
+                                        actor_id: payload.user_id,
+                                        type: 'mention',
+                                        entity_type: 'post',
+                                        entity_id: post.id,
+                                        data: { post_snippet: snippet },
+                                    }).catch(() => { });
+                                }
                             }
                         }
                     }
@@ -263,9 +287,24 @@ class PostsRepositoryImpl {
                     }
                     yield t.none(query_1.default.likePost, [payload.post_id, payload.user_id]);
                     yield t.none(query_1.default.incrementPostCounter, [payload.post_id]);
-                    return { message: 'Post liked successfully', is_liked: true };
+                    return { message: 'Post liked successfully', is_liked: true, _post_owner_id: post.user_id };
                 }));
-                return response;
+                if (response && !('message' in response && response.message === 'Post already liked')) {
+                    const owner = response._post_owner_id;
+                    if (owner) {
+                        (0, helpers_1.createNotification)({
+                            user_id: owner,
+                            actor_id: payload.user_id,
+                            type: 'post_like',
+                            entity_type: 'post',
+                            entity_id: payload.post_id,
+                            data: {},
+                        }).catch(() => { });
+                    }
+                }
+                return response && '_post_owner_id' in response
+                    ? { message: response.message, is_liked: response.is_liked }
+                    : response;
             }
             catch (error) {
                 return new errors_1.NotFoundException(`${error.message}`);
@@ -310,9 +349,24 @@ class PostsRepositoryImpl {
                     }
                     yield t.none(query_1.default.repost, [payload.post_id, payload.user_id]);
                     yield t.none('UPDATE posts SET reposts_count = reposts_count + 1 WHERE id = $1', [payload.post_id]);
-                    return { message: 'Post reposted successfully', is_reposted: true };
+                    return { message: 'Post reposted successfully', is_reposted: true, _post_owner_id: post.user_id };
                 }));
-                return response;
+                if (response && '_post_owner_id' in response) {
+                    const owner = response._post_owner_id;
+                    if (owner) {
+                        (0, helpers_1.createNotification)({
+                            user_id: owner,
+                            actor_id: payload.user_id,
+                            type: 'repost',
+                            entity_type: 'post',
+                            entity_id: payload.post_id,
+                            data: {},
+                        }).catch(() => { });
+                    }
+                }
+                return response && '_post_owner_id' in response
+                    ? { message: response.message, is_reposted: response.is_reposted }
+                    : response;
             }
             catch (error) {
                 return new errors_1.NotFoundException(`${error.message}`);
@@ -456,6 +510,7 @@ class PostsRepositoryImpl {
     }
     createComment(userId, postId, payload) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _c, _d;
             try {
                 const response = yield database_1.db.tx((t) => __awaiter(this, void 0, void 0, function* () {
                     const post = yield t.oneOrNone(query_1.default.getPostById, [postId]);
@@ -482,10 +537,47 @@ class PostsRepositoryImpl {
                     const content_segments = payload.content
                         ? yield (0, helpers_1.parseContentSegments)(payload.content)
                         : [];
-                    return Object.assign(new entities.CommentEntity(comment), { content_segments });
+                    const result = Object.assign(new entities.CommentEntity(comment), { content_segments });
+                    return Object.assign(result, {
+                        _post_owner_id: post.user_id,
+                        _parent_comment_id: payload.parent_comment_id || null,
+                    });
                 }));
+                if (response && '_post_owner_id' in response) {
+                    const postOwner = response._post_owner_id;
+                    const parentCommentId = response._parent_comment_id;
+                    const snippet = (_d = (_c = payload.content) === null || _c === void 0 ? void 0 : _c.slice(0, 100)) !== null && _d !== void 0 ? _d : '';
+                    if (postOwner && postOwner !== userId) {
+                        (0, helpers_1.createNotification)({
+                            user_id: postOwner,
+                            actor_id: userId,
+                            type: parentCommentId ? 'comment_reply' : 'post_comment',
+                            entity_type: 'post',
+                            entity_id: postId,
+                            data: { post_snippet: snippet },
+                        }).catch(() => { });
+                    }
+                    if (parentCommentId) {
+                        database_1.db.oneOrNone(query_1.default.getCommentById, [parentCommentId]).then((parent) => {
+                            if (parent && parent.user_id !== userId && parent.user_id !== postOwner) {
+                                (0, helpers_1.createNotification)({
+                                    user_id: parent.user_id,
+                                    actor_id: userId,
+                                    type: 'comment_reply',
+                                    entity_type: 'comment',
+                                    entity_id: parentCommentId,
+                                    data: { post_snippet: snippet },
+                                }).catch(() => { });
+                            }
+                        }).catch(() => { });
+                    }
+                }
                 if (payload.content) {
                     this.notifyMentionedUsers(payload.content, userId).catch(() => { });
+                }
+                if (response && '_post_owner_id' in response) {
+                    const _e = response, { _post_owner_id: _a, _parent_comment_id: _b } = _e, clean = __rest(_e, ["_post_owner_id", "_parent_comment_id"]);
+                    return clean;
                 }
                 return response;
             }
@@ -847,9 +939,9 @@ class PostsRepositoryImpl {
         });
     }
     extractHashtags(content) {
-        var _a;
+        var _c;
         const regex = /#([a-zA-Z0-9]+)/g;
-        const matches = (_a = content.match(regex)) !== null && _a !== void 0 ? _a : [];
+        const matches = (_c = content.match(regex)) !== null && _c !== void 0 ? _c : [];
         const unique = [...new Set(matches.map(m => m.substring(1).toLowerCase()))];
         return unique.slice(0, 10);
     }

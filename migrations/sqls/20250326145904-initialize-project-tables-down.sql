@@ -1,4 +1,5 @@
 
+DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS post_bookmarks;
 DROP TABLE IF EXISTS post_mentions;
 DROP TABLE IF EXISTS reposts;

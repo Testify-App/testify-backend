@@ -244,3 +244,21 @@ CREATE INDEX idx_user_connections_created_at ON user_connections(created_at DESC
 -- Full-text search indexes
 CREATE INDEX idx_posts_search ON posts USING GIN (search_vector);
 CREATE INDEX idx_users_search ON users USING GIN (search_vector);
+
+-- Notifications
+CREATE TABLE notifications (
+  id          VARCHAR PRIMARY KEY DEFAULT LOWER(CAST(uuid_generate_v1mc() AS VARCHAR(50))),
+  user_id     VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  actor_id    VARCHAR REFERENCES users(id) ON DELETE SET NULL,
+  type        VARCHAR NOT NULL,
+  entity_type VARCHAR,
+  entity_id   VARCHAR,
+  data        JSONB DEFAULT '{}',
+  is_read     BOOLEAN DEFAULT FALSE,
+  read_at     TIMESTAMPTZ DEFAULT NULL,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_notifications_user_id      ON notifications(user_id);
+CREATE INDEX idx_notifications_user_created ON notifications(user_id, created_at DESC);
+CREATE INDEX idx_notifications_user_unread  ON notifications(user_id, is_read) WHERE is_read = FALSE;

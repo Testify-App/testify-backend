@@ -129,6 +129,14 @@ class ProfilesRepositoryImpl {
                 if (!result) {
                     return new errors_1.BadException('User is already in your Tribe');
                 }
+                (0, helpers_1.createNotification)({
+                    user_id: payload.following_id,
+                    actor_id: payload.user_id,
+                    type: 'follow',
+                    entity_type: 'user',
+                    entity_id: payload.user_id,
+                    data: {},
+                }).catch(() => { });
                 return new entities.UserFollowEntity(result);
             }
             catch (error) {
@@ -276,6 +284,14 @@ class ProfilesRepositoryImpl {
                 if (!result) {
                     return new errors_1.BadException('Circle request already exists');
                 }
+                (0, helpers_1.createNotification)({
+                    user_id: payload.connected_user_id,
+                    actor_id: payload.user_id,
+                    type: 'circle_request',
+                    entity_type: 'user',
+                    entity_id: payload.user_id,
+                    data: {},
+                }).catch(() => { });
                 return new entities.CircleRequestEntity(result);
             }
             catch (error) {
@@ -307,6 +323,14 @@ class ProfilesRepositoryImpl {
                 if (!result) {
                     return new errors_1.BadException('Circle request not found or already processed');
                 }
+                (0, helpers_1.createNotification)({
+                    user_id: result.user_id,
+                    actor_id: payload.user_id,
+                    type: 'circle_accepted',
+                    entity_type: 'user',
+                    entity_id: payload.user_id,
+                    data: {},
+                }).catch(() => { });
                 return new entities.UserConnectionEntity(result);
             }
             catch (error) {
@@ -338,6 +362,14 @@ class ProfilesRepositoryImpl {
                     payload.user_id,
                     payload.connected_user_id,
                 ]);
+                (0, helpers_1.createNotification)({
+                    user_id: payload.connected_user_id,
+                    actor_id: payload.user_id,
+                    type: 'circle_removed',
+                    entity_type: 'user',
+                    entity_id: payload.user_id,
+                    data: {},
+                }).catch(() => { });
                 return;
             }
             catch (error) {
