@@ -1,40 +1,10 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.firebaseMessaging = exports.firebaseFirestore = exports.firebaseAuth = void 0;
-const admin = __importStar(require("firebase-admin"));
+const app_1 = require("firebase-admin/app");
+const auth_1 = require("firebase-admin/auth");
+const firestore_1 = require("firebase-admin/firestore");
+const messaging_1 = require("firebase-admin/messaging");
 function buildCredential() {
     const projectId = process.env.FIREBASE_PROJECT_ID;
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
@@ -49,15 +19,16 @@ function buildCredential() {
     return { projectId, clientEmail, privateKey };
 }
 function initFirebase() {
-    if (admin.apps.length > 0) {
-        return admin.apps[0];
+    const existing = (0, app_1.getApps)();
+    if (existing.length > 0) {
+        return existing[0];
     }
     const storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
-    return admin.initializeApp(Object.assign({ credential: admin.credential.cert(buildCredential()) }, (storageBucket && { storageBucket })));
+    return (0, app_1.initializeApp)(Object.assign({ credential: (0, app_1.cert)(buildCredential()) }, (storageBucket && { storageBucket })));
 }
 const firebaseApp = initFirebase();
-exports.firebaseAuth = admin.auth(firebaseApp);
-exports.firebaseFirestore = admin.firestore(firebaseApp);
-exports.firebaseMessaging = admin.messaging(firebaseApp);
+exports.firebaseAuth = (0, auth_1.getAuth)(firebaseApp);
+exports.firebaseFirestore = (0, firestore_1.getFirestore)(firebaseApp);
+exports.firebaseMessaging = (0, messaging_1.getMessaging)(firebaseApp);
 exports.default = firebaseApp;
 //# sourceMappingURL=firebase.js.map
