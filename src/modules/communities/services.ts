@@ -30,6 +30,24 @@ export class CommunitiesServiceImpl implements CommunitiesInterface {
     return CommunitiesRepository.getJoinedCommunities(payload);
   }
 
+  public async getAllUserCommunities(
+    payload: dtos.GetAllUserCommunitiesQueryDTO
+  ): Promise<BadException | FetchPaginatedResponse> {
+    return CommunitiesRepository.getAllUserCommunities(payload);
+  }
+
+  public async exploreCommunities(
+    payload: dtos.ExploreCommunityDTO
+  ): Promise<BadException | { top: entities.CommunityWithOwnerEntity[]; recommended: entities.CommunityWithOwnerEntity[] }> {
+    return CommunitiesRepository.exploreCommunities(payload);
+  }
+
+  public async searchCommunities(
+    payload: dtos.SearchCommunitiesQueryDTO
+  ): Promise<BadException | FetchPaginatedResponse> {
+    return CommunitiesRepository.searchCommunities(payload);
+  }
+
   public async updateCommunity(
     payload: dtos.UpdateCommunityDTO
   ): Promise<BadException | NotFoundException | entities.CommunityWithOwnerEntity> {
@@ -124,12 +142,6 @@ export class CommunitiesServiceImpl implements CommunitiesInterface {
     payload: dtos.ReviewReportDTO
   ): Promise<BadException | NotFoundException | void> {
     return CommunitiesRepository.reviewReport(payload);
-  }
-
-  public async createCommunityPost(
-    payload: dtos.CreateCommunityPostDTO
-  ): Promise<BadException | NotFoundException | entities.CommunityTestimonyEntity> {
-    return CommunitiesRepository.createCommunityPost(payload);
   }
 
   public async getCommunityTestimonies(

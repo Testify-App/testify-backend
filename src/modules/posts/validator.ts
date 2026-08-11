@@ -11,6 +11,7 @@ const hashtagContentRule = Joi.string().min(1).max(5000).custom((value, helpers)
 }).optional();
 
 export const createPostValidator = Joi.object({
+  community_id: Joi.string().optional(),
   content: hashtagContentRule,
   visibility: Joi.string().valid('public', 'followers_only', 'mentioned_only', 'private').optional(),
   media_attachments: Joi.array().max(10).items(

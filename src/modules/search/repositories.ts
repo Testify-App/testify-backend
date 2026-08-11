@@ -11,6 +11,7 @@ export class SearchRepositoryImpl {
   ): Promise<BadException | {
     posts: { results: any[]; total: number; totalPages: number };
     profiles: { results: any[]; total: number; totalPages: number };
+    communities: { results: any[]; total: number; totalPages: number };
     hashtags: { tag: string; posts_count: number }[];
     query: string;
     page: string;
@@ -21,16 +22,18 @@ export class SearchRepositoryImpl {
       const limit = Math.min(parseInt(dto.limit ?? '20', 10), 100);
       const offset = (page - 1) * limit;
       const q = dto.q.trim();
+      const userId = dto.user_id ?? '';
 
-      const [postRows, profileRows, hashtagRows] = await Promise.all([
+      const [postRows, profileRows, communityRows, hashtagRows] = await Promise.all([
         db.manyOrNone(SearchQuery.searchPosts, [offset, limit, q]),
         db.manyOrNone(SearchQuery.searchProfiles, [offset, limit, q]),
+        db.manyOrNone(SearchQuery.searchCommunities, [offset, limit, q, userId]),
         db.manyOrNone(SearchQuery.searchHashtags, [q]),
       ]);
 
       const postCount = postRows.length > 0 ? parseInt(postRows[0].count, 10) : 0;
       const profileCount = profileRows.length > 0 ? parseInt(profileRows[0].count, 10) : 0;
-      const userId = dto.user_id ?? '';
+      const communityCount = communityRows.length > 0 ? parseInt(communityRows[0].count, 10) : 0;
 
       const posts = await Promise.all(
         postRows.map(async ({ count: _c, rank: _r, ...row }) => ({
@@ -46,6 +49,16 @@ export class SearchRepositoryImpl {
         })
       );
 
+      const communities = communityRows.map(({ count: _c, rank: _r, ...row }) => ({
+        ...row,
+        testimonies_count: Number(row.testimonies_count),
+        owner: {
+          username: row.owner_username,
+          avatar: row.owner_avatar,
+          display_name: row.owner_display_name,
+        },
+      }));
+
       return {
         query: q,
         page: String(page),
@@ -59,6 +72,11 @@ export class SearchRepositoryImpl {
           results: profiles,
           total: profileCount,
           totalPages: calcPages(profileCount, String(limit)),
+        },
+        communities: {
+          results: communities,
+          total: communityCount,
+          totalPages: calcPages(communityCount, String(limit)),
         },
         hashtags: hashtagRows,
       };

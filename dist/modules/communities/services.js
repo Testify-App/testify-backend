@@ -35,6 +35,21 @@ class CommunitiesServiceImpl {
             return repositories_1.default.getJoinedCommunities(payload);
         });
     }
+    getAllUserCommunities(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return repositories_1.default.getAllUserCommunities(payload);
+        });
+    }
+    exploreCommunities(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return repositories_1.default.exploreCommunities(payload);
+        });
+    }
+    searchCommunities(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return repositories_1.default.searchCommunities(payload);
+        });
+    }
     updateCommunity(payload) {
         return __awaiter(this, void 0, void 0, function* () {
             return repositories_1.default.updateCommunity(payload);
@@ -113,11 +128,6 @@ class CommunitiesServiceImpl {
     reviewReport(payload) {
         return __awaiter(this, void 0, void 0, function* () {
             return repositories_1.default.reviewReport(payload);
-        });
-    }
-    createCommunityPost(payload) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return repositories_1.default.createCommunityPost(payload);
         });
     }
     getCommunityTestimonies(payload) {

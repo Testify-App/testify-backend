@@ -10,10 +10,100 @@ export default {
       c.*,
       u.username     AS owner_username,
       u.avatar       AS owner_avatar,
-      u.display_name AS owner_display_name
+      u.display_name AS owner_display_name,
+      (SELECT COUNT(*) FROM posts p WHERE p.community_id = c.id AND p.deleted_at IS NULL AND p.status != 'deleted') AS testimonies_count
     FROM communities c
     JOIN users u ON c.owner_id = u.id
     WHERE c.id = $1;
+  `,
+
+  exploreCommunities: `
+    SELECT
+      c.id,
+      c.name,
+      c.description,
+      c.category,
+      c.avatar,
+      c.cover_image,
+      c.visibility,
+      c.members_count,
+      c.created_at,
+      u.username     AS owner_username,
+      u.avatar       AS owner_avatar,
+      u.display_name AS owner_display_name,
+      (SELECT COUNT(*) FROM posts p WHERE p.community_id = c.id AND p.deleted_at IS NULL AND p.status != 'deleted') AS testimonies_count,
+      EXISTS(
+        SELECT 1 FROM community_members cm
+        WHERE cm.community_id = c.id AND cm.user_id = $1
+      ) AS is_member,
+      (c.owner_id = $1) AS is_owner
+    FROM communities c
+    JOIN users u ON c.owner_id = u.id
+    WHERE c.visibility = 'public'
+      AND c.owner_id != $1
+    ORDER BY c.members_count DESC
+    LIMIT 10;
+  `,
+
+  recommendedCommunities: `
+    SELECT
+      c.id,
+      c.name,
+      c.description,
+      c.category,
+      c.avatar,
+      c.cover_image,
+      c.visibility,
+      c.members_count,
+      c.created_at,
+      u.username     AS owner_username,
+      u.avatar       AS owner_avatar,
+      u.display_name AS owner_display_name,
+      (SELECT COUNT(*) FROM posts p WHERE p.community_id = c.id AND p.deleted_at IS NULL AND p.status != 'deleted') AS testimonies_count,
+      EXISTS(
+        SELECT 1 FROM community_members cm
+        WHERE cm.community_id = c.id AND cm.user_id = $1
+      ) AS is_member,
+      (c.owner_id = $1) AS is_owner
+    FROM communities c
+    JOIN users u ON c.owner_id = u.id
+    WHERE c.visibility = 'public'
+      AND c.owner_id != $1
+      AND NOT EXISTS (
+        SELECT 1 FROM community_members cm
+        WHERE cm.community_id = c.id AND cm.user_id = $1
+      )
+    ORDER BY RANDOM()
+    LIMIT 5;
+  `,
+
+  searchCommunities: `
+    SELECT COUNT(*) OVER () AS count,
+      c.id,
+      c.name,
+      c.description,
+      c.category,
+      c.avatar,
+      c.cover_image,
+      c.visibility,
+      c.members_count,
+      c.created_at,
+      u.username     AS owner_username,
+      u.avatar       AS owner_avatar,
+      u.display_name AS owner_display_name,
+      (SELECT COUNT(*) FROM posts p WHERE p.community_id = c.id AND p.deleted_at IS NULL AND p.status != 'deleted') AS testimonies_count,
+      EXISTS(
+        SELECT 1 FROM community_members cm
+        WHERE cm.community_id = c.id AND cm.user_id = $4
+      ) AS is_member,
+      (c.owner_id = $4) AS is_owner,
+      ts_rank(c.search_vector, plainto_tsquery('simple', $3)) AS rank
+    FROM communities c
+    JOIN users u ON c.owner_id = u.id
+    WHERE c.search_vector @@ plainto_tsquery('simple', $3)
+      AND c.visibility = 'public'
+    ORDER BY rank DESC, c.members_count DESC
+    LIMIT $2 OFFSET $1;
   `,
 
   getMyCommunities: `
@@ -40,6 +130,36 @@ export default {
     JOIN users u ON c.owner_id = u.id
     WHERE cm.user_id = $3 AND cm.status = 'accepted'
     ORDER BY cm.joined_at DESC
+    LIMIT $2 OFFSET $1;
+  `,
+
+  getAllUserCommunities: `
+    SELECT COUNT(*) OVER () AS count,
+      c.*,
+      u.username     AS owner_username,
+      u.avatar       AS owner_avatar,
+      u.display_name AS owner_display_name,
+      TRUE           AS is_owner,
+      c.created_at   AS sort_at
+    FROM communities c
+    JOIN users u ON c.owner_id = u.id
+    WHERE c.owner_id = $3
+
+    UNION ALL
+
+    SELECT COUNT(*) OVER () AS count,
+      c.*,
+      u.username     AS owner_username,
+      u.avatar       AS owner_avatar,
+      u.display_name AS owner_display_name,
+      FALSE          AS is_owner,
+      cm.joined_at   AS sort_at
+    FROM community_members cm
+    JOIN communities c ON cm.community_id = c.id
+    JOIN users u ON c.owner_id = u.id
+    WHERE cm.user_id = $3 AND cm.status = 'accepted'
+
+    ORDER BY sort_at DESC
     LIMIT $2 OFFSET $1;
   `,
 
@@ -147,26 +267,26 @@ export default {
   `,
 
   removeTestimony: `
-    UPDATE community_posts
+    UPDATE posts
     SET deleted_at = NOW(), deleted_by = $2, updated_at = NOW(), status = 'deleted'
     WHERE id = $1 AND community_id = $3 AND deleted_at IS NULL
     RETURNING id;
   `,
 
   pinTestimony: `
-    UPDATE community_posts SET is_pinned = TRUE, updated_at = NOW()
+    UPDATE posts SET is_pinned = TRUE, updated_at = NOW()
     WHERE id = $1 AND community_id = $2 AND deleted_at IS NULL
     RETURNING id;
   `,
 
   unpinTestimony: `
-    UPDATE community_posts SET is_pinned = FALSE, updated_at = NOW()
+    UPDATE posts SET is_pinned = FALSE, updated_at = NOW()
     WHERE id = $1 AND community_id = $2 AND deleted_at IS NULL
     RETURNING id;
   `,
 
   unpinAllTestimonies: `
-    UPDATE community_posts SET is_pinned = FALSE, updated_at = NOW()
+    UPDATE posts SET is_pinned = FALSE, updated_at = NOW()
     WHERE community_id = $1 AND is_pinned = TRUE;
   `,
 
@@ -203,105 +323,62 @@ export default {
     RETURNING *;
   `,
 
-  createCommunityPost: `
-    INSERT INTO community_posts (
-      community_id,
-      user_id,
-      content,
-      post_type,
-      media_attachments,
-      status
-    ) VALUES ($1, $2, $3, $4, $5, 'published')
-    RETURNING *;
-  `,
-
   getCommunityTestimonies: `
     SELECT COUNT(*) OVER () AS count,
-      cp.id,
-      cp.user_id,
-      cp.community_id,
-      cp.content,
-      cp.post_type,
-      cp.media_attachments,
-      cp.is_pinned,
-      cp.likes_count,
-      cp.comments_count,
-      cp.created_at,
-      cp.updated_at,
+      p.id,
+      p.user_id,
+      p.community_id,
+      p.content,
+      p.post_type,
+      p.media_attachments,
+      p.is_pinned,
+      p.likes_count,
+      p.comments_count,
+      p.created_at,
+      p.updated_at,
       u.username         AS author_username,
       u.avatar           AS author_avatar,
       u.display_name     AS author_display_name,
       c.name             AS community_name,
       c.avatar           AS community_avatar,
-      EXISTS(SELECT 1 FROM community_post_likes cpl WHERE cpl.community_post_id = cp.id AND cpl.user_id = $4) AS is_liked
-    FROM community_posts cp
-    JOIN users       u ON cp.user_id      = u.id
-    JOIN communities c ON cp.community_id = c.id
-    WHERE cp.community_id = $3
-      AND cp.deleted_at IS NULL
-      AND cp.status != 'deleted'
-    ORDER BY cp.is_pinned DESC, cp.created_at DESC
+      EXISTS(SELECT 1 FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $4) AS is_liked
+    FROM posts p
+    JOIN users       u ON p.user_id      = u.id
+    JOIN communities c ON p.community_id = c.id
+    WHERE p.community_id = $3
+      AND p.deleted_at IS NULL
+      AND p.status != 'deleted'
+    ORDER BY p.is_pinned DESC, p.created_at DESC
     LIMIT $2 OFFSET $1;
   `,
 
   getUserCommunityTestimonies: `
     SELECT COUNT(*) OVER () AS count,
-      cp.id,
-      cp.user_id,
-      cp.community_id,
-      cp.content,
-      cp.post_type,
-      cp.media_attachments,
-      cp.is_pinned,
-      cp.likes_count,
-      cp.comments_count,
-      cp.created_at,
-      cp.updated_at,
+      p.id,
+      p.user_id,
+      p.community_id,
+      p.content,
+      p.post_type,
+      p.media_attachments,
+      p.is_pinned,
+      p.likes_count,
+      p.comments_count,
+      p.created_at,
+      p.updated_at,
       u.username         AS author_username,
       u.avatar           AS author_avatar,
       u.display_name     AS author_display_name,
       c.name             AS community_name,
       c.avatar           AS community_avatar,
-      EXISTS(SELECT 1 FROM community_post_likes cpl WHERE cpl.community_post_id = cp.id AND cpl.user_id = $4) AS is_liked
-    FROM community_posts cp
-    JOIN users       u ON cp.user_id      = u.id
-    JOIN communities c ON cp.community_id = c.id
-    WHERE cp.user_id = $3
-      AND cp.deleted_at IS NULL
-      AND cp.status != 'deleted'
-    ORDER BY cp.created_at DESC
+      EXISTS(SELECT 1 FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $4) AS is_liked
+    FROM posts p
+    JOIN users       u ON p.user_id      = u.id
+    JOIN communities c ON p.community_id = c.id
+    WHERE p.user_id = $3
+      AND p.community_id IS NOT NULL
+      AND p.deleted_at IS NULL
+      AND p.status != 'deleted'
+    ORDER BY p.created_at DESC
     LIMIT $2 OFFSET $1;
-  `,
-
-  likeTestimony: `
-    INSERT INTO community_post_likes (community_post_id, user_id)
-    VALUES ($1, $2)
-    ON CONFLICT (community_post_id, user_id) DO NOTHING
-    RETURNING *;
-  `,
-
-  unlikeTestimony: `
-    DELETE FROM community_post_likes WHERE community_post_id = $1 AND user_id = $2;
-  `,
-
-  incrementTestimonyLikes: `
-    UPDATE community_posts SET likes_count = likes_count + 1, updated_at = NOW() WHERE id = $1;
-  `,
-
-  decrementTestimonyLikes: `
-    UPDATE community_posts SET likes_count = GREATEST(likes_count - 1, 0), updated_at = NOW() WHERE id = $1;
-  `,
-
-  getTestimonyById: `
-    SELECT cp.*,
-      u.username AS author_username,
-      u.avatar   AS author_avatar,
-      u.display_name AS author_display_name,
-      c.name     AS community_name,
-      c.avatar   AS community_avatar
-    FROM community_posts cp
-    JOIN users u       ON cp.user_id      = u.id
-    JOIN communities c ON cp.community_id = c.id
-    WHERE cp.id = $1 AND cp.deleted_at IS NULL;
   `,
 };

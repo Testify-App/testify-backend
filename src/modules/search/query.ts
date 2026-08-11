@@ -50,4 +50,33 @@ export default {
     ORDER BY posts_count DESC
     LIMIT 10;
   `,
+
+  searchCommunities: `
+    SELECT COUNT(*) OVER () AS count,
+      c.id,
+      c.name,
+      c.description,
+      c.category,
+      c.avatar,
+      c.cover_image,
+      c.visibility,
+      c.members_count,
+      c.created_at,
+      u.username     AS owner_username,
+      u.avatar       AS owner_avatar,
+      u.display_name AS owner_display_name,
+      (SELECT COUNT(*) FROM posts p WHERE p.community_id = c.id AND p.deleted_at IS NULL AND p.status != 'deleted') AS testimonies_count,
+      EXISTS(
+        SELECT 1 FROM community_members cm
+        WHERE cm.community_id = c.id AND cm.user_id = $4
+      ) AS is_member,
+      (c.owner_id = $4) AS is_owner,
+      ts_rank(c.search_vector, plainto_tsquery('simple', $3)) AS rank
+    FROM communities c
+    JOIN users u ON c.owner_id = u.id
+    WHERE c.search_vector @@ plainto_tsquery('simple', $3)
+      AND c.visibility = 'public'
+    ORDER BY rank DESC, c.members_count DESC
+    LIMIT $2 OFFSET $1;
+  `,
 };

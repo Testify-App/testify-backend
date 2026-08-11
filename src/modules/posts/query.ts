@@ -2,6 +2,7 @@ export default {
   createPost: `
     INSERT INTO posts (
       user_id,
+      community_id,
       content,
       post_type,
       visibility,
@@ -9,7 +10,7 @@ export default {
       parent_post_id,
       quote_text,
       status
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'published')
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'published')
     RETURNING *;
   `,
 
@@ -18,13 +19,17 @@ export default {
   `,
 
   getPostWithEngagement: `
-    SELECT 
+    SELECT
       p.*,
       u.id as user_id,
       u.username,
-      u.avatar
+      u.avatar,
+      c.id   AS community_id,
+      c.name AS community_name,
+      c.avatar AS community_avatar
     FROM posts p
     JOIN users u ON p.user_id = u.id
+    LEFT JOIN communities c ON p.community_id = c.id
     WHERE p.id = $1 AND p.deleted_at IS NULL;
   `,
 
@@ -34,9 +39,13 @@ export default {
       u.id as user_id,
       u.username,
       u.avatar,
-      u.display_name
+      u.display_name,
+      c.id   AS community_id,
+      c.name AS community_name,
+      c.avatar AS community_avatar
     FROM posts p
     JOIN users u ON p.user_id = u.id
+    LEFT JOIN communities c ON p.community_id = c.id
     WHERE p.deleted_at IS NULL
       AND p.status != 'archived'
       AND p.parent_post_id IS NULL
@@ -63,9 +72,13 @@ export default {
       u.id as user_id,
       u.username,
       u.avatar,
-      u.display_name
+      u.display_name,
+      c.id   AS community_id,
+      c.name AS community_name,
+      c.avatar AS community_avatar
     FROM posts p
     JOIN users u ON p.user_id = u.id
+    LEFT JOIN communities c ON p.community_id = c.id
     WHERE p.user_id = $3
       AND p.deleted_at IS NULL
       AND p.status != 'archived'
@@ -81,9 +94,13 @@ export default {
       u.id as user_id,
       u.username,
       u.display_name,
-      u.avatar
+      u.avatar,
+      c.id   AS community_id,
+      c.name AS community_name,
+      c.avatar AS community_avatar
     FROM posts p
     JOIN users u ON p.user_id = u.id
+    LEFT JOIN communities c ON p.community_id = c.id
     WHERE p.user_id = $3
       AND p.deleted_at IS NULL
       AND p.status != 'archived'
@@ -380,9 +397,13 @@ export default {
         u.username,
         u.avatar,
         u.display_name,
+        c.id   AS community_id,
+        c.name AS community_name,
+        c.avatar AS community_avatar,
         ROW_NUMBER() OVER (PARTITION BY p.user_id ORDER BY p.created_at DESC) AS rn
       FROM posts p
       JOIN users u        ON p.user_id = u.id
+      LEFT JOIN communities c ON p.community_id = c.id
       JOIN user_follows uf ON uf.following_id = p.user_id
       WHERE uf.follower_id = $3
         AND p.deleted_at IS NULL

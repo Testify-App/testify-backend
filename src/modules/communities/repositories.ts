@@ -4,12 +4,15 @@ import CommunitiesQuery from './query';
 import { CommunitiesInterface } from './interface';
 import { db } from '../../config/database';
 import { BadException, NotFoundException } from '../../shared/lib/errors';
-import { calcPages, fetchResourceByPage, FetchPaginatedResponse, parseContentSegments } from '../../shared/helpers';
+import { calcPages, fetchResourceByPage, FetchPaginatedResponse } from '../../shared/helpers';
 
 function mapToEntity(row: any): entities.CommunityWithOwnerEntity {
   return new entities.CommunityWithOwnerEntity({
     ...row,
     rules: row.rules || [],
+    testimonies_count: row.testimonies_count !== undefined ? Number(row.testimonies_count) : undefined,
+    is_owner: row.is_owner ?? undefined,
+    is_member: row.is_member ?? undefined,
     owner: {
       id: row.owner_id,
       username: row.owner_username,
@@ -95,6 +98,92 @@ export class CommunitiesRepositoryImpl implements CommunitiesInterface {
         limit,
         getResources: CommunitiesQuery.getJoinedCommunities,
         params: [user_id],
+      });
+
+      const communities = rows.map((row: any) => mapToEntity(row));
+
+      return {
+        total: count,
+        currentPage: page,
+        totalPages: calcPages(count, limit),
+        communities,
+      };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async getAllUserCommunities(
+    payload: dtos.GetAllUserCommunitiesQueryDTO
+  ): Promise<BadException | FetchPaginatedResponse> {
+    try {
+      const { page = '1', limit = '20', user_id } = payload as { page?: string; limit?: string; user_id: string };
+      const [{ count }, rows] = await fetchResourceByPage({
+        page,
+        limit,
+        getResources: CommunitiesQuery.getAllUserCommunities,
+        params: [user_id],
+      });
+
+      const communities = rows.map((row: any) =>
+        new entities.CommunityWithOwnerEntity({
+          ...row,
+          rules: row.rules || [],
+          is_owner: row.is_owner,
+          owner: {
+            id: row.owner_id,
+            username: row.owner_username,
+            avatar: row.owner_avatar,
+            display_name: row.owner_display_name,
+          },
+        })
+      );
+
+      return {
+        total: count,
+        currentPage: page,
+        totalPages: calcPages(count, limit),
+        communities,
+      };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async exploreCommunities(
+    payload: dtos.ExploreCommunityDTO
+  ): Promise<BadException | { top: entities.CommunityWithOwnerEntity[]; recommended: entities.CommunityWithOwnerEntity[] }> {
+    try {
+      const [topRows, recommendedRows] = await Promise.all([
+        db.manyOrNone(CommunitiesQuery.exploreCommunities, [payload.user_id]),
+        db.manyOrNone(CommunitiesQuery.recommendedCommunities, [payload.user_id]),
+      ]);
+
+      return {
+        top: topRows.map((row: any) => mapToEntity(row)),
+        recommended: recommendedRows.map((row: any) => mapToEntity(row)),
+      };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async searchCommunities(
+    payload: dtos.SearchCommunitiesQueryDTO
+  ): Promise<BadException | FetchPaginatedResponse> {
+    try {
+      const { page = '1', limit = '20', q, user_id } = payload as {
+        page?: string;
+        limit?: string;
+        q: string;
+        user_id: string;
+      };
+
+      const [{ count }, rows] = await fetchResourceByPage({
+        page,
+        limit,
+        getResources: CommunitiesQuery.searchCommunities,
+        params: [q, user_id],
       });
 
       const communities = rows.map((row: any) => mapToEntity(row));
@@ -447,7 +536,7 @@ export class CommunitiesRepositoryImpl implements CommunitiesInterface {
       }
 
       const post = await db.oneOrNone(
-        'SELECT id, is_pinned FROM community_posts WHERE id = $1 AND community_id = $2 AND deleted_at IS NULL',
+        'SELECT id, is_pinned FROM posts WHERE id = $1 AND community_id = $2 AND deleted_at IS NULL',
         [payload.testimony_id, payload.community_id]
       );
       if (!post) return new NotFoundException('Testimony not found in this community');
@@ -488,7 +577,7 @@ export class CommunitiesRepositoryImpl implements CommunitiesInterface {
       if (!community) return new NotFoundException('Community not found');
 
       const post = await db.oneOrNone(
-        'SELECT id FROM community_posts WHERE id = $1 AND community_id = $2 AND deleted_at IS NULL',
+        'SELECT id FROM posts WHERE id = $1 AND community_id = $2 AND deleted_at IS NULL',
         [payload.testimony_id, payload.community_id]
       );
       if (!post) return new NotFoundException('Testimony not found in this community');
@@ -568,63 +657,6 @@ export class CommunitiesRepositoryImpl implements CommunitiesInterface {
         payload.user_id,
       ]);
       if (!updated) return new NotFoundException('Report not found');
-    } catch (error) {
-      return new BadException(`${error.message}`);
-    }
-  }
-
-  public async createCommunityPost(
-    payload: dtos.CreateCommunityPostDTO
-  ): Promise<BadException | NotFoundException | entities.CommunityTestimonyEntity> {
-    try {
-      const community = await db.oneOrNone(
-        'SELECT id, owner_id FROM communities WHERE id = $1',
-        [payload.community_id]
-      );
-      if (!community) return new NotFoundException('Community not found');
-
-      const isBanned = await db.oneOrNone(CommunitiesQuery.isBanned, [
-        payload.community_id,
-        payload.user_id,
-      ]);
-      if (isBanned?.exists) return new BadException('You are banned from this community');
-
-      const isOwner = community.owner_id === payload.user_id;
-      if (!isOwner) {
-        const membership = await db.oneOrNone(CommunitiesQuery.getMemberStatus, [
-          payload.community_id,
-          payload.user_id,
-        ]);
-        if (!membership || membership.status !== 'accepted') {
-          return new BadException('You must be an accepted member to post in this community');
-        }
-      }
-
-      let postType = 'text';
-      if (payload.media_attachments && payload.media_attachments.length > 0) {
-        const types = new Set(payload.media_attachments.map((m) => m.type));
-        postType = types.size === 1 ? (types.values().next().value as string) : 'mixed';
-      }
-
-      const post = await db.one(CommunitiesQuery.createCommunityPost, [
-        payload.community_id,
-        payload.user_id,
-        payload.content || null,
-        postType,
-        JSON.stringify(payload.media_attachments || []),
-      ]);
-
-      const content_segments = payload.content
-        ? await parseContentSegments(payload.content)
-        : [];
-
-      return new entities.CommunityTestimonyEntity({
-        ...post,
-        content_segments,
-        is_liked: false,
-        author: { id: payload.user_id },
-        community: { id: payload.community_id },
-      });
     } catch (error) {
       return new BadException(`${error.message}`);
     }

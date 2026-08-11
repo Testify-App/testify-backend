@@ -91,6 +91,32 @@ class CommunitiesController {
             }
             return ResponseBuilder.success(res, 'Joined communities retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
         });
+        this.getAllUserCommunities = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            const dto = new dtos.GetAllUserCommunitiesQueryDTO(req.query);
+            dto.user_id = req.user.id;
+            const response = yield services_1.default.getAllUserCommunities(dto);
+            if (response instanceof errors_1.BadException) {
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
+            }
+            return ResponseBuilder.success(res, 'Communities retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
+        this.exploreCommunities = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            const dto = new dtos.ExploreCommunityDTO({ user_id: req.user.id });
+            const response = yield services_1.default.exploreCommunities(dto);
+            if (response instanceof errors_1.BadException) {
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
+            }
+            return ResponseBuilder.success(res, 'Communities retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
+        this.searchCommunities = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            const dto = new dtos.SearchCommunitiesQueryDTO(req.query);
+            dto.user_id = req.user.id;
+            const response = yield services_1.default.searchCommunities(dto);
+            if (response instanceof errors_1.BadException) {
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
+            }
+            return ResponseBuilder.success(res, 'Search results retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
         this.updateCommunity = (req, res) => __awaiter(this, void 0, void 0, function* () {
             const dto = new dtos.UpdateCommunityDTO(req.body);
             dto.user_id = req.user.id;
@@ -308,19 +334,6 @@ class CommunitiesController {
                 return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
             }
             return ResponseBuilder.success(res, 'Reported content retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
-        });
-        this.createCommunityPost = (req, res) => __awaiter(this, void 0, void 0, function* () {
-            const dto = new dtos.CreateCommunityPostDTO(req.body);
-            dto.user_id = req.user.id;
-            dto.community_id = req.params.communityId;
-            const response = yield services_1.default.createCommunityPost(dto);
-            if (response instanceof errors_1.NotFoundException) {
-                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.NOT_FOUND);
-            }
-            if (response instanceof errors_1.BadException) {
-                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
-            }
-            return ResponseBuilder.success(res, 'Testimony posted successfully', http_status_codes_1.StatusCodes.CREATED, response);
         });
         this.getCommunityTestimonies = (req, res) => __awaiter(this, void 0, void 0, function* () {
             const dto = new dtos.GetCommunityTestimoniesQueryDTO(req.query);

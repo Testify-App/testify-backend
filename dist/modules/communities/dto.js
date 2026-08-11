@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GetUserCommunityTestimoniesQueryDTO = exports.GetCommunityTestimoniesQueryDTO = exports.CreateCommunityPostDTO = exports.ReviewReportDTO = exports.GetReportedContentQueryDTO = exports.ReportDTO = exports.TestimonyActionDTO = exports.RemoveMemberDTO = exports.BanMemberDTO = exports.ManageJoinRequestDTO = exports.GetPendingRequestsQueryDTO = exports.GetCommunityMembersQueryDTO = exports.LeaveCommunityDTO = exports.JoinCommunityDTO = exports.DeleteCommunityDTO = exports.UpdateCommunityDTO = exports.GetJoinedCommunitiesQueryDTO = exports.GetMyCommunitiesQueryDTO = exports.GetCommunityDTO = exports.CreateCommunityDTO = void 0;
+exports.GetUserCommunityTestimoniesQueryDTO = exports.GetCommunityTestimoniesQueryDTO = exports.CreateCommunityPostDTO = exports.ReviewReportDTO = exports.GetReportedContentQueryDTO = exports.ReportDTO = exports.TestimonyActionDTO = exports.RemoveMemberDTO = exports.BanMemberDTO = exports.ManageJoinRequestDTO = exports.GetPendingRequestsQueryDTO = exports.GetCommunityMembersQueryDTO = exports.LeaveCommunityDTO = exports.JoinCommunityDTO = exports.DeleteCommunityDTO = exports.UpdateCommunityDTO = exports.SearchCommunitiesQueryDTO = exports.ExploreCommunityDTO = exports.GetAllUserCommunitiesQueryDTO = exports.GetJoinedCommunitiesQueryDTO = exports.GetMyCommunitiesQueryDTO = exports.GetCommunityDTO = exports.CreateCommunityDTO = void 0;
 const base_entity_1 = require("../../shared/utils/base-entity");
 class CreateCommunityDTO extends base_entity_1.BaseEntity {
 }
@@ -14,6 +14,15 @@ exports.GetMyCommunitiesQueryDTO = GetMyCommunitiesQueryDTO;
 class GetJoinedCommunitiesQueryDTO extends base_entity_1.BaseEntity {
 }
 exports.GetJoinedCommunitiesQueryDTO = GetJoinedCommunitiesQueryDTO;
+class GetAllUserCommunitiesQueryDTO extends base_entity_1.BaseEntity {
+}
+exports.GetAllUserCommunitiesQueryDTO = GetAllUserCommunitiesQueryDTO;
+class ExploreCommunityDTO extends base_entity_1.BaseEntity {
+}
+exports.ExploreCommunityDTO = ExploreCommunityDTO;
+class SearchCommunitiesQueryDTO extends base_entity_1.BaseEntity {
+}
+exports.SearchCommunitiesQueryDTO = SearchCommunitiesQueryDTO;
 class UpdateCommunityDTO extends base_entity_1.BaseEntity {
 }
 exports.UpdateCommunityDTO = UpdateCommunityDTO;

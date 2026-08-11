@@ -78,12 +78,14 @@ CREATE TYPE post_visibility AS ENUM ('public', 'followers_only', 'mentioned_only
 CREATE TABLE IF NOT EXISTS posts (
   id VARCHAR PRIMARY KEY DEFAULT LOWER(CAST(uuid_generate_v1mc() As VARCHAR(50))),
   user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  community_id VARCHAR NULL,
   content TEXT NULL,
   post_type post_type DEFAULT 'text',
   visibility post_visibility DEFAULT 'public',
   media_attachments JSONB DEFAULT '[]',
   parent_post_id VARCHAR NULL REFERENCES posts(id) ON DELETE CASCADE,
   quote_text TEXT NULL,
+  is_pinned BOOLEAN DEFAULT FALSE,
   likes_count INTEGER DEFAULT 0,
   comments_count INTEGER DEFAULT 0,
   reposts_count INTEGER DEFAULT 0,
@@ -260,12 +262,19 @@ CREATE TABLE communities (
   visibility    community_visibility DEFAULT 'public',
   rules         JSONB DEFAULT '[]',
   members_count INTEGER DEFAULT 1,
+  search_vector tsvector GENERATED ALWAYS AS (
+    setweight(to_tsvector('simple', coalesce(name, '')), 'A') ||
+    setweight(to_tsvector('simple', coalesce(description, '')), 'B') ||
+    setweight(to_tsvector('simple', coalesce(category, '')), 'C')
+  ) STORED,
   created_at    TIMESTAMPTZ DEFAULT NOW(),
   updated_at    TIMESTAMPTZ DEFAULT NULL
 );
 
-CREATE INDEX idx_communities_owner_id   ON communities(owner_id);
-CREATE INDEX idx_communities_created_at ON communities(created_at DESC);
+CREATE INDEX idx_communities_owner_id        ON communities(owner_id);
+CREATE INDEX idx_communities_created_at      ON communities(created_at DESC);
+CREATE INDEX idx_communities_members_count   ON communities(members_count DESC);
+CREATE INDEX idx_communities_search          ON communities USING GIN (search_vector);
 
 DROP TYPE IF EXISTS community_member_status;
 CREATE TYPE community_member_status AS ENUM ('pending', 'accepted');
@@ -283,61 +292,12 @@ CREATE INDEX idx_community_members_community_id ON community_members(community_i
 CREATE INDEX idx_community_members_user_id      ON community_members(user_id);
 CREATE INDEX idx_community_members_status       ON community_members(community_id, status);
 
--- Community posts (separate table, fully owned by the communities domain)
-CREATE TABLE community_posts (
-  id            VARCHAR PRIMARY KEY DEFAULT LOWER(CAST(uuid_generate_v1mc() AS VARCHAR(50))),
-  community_id  VARCHAR NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
-  user_id       VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  content       TEXT NULL,
-  post_type     post_type DEFAULT 'text',
-  media_attachments JSONB DEFAULT '[]',
-  is_pinned     BOOLEAN DEFAULT FALSE,
-  likes_count   INTEGER DEFAULT 0,
-  comments_count INTEGER DEFAULT 0,
-  deleted_at    TIMESTAMPTZ DEFAULT NULL,
-  deleted_by    VARCHAR REFERENCES users(id) ON DELETE SET NULL,
-  status        post_status DEFAULT 'published',
-  created_at    TIMESTAMPTZ DEFAULT NOW(),
-  updated_at    TIMESTAMPTZ DEFAULT NULL,
-  search_vector tsvector GENERATED ALWAYS AS (
-    to_tsvector('english', coalesce(content, ''))
-  ) STORED
-);
+-- Add community FK on posts now that communities table exists
+ALTER TABLE posts ADD CONSTRAINT fk_posts_community_id
+  FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE SET NULL;
 
-CREATE INDEX idx_community_posts_community_id    ON community_posts(community_id);
-CREATE INDEX idx_community_posts_user_id         ON community_posts(user_id);
-CREATE INDEX idx_community_posts_community_feed  ON community_posts(community_id, is_pinned DESC, created_at DESC);
-CREATE INDEX idx_community_posts_search          ON community_posts USING GIN (search_vector);
-
-CREATE TABLE community_post_likes (
-  id            VARCHAR PRIMARY KEY DEFAULT LOWER(CAST(uuid_generate_v1mc() AS VARCHAR(50))),
-  community_post_id VARCHAR NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,
-  user_id       VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  created_at    TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(community_post_id, user_id)
-);
-
-CREATE INDEX idx_community_post_likes_post_id ON community_post_likes(community_post_id);
-CREATE INDEX idx_community_post_likes_user_id ON community_post_likes(user_id);
-
-CREATE TABLE community_post_comments (
-  id                VARCHAR PRIMARY KEY DEFAULT LOWER(CAST(uuid_generate_v1mc() AS VARCHAR(50))),
-  community_post_id VARCHAR NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,
-  community_id      VARCHAR NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
-  user_id           VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  parent_comment_id VARCHAR REFERENCES community_post_comments(id) ON DELETE CASCADE,
-  content           TEXT NOT NULL,
-  media_attachments JSONB DEFAULT '[]',
-  likes_count       INTEGER DEFAULT 0,
-  replies_count     INTEGER DEFAULT 0,
-  deleted_at        TIMESTAMPTZ DEFAULT NULL,
-  deleted_by        VARCHAR REFERENCES users(id) ON DELETE SET NULL,
-  created_at        TIMESTAMPTZ DEFAULT NOW(),
-  updated_at        TIMESTAMPTZ DEFAULT NULL
-);
-
-CREATE INDEX idx_community_post_comments_post_id ON community_post_comments(community_post_id);
-CREATE INDEX idx_community_post_comments_user_id ON community_post_comments(user_id);
+CREATE INDEX idx_posts_community_id ON posts(community_id) WHERE community_id IS NOT NULL;
+CREATE INDEX idx_posts_community_feed ON posts(community_id, is_pinned DESC, created_at DESC) WHERE community_id IS NOT NULL;
 
 -- Community bans
 CREATE TABLE community_bans (

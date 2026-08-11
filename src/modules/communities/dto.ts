@@ -29,6 +29,23 @@ export class GetJoinedCommunitiesQueryDTO extends BaseEntity<GetJoinedCommunitie
   limit?: string;
 }
 
+export class GetAllUserCommunitiesQueryDTO extends BaseEntity<GetAllUserCommunitiesQueryDTO> {
+  user_id: string;
+  page?: string;
+  limit?: string;
+}
+
+export class ExploreCommunityDTO extends BaseEntity<ExploreCommunityDTO> {
+  user_id: string;
+}
+
+export class SearchCommunitiesQueryDTO extends BaseEntity<SearchCommunitiesQueryDTO> {
+  user_id: string;
+  q: string;
+  page?: string;
+  limit?: string;
+}
+
 export class UpdateCommunityDTO extends BaseEntity<UpdateCommunityDTO> {
   user_id: string;
   community_id: string;

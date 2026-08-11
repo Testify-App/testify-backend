@@ -38,14 +38,16 @@ class SearchRepositoryImpl {
                 const limit = Math.min(parseInt((_b = dto.limit) !== null && _b !== void 0 ? _b : '20', 10), 100);
                 const offset = (page - 1) * limit;
                 const q = dto.q.trim();
-                const [postRows, profileRows, hashtagRows] = yield Promise.all([
+                const userId = (_d = dto.user_id) !== null && _d !== void 0 ? _d : '';
+                const [postRows, profileRows, communityRows, hashtagRows] = yield Promise.all([
                     database_1.db.manyOrNone(query_1.default.searchPosts, [offset, limit, q]),
                     database_1.db.manyOrNone(query_1.default.searchProfiles, [offset, limit, q]),
+                    database_1.db.manyOrNone(query_1.default.searchCommunities, [offset, limit, q, userId]),
                     database_1.db.manyOrNone(query_1.default.searchHashtags, [q]),
                 ]);
                 const postCount = postRows.length > 0 ? parseInt(postRows[0].count, 10) : 0;
                 const profileCount = profileRows.length > 0 ? parseInt(profileRows[0].count, 10) : 0;
-                const userId = (_d = dto.user_id) !== null && _d !== void 0 ? _d : '';
+                const communityCount = communityRows.length > 0 ? parseInt(communityRows[0].count, 10) : 0;
                 const posts = yield Promise.all(postRows.map((_a) => __awaiter(this, void 0, void 0, function* () {
                     var { count: _c, rank: _r } = _a, row = __rest(_a, ["count", "rank"]);
                     return (Object.assign(Object.assign({}, row), { content_segments: yield (0, helpers_1.parseContentSegments)(row.content) }));
@@ -55,6 +57,14 @@ class SearchRepositoryImpl {
                     const isFollowing = yield database_1.db.one(query_2.default.isFollowingUser, [userId, row.id]);
                     return Object.assign(Object.assign({}, row), { is_following: isFollowing.exists });
                 })));
+                const communities = communityRows.map((_a) => {
+                    var { count: _c, rank: _r } = _a, row = __rest(_a, ["count", "rank"]);
+                    return (Object.assign(Object.assign({}, row), { testimonies_count: Number(row.testimonies_count), owner: {
+                            username: row.owner_username,
+                            avatar: row.owner_avatar,
+                            display_name: row.owner_display_name,
+                        } }));
+                });
                 return {
                     query: q,
                     page: String(page),
@@ -68,6 +78,11 @@ class SearchRepositoryImpl {
                         results: profiles,
                         total: profileCount,
                         totalPages: (0, helpers_1.calcPages)(profileCount, String(limit)),
+                    },
+                    communities: {
+                        results: communities,
+                        total: communityCount,
+                        totalPages: (0, helpers_1.calcPages)(communityCount, String(limit)),
                     },
                     hashtags: hashtagRows,
                 };
