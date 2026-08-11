@@ -126,6 +126,104 @@ communitiesRouter.get(
 
 /**
  * @swagger
+ * /communities/my-communities:
+ *   get:
+ *     summary: Get all communities the authenticated user is part of (created + joined), with is_owner flag
+ *     tags: [Communities]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Communities retrieved successfully
+ */
+communitiesRouter.get(
+  '/my-communities',
+  verifyAuth,
+  validateDataMiddleware(communitiesValidator.getMyCommunitiesValidator, 'query'),
+  WatchAsyncController(communitiesController.getAllUserCommunities)
+);
+
+/**
+ * @swagger
+ * /communities/explore:
+ *   get:
+ *     summary: Discover communities — top communities by member count + randomly recommended communities the user hasn't joined
+ *     tags: [Communities]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Explore communities retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 top:
+ *                   type: array
+ *                   description: Up to 10 most popular public communities
+ *                   items:
+ *                     $ref: '#/components/schemas/Community'
+ *                 recommended:
+ *                   type: array
+ *                   description: Up to 5 randomly recommended communities the user has not joined
+ *                   items:
+ *                     $ref: '#/components/schemas/Community'
+ */
+communitiesRouter.get(
+  '/explore',
+  verifyAuth,
+  WatchAsyncController(communitiesController.exploreCommunities)
+);
+
+/**
+ * @swagger
+ * /communities/search:
+ *   get:
+ *     summary: Full-text search for public communities by name, description, or category
+ *     tags: [Communities]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: q
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *           minLength: 1
+ *           maxLength: 100
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Search results retrieved successfully
+ *       400:
+ *         description: Missing or invalid query parameter
+ */
+communitiesRouter.get(
+  '/search',
+  verifyAuth,
+  validateDataMiddleware(communitiesValidator.searchCommunitiesValidator, 'query'),
+  WatchAsyncController(communitiesController.searchCommunities)
+);
+
+/**
+ * @swagger
  * /communities/{communityId}:
  *   get:
  *     summary: Get a community by ID
@@ -511,63 +609,8 @@ communitiesRouter.get(
 /**
  * @swagger
  * /communities/{communityId}/testimonies:
- *   post:
- *     summary: Share a testimony to a community
- *     tags: [Communities]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: communityId
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               content:
- *                 type: string
- *                 maxLength: 5000
- *               media_attachments:
- *                 type: array
- *                 items:
- *                   type: object
- *                   required:
- *                     - type
- *                     - url
- *                   properties:
- *                     type:
- *                       type: string
- *                       enum: [image, video, audio]
- *                     url:
- *                       type: string
- *                       format: uri
- *                     thumbnail_url:
- *                       type: string
- *                       format: uri
- *                     duration:
- *                       type: number
- *                     size:
- *                       type: number
- *                     mime_type:
- *                       type: string
- *                     filename:
- *                       type: string
- *                     order_index:
- *                       type: integer
- *     responses:
- *       201:
- *         description: Testimony posted successfully
- *       400:
- *         description: Not a member, banned, or missing content
- *       404:
- *         description: Community not found
  *   get:
- *     summary: Get testimonies feed for a community
+ *     summary: Get testimonies feed for a community (posts shared to this community)
  *     tags: [Communities]
  *     security:
  *       - bearerAuth: []
@@ -591,14 +634,6 @@ communitiesRouter.get(
  *       404:
  *         description: Community not found
  */
-communitiesRouter.post(
-  '/:communityId/testimonies',
-  verifyAuth,
-  validateDataMiddleware(communitiesValidator.communityIdValidator, 'params'),
-  validateDataMiddleware(communitiesValidator.createCommunityPostValidator, 'body'),
-  WatchAsyncController(communitiesController.createCommunityPost)
-);
-
 communitiesRouter.get(
   '/:communityId/testimonies',
   verifyAuth,

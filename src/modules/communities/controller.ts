@@ -58,6 +58,38 @@ export class CommunitiesController {
     return ResponseBuilder.success(res, 'Joined communities retrieved successfully', StatusCodes.OK, response);
   };
 
+  public getAllUserCommunities: fnRequest = async (req: AuthenticatedRequest, res: Response) => {
+    const dto = new dtos.GetAllUserCommunitiesQueryDTO(req.query as any);
+    dto.user_id = req.user!.id;
+
+    const response = await CommunitiesService.getAllUserCommunities(dto);
+    if (response instanceof BadException) {
+      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    return ResponseBuilder.success(res, 'Communities retrieved successfully', StatusCodes.OK, response);
+  };
+
+  public exploreCommunities: fnRequest = async (req: AuthenticatedRequest, res: Response) => {
+    const dto = new dtos.ExploreCommunityDTO({ user_id: req.user!.id });
+
+    const response = await CommunitiesService.exploreCommunities(dto);
+    if (response instanceof BadException) {
+      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    return ResponseBuilder.success(res, 'Communities retrieved successfully', StatusCodes.OK, response);
+  };
+
+  public searchCommunities: fnRequest = async (req: AuthenticatedRequest, res: Response) => {
+    const dto = new dtos.SearchCommunitiesQueryDTO(req.query as any);
+    dto.user_id = req.user!.id;
+
+    const response = await CommunitiesService.searchCommunities(dto);
+    if (response instanceof BadException) {
+      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    return ResponseBuilder.success(res, 'Search results retrieved successfully', StatusCodes.OK, response);
+  };
+
   public updateCommunity: fnRequest = async (req: AuthenticatedRequest, res: Response) => {
     const dto = new dtos.UpdateCommunityDTO(req.body);
     dto.user_id = req.user!.id;
@@ -306,21 +338,6 @@ export class CommunitiesController {
       return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
     }
     return ResponseBuilder.success(res, 'Reported content retrieved successfully', StatusCodes.OK, response);
-  };
-
-  public createCommunityPost: fnRequest = async (req: AuthenticatedRequest, res: Response) => {
-    const dto = new dtos.CreateCommunityPostDTO(req.body);
-    dto.user_id = req.user!.id;
-    dto.community_id = req.params.communityId;
-
-    const response = await CommunitiesService.createCommunityPost(dto);
-    if (response instanceof NotFoundException) {
-      return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
-    }
-    if (response instanceof BadException) {
-      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
-    }
-    return ResponseBuilder.success(res, 'Testimony posted successfully', StatusCodes.CREATED, response);
   };
 
   public getCommunityTestimonies: fnRequest = async (req: AuthenticatedRequest, res: Response) => {

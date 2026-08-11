@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCommunityTestimoniesValidator = exports.createCommunityPostValidator = exports.communityReportParamsValidator = exports.communityTestimonyParamsValidator = exports.communityUserParamsValidator = exports.reviewReportValidator = exports.reportValidator = exports.banMemberValidator = exports.getCommunityMembersValidator = exports.deleteCommunityValidator = exports.updateCommunityValidator = exports.getMyCommunitiesValidator = exports.communityIdValidator = exports.createCommunityValidator = void 0;
+exports.searchCommunitiesValidator = exports.getCommunityTestimoniesValidator = exports.createCommunityPostValidator = exports.communityReportParamsValidator = exports.communityTestimonyParamsValidator = exports.communityUserParamsValidator = exports.reviewReportValidator = exports.reportValidator = exports.banMemberValidator = exports.getCommunityMembersValidator = exports.deleteCommunityValidator = exports.updateCommunityValidator = exports.getMyCommunitiesValidator = exports.communityIdValidator = exports.createCommunityValidator = void 0;
 const joi_1 = __importDefault(require("joi"));
 const ruleSchema = joi_1.default.object({
     text: joi_1.default.string().max(200).required(),
@@ -78,6 +78,11 @@ exports.createCommunityPostValidator = joi_1.default.object({
     media_attachments: joi_1.default.array().items(mediaAttachmentSchema).max(10).optional(),
 }).or('content', 'media_attachments');
 exports.getCommunityTestimoniesValidator = joi_1.default.object({
+    page: joi_1.default.number().integer().min(1).optional(),
+    limit: joi_1.default.number().integer().min(1).max(100).optional(),
+});
+exports.searchCommunitiesValidator = joi_1.default.object({
+    q: joi_1.default.string().min(1).max(100).required(),
     page: joi_1.default.number().integer().min(1).optional(),
     limit: joi_1.default.number().integer().min(1).max(100).optional(),
 });

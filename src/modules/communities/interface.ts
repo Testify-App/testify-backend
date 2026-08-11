@@ -8,6 +8,9 @@ export interface CommunitiesInterface {
   getCommunity(payload: dtos.GetCommunityDTO): Promise<NotFoundException | entities.CommunityWithOwnerEntity>;
   getMyCommunities(payload: dtos.GetMyCommunitiesQueryDTO): Promise<BadException | FetchPaginatedResponse>;
   getJoinedCommunities(payload: dtos.GetJoinedCommunitiesQueryDTO): Promise<BadException | FetchPaginatedResponse>;
+  getAllUserCommunities(payload: dtos.GetAllUserCommunitiesQueryDTO): Promise<BadException | FetchPaginatedResponse>;
+  exploreCommunities(payload: dtos.ExploreCommunityDTO): Promise<BadException | { top: entities.CommunityWithOwnerEntity[]; recommended: entities.CommunityWithOwnerEntity[] }>;
+  searchCommunities(payload: dtos.SearchCommunitiesQueryDTO): Promise<BadException | FetchPaginatedResponse>;
   updateCommunity(payload: dtos.UpdateCommunityDTO): Promise<BadException | NotFoundException | entities.CommunityWithOwnerEntity>;
   deleteCommunity(payload: dtos.DeleteCommunityDTO): Promise<BadException | NotFoundException | void>;
   joinCommunity(payload: dtos.JoinCommunityDTO): Promise<BadException | NotFoundException | { status: string }>;
@@ -24,7 +27,6 @@ export interface CommunitiesInterface {
   reportTestimony(payload: dtos.ReportDTO): Promise<BadException | NotFoundException | void>;
   getReportedContent(payload: dtos.GetReportedContentQueryDTO): Promise<BadException | NotFoundException | FetchPaginatedResponse>;
   reviewReport(payload: dtos.ReviewReportDTO): Promise<BadException | NotFoundException | void>;
-  createCommunityPost(payload: dtos.CreateCommunityPostDTO): Promise<BadException | NotFoundException | entities.CommunityTestimonyEntity>;
   getCommunityTestimonies(payload: dtos.GetCommunityTestimoniesQueryDTO): Promise<BadException | NotFoundException | FetchPaginatedResponse>;
   getUserCommunityTestimonies(payload: dtos.GetUserCommunityTestimoniesQueryDTO): Promise<BadException | NotFoundException | FetchPaginatedResponse>;
 }

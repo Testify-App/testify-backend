@@ -3,6 +3,7 @@ import { PostVisibility } from './entities';
 
 export class CreatePostDTO extends BaseEntity<CreatePostDTO> {
   user_id: string;
+  community_id?: string;
   content?: string;
   visibility?: PostVisibility;
   media_attachments?: Array<{

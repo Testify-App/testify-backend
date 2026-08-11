@@ -33,9 +33,12 @@ export class CommunityWithOwnerEntity extends BaseEntity<CommunityWithOwnerEntit
   visibility?: CommunityVisibility;
   rules?: CommunityRule[];
   members_count?: number;
+  testimonies_count?: number;
   created_at?: Date;
   updated_at?: Date;
   member_status?: CommunityMemberStatus | null;
+  is_owner?: boolean;
+  is_member?: boolean;
   owner?: {
     id?: string;
     username?: string;

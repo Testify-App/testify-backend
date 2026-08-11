@@ -52,7 +52,8 @@ const database_1 = require("../../config/database");
 const errors_1 = require("../../shared/lib/errors");
 const helpers_1 = require("../../shared/helpers");
 function mapToEntity(row) {
-    return new entities.CommunityWithOwnerEntity(Object.assign(Object.assign({}, row), { rules: row.rules || [], owner: {
+    var _a, _b;
+    return new entities.CommunityWithOwnerEntity(Object.assign(Object.assign({}, row), { rules: row.rules || [], testimonies_count: row.testimonies_count !== undefined ? Number(row.testimonies_count) : undefined, is_owner: (_a = row.is_owner) !== null && _a !== void 0 ? _a : undefined, is_member: (_b = row.is_member) !== null && _b !== void 0 ? _b : undefined, owner: {
             id: row.owner_id,
             username: row.owner_username,
             avatar: row.owner_avatar,
@@ -130,6 +131,74 @@ class CommunitiesRepositoryImpl {
                     limit,
                     getResources: query_1.default.getJoinedCommunities,
                     params: [user_id],
+                });
+                const communities = rows.map((row) => mapToEntity(row));
+                return {
+                    total: count,
+                    currentPage: page,
+                    totalPages: (0, helpers_1.calcPages)(count, limit),
+                    communities,
+                };
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    getAllUserCommunities(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { page = '1', limit = '20', user_id } = payload;
+                const [{ count }, rows] = yield (0, helpers_1.fetchResourceByPage)({
+                    page,
+                    limit,
+                    getResources: query_1.default.getAllUserCommunities,
+                    params: [user_id],
+                });
+                const communities = rows.map((row) => new entities.CommunityWithOwnerEntity(Object.assign(Object.assign({}, row), { rules: row.rules || [], is_owner: row.is_owner, owner: {
+                        id: row.owner_id,
+                        username: row.owner_username,
+                        avatar: row.owner_avatar,
+                        display_name: row.owner_display_name,
+                    } })));
+                return {
+                    total: count,
+                    currentPage: page,
+                    totalPages: (0, helpers_1.calcPages)(count, limit),
+                    communities,
+                };
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    exploreCommunities(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const [topRows, recommendedRows] = yield Promise.all([
+                    database_1.db.manyOrNone(query_1.default.exploreCommunities, [payload.user_id]),
+                    database_1.db.manyOrNone(query_1.default.recommendedCommunities, [payload.user_id]),
+                ]);
+                return {
+                    top: topRows.map((row) => mapToEntity(row)),
+                    recommended: recommendedRows.map((row) => mapToEntity(row)),
+                };
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    searchCommunities(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { page = '1', limit = '20', q, user_id } = payload;
+                const [{ count }, rows] = yield (0, helpers_1.fetchResourceByPage)({
+                    page,
+                    limit,
+                    getResources: query_1.default.searchCommunities,
+                    params: [q, user_id],
                 });
                 const communities = rows.map((row) => mapToEntity(row));
                 return {
@@ -432,7 +501,7 @@ class CommunitiesRepositoryImpl {
                 if (community.owner_id !== payload.user_id) {
                     return new errors_1.BadException('Only the community owner can pin testimonies');
                 }
-                const post = yield database_1.db.oneOrNone('SELECT id, is_pinned FROM community_posts WHERE id = $1 AND community_id = $2 AND deleted_at IS NULL', [payload.testimony_id, payload.community_id]);
+                const post = yield database_1.db.oneOrNone('SELECT id, is_pinned FROM posts WHERE id = $1 AND community_id = $2 AND deleted_at IS NULL', [payload.testimony_id, payload.community_id]);
                 if (!post)
                     return new errors_1.NotFoundException('Testimony not found in this community');
                 yield database_1.db.tx((t) => __awaiter(this, void 0, void 0, function* () {
@@ -470,7 +539,7 @@ class CommunitiesRepositoryImpl {
                 const community = yield database_1.db.oneOrNone('SELECT id FROM communities WHERE id = $1', [payload.community_id]);
                 if (!community)
                     return new errors_1.NotFoundException('Community not found');
-                const post = yield database_1.db.oneOrNone('SELECT id FROM community_posts WHERE id = $1 AND community_id = $2 AND deleted_at IS NULL', [payload.testimony_id, payload.community_id]);
+                const post = yield database_1.db.oneOrNone('SELECT id FROM posts WHERE id = $1 AND community_id = $2 AND deleted_at IS NULL', [payload.testimony_id, payload.community_id]);
                 if (!post)
                     return new errors_1.NotFoundException('Testimony not found in this community');
                 yield database_1.db.oneOrNone(query_1.default.reportTestimony, [
@@ -531,50 +600,6 @@ class CommunitiesRepositoryImpl {
                 ]);
                 if (!updated)
                     return new errors_1.NotFoundException('Report not found');
-            }
-            catch (error) {
-                return new errors_1.BadException(`${error.message}`);
-            }
-        });
-    }
-    createCommunityPost(payload) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const community = yield database_1.db.oneOrNone('SELECT id, owner_id FROM communities WHERE id = $1', [payload.community_id]);
-                if (!community)
-                    return new errors_1.NotFoundException('Community not found');
-                const isBanned = yield database_1.db.oneOrNone(query_1.default.isBanned, [
-                    payload.community_id,
-                    payload.user_id,
-                ]);
-                if (isBanned === null || isBanned === void 0 ? void 0 : isBanned.exists)
-                    return new errors_1.BadException('You are banned from this community');
-                const isOwner = community.owner_id === payload.user_id;
-                if (!isOwner) {
-                    const membership = yield database_1.db.oneOrNone(query_1.default.getMemberStatus, [
-                        payload.community_id,
-                        payload.user_id,
-                    ]);
-                    if (!membership || membership.status !== 'accepted') {
-                        return new errors_1.BadException('You must be an accepted member to post in this community');
-                    }
-                }
-                let postType = 'text';
-                if (payload.media_attachments && payload.media_attachments.length > 0) {
-                    const types = new Set(payload.media_attachments.map((m) => m.type));
-                    postType = types.size === 1 ? types.values().next().value : 'mixed';
-                }
-                const post = yield database_1.db.one(query_1.default.createCommunityPost, [
-                    payload.community_id,
-                    payload.user_id,
-                    payload.content || null,
-                    postType,
-                    JSON.stringify(payload.media_attachments || []),
-                ]);
-                const content_segments = payload.content
-                    ? yield (0, helpers_1.parseContentSegments)(payload.content)
-                    : [];
-                return new entities.CommunityTestimonyEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: false, author: { id: payload.user_id }, community: { id: payload.community_id } }));
             }
             catch (error) {
                 return new errors_1.BadException(`${error.message}`);

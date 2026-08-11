@@ -16,6 +16,7 @@ const hashtagContentRule = joi_1.default.string().min(1).max(5000).custom((value
     return value;
 }).optional();
 exports.createPostValidator = joi_1.default.object({
+    community_id: joi_1.default.string().optional(),
     content: hashtagContentRule,
     visibility: joi_1.default.string().valid('public', 'followers_only', 'mentioned_only', 'private').optional(),
     media_attachments: joi_1.default.array().max(10).items(joi_1.default.object({

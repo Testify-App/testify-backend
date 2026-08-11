@@ -86,6 +86,7 @@ class PostsRepositoryImpl {
                     }
                     const post = yield t.one(query_1.default.createPost, [
                         payload.user_id,
+                        payload.community_id || null,
                         payload.content || null,
                         postType,
                         payload.visibility || 'public',
@@ -174,7 +175,9 @@ class PostsRepositoryImpl {
                             avatar: post.avatar,
                             is_following: isFollowing.exists,
                             is_in_circle: isInCircle.exists,
-                        } }));
+                        }, community: post.community_id
+                            ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar }
+                            : null }));
                 })));
                 return {
                     total: count,
@@ -204,7 +207,9 @@ class PostsRepositoryImpl {
                         id: post.user_id,
                         username: post.username,
                         avatar: post.avatar,
-                    } }));
+                    }, community: post.community_id
+                        ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar }
+                        : null }));
             }
             catch (error) {
                 return new errors_1.NotFoundException(`${error.message}`);
@@ -775,7 +780,9 @@ class PostsRepositoryImpl {
                             username: post.username,
                             avatar: post.avatar,
                             display_name: post.display_name,
-                        } }));
+                        }, community: post.community_id
+                            ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar }
+                            : null }));
                 })));
                 return {
                     posts: postsWithEngagement,
@@ -838,7 +845,9 @@ class PostsRepositoryImpl {
                             id: post.user_id,
                             username: post.username,
                             avatar: post.avatar,
-                        } }));
+                        }, community: post.community_id
+                            ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar }
+                            : null }));
                 })));
                 return {
                     posts: postsWithEngagement,
@@ -870,7 +879,9 @@ class PostsRepositoryImpl {
                             username: post.username,
                             avatar: post.avatar,
                             display_name: post.display_name,
-                        } }));
+                        }, community: post.community_id
+                            ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar }
+                            : null }));
                 })));
                 return {
                     posts: postsWithEngagement,

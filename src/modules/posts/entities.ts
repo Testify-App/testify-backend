@@ -35,12 +35,14 @@ export interface MediaAttachment {
 export class PostEntity extends BaseEntity<PostEntity> {
   id?: string;
   user_id?: string;
+  community_id?: string;
   content?: string;
   post_type?: PostType;
   visibility?: PostVisibility;
   media_attachments?: MediaAttachment[];
   parent_post_id?: string;
   quote_text?: string;
+  is_pinned?: boolean;
   likes_count?: number;
   comments_count?: number;
   reposts_count?: number;
@@ -106,6 +108,7 @@ export class PostBookmarkEntity extends BaseEntity<PostBookmarkEntity> {
 export class PostWithUserEntity extends BaseEntity<PostWithUserEntity> {
   id?: string;
   user_id?: string;
+  community_id?: string;
   content?: string;
   content_segments?: ContentSegment[];
   post_type?: PostType;
@@ -113,6 +116,7 @@ export class PostWithUserEntity extends BaseEntity<PostWithUserEntity> {
   media_attachments?: MediaAttachment[];
   parent_post_id?: string;
   quote_text?: string;
+  is_pinned?: boolean;
   likes_count?: number;
   comments_count?: number;
   reposts_count?: number;
@@ -127,7 +131,15 @@ export class PostWithUserEntity extends BaseEntity<PostWithUserEntity> {
     id?: string;
     username?: string;
     avatar?: string;
+    display_name?: string;
+    is_following?: boolean;
+    is_in_circle?: boolean;
   };
+  community?: {
+    id?: string;
+    name?: string;
+    avatar?: string;
+  } | null;
 }
 
 export class CommentWithUserEntity extends BaseEntity<CommentWithUserEntity> {

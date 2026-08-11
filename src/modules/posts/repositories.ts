@@ -44,6 +44,7 @@ export class PostsRepositoryImpl implements PostsInterface {
 
         const post = await t.one(PostsQuery.createPost, [
           payload.user_id,
+          payload.community_id || null,
           payload.content || null,
           postType,
           payload.visibility || 'public',
@@ -164,6 +165,9 @@ export class PostsRepositoryImpl implements PostsInterface {
               is_following: isFollowing.exists,
               is_in_circle: isInCircle.exists,
             },
+            community: post.community_id
+              ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar }
+              : null,
           });
         })
       );
@@ -204,6 +208,9 @@ export class PostsRepositoryImpl implements PostsInterface {
           username: post.username,
           avatar: post.avatar,
         },
+        community: post.community_id
+          ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar }
+          : null,
       });
     } catch (error) {
       return new NotFoundException(`${error.message}`);
@@ -920,6 +927,9 @@ export class PostsRepositoryImpl implements PostsInterface {
               avatar: post.avatar,
               display_name: post.display_name,
             },
+            community: post.community_id
+              ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar }
+              : null,
           });
         })
       );
@@ -1009,6 +1019,9 @@ export class PostsRepositoryImpl implements PostsInterface {
               username: post.username,
               avatar: post.avatar,
             },
+            community: post.community_id
+              ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar }
+              : null,
           });
         })
       );
@@ -1054,6 +1067,9 @@ export class PostsRepositoryImpl implements PostsInterface {
               avatar: post.avatar,
               display_name: post.display_name,
             },
+            community: post.community_id
+              ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar }
+              : null,
           });
         })
       );
