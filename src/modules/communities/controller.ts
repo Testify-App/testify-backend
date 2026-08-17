@@ -69,6 +69,30 @@ export class CommunitiesController {
     return ResponseBuilder.success(res, 'Communities retrieved successfully', StatusCodes.OK, response);
   };
 
+  public getUserCreatedCommunities: fnRequest = async (req: AuthenticatedRequest, res: Response) => {
+    const dto = new dtos.GetUserCreatedCommunitiesQueryDTO(req.query as any);
+    dto.user_id = req.user!.id;
+    dto.target_user_id = req.params.userId;
+
+    const response = await CommunitiesService.getUserCreatedCommunities(dto);
+    if (response instanceof BadException) {
+      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    return ResponseBuilder.success(res, 'Communities retrieved successfully', StatusCodes.OK, response);
+  };
+
+  public getUserJoinedCommunities: fnRequest = async (req: AuthenticatedRequest, res: Response) => {
+    const dto = new dtos.GetUserJoinedCommunitiesQueryDTO(req.query as any);
+    dto.user_id = req.user!.id;
+    dto.target_user_id = req.params.userId;
+
+    const response = await CommunitiesService.getUserJoinedCommunities(dto);
+    if (response instanceof BadException) {
+      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    return ResponseBuilder.success(res, 'Joined communities retrieved successfully', StatusCodes.OK, response);
+  };
+
   public exploreCommunities: fnRequest = async (req: AuthenticatedRequest, res: Response) => {
     const dto = new dtos.ExploreCommunityDTO({ user_id: req.user!.id });
 

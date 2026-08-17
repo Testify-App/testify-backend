@@ -161,6 +161,7 @@ class PostsRepositoryImpl {
                     params: [user_id],
                 });
                 const postsWithEngagement = yield Promise.all(posts.map((post) => __awaiter(this, void 0, void 0, function* () {
+                    var _c;
                     const [isLiked, isReposted, isBookmarked, isFollowing, isInCircle, content_segments] = yield Promise.all([
                         database_1.db.one(query_1.default.isPostLiked, [post.id, user_id]),
                         database_1.db.one(query_1.default.isReposted, [post.id, user_id]),
@@ -176,7 +177,7 @@ class PostsRepositoryImpl {
                             is_following: isFollowing.exists,
                             is_in_circle: isInCircle.exists,
                         }, community: post.community_id
-                            ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar }
+                            ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar, is_community_owner: (_c = post.is_community_owner) !== null && _c !== void 0 ? _c : false }
                             : null }));
                 })));
                 return {
@@ -194,8 +195,9 @@ class PostsRepositoryImpl {
     ;
     getPost(payload) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _c;
             try {
-                const post = yield database_1.db.oneOrNone(query_1.default.getPostWithEngagement, [payload.post_id]);
+                const post = yield database_1.db.oneOrNone(query_1.default.getPostWithEngagement, [payload.post_id, payload.user_id]);
                 if (!post) {
                     return new errors_1.NotFoundException('Post not found');
                 }
@@ -208,7 +210,7 @@ class PostsRepositoryImpl {
                         username: post.username,
                         avatar: post.avatar,
                     }, community: post.community_id
-                        ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar }
+                        ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar, is_community_owner: (_c = post.is_community_owner) !== null && _c !== void 0 ? _c : false }
                         : null }));
             }
             catch (error) {
@@ -768,9 +770,10 @@ class PostsRepositoryImpl {
                     page,
                     limit,
                     getResources: query_1.default.getPostsByUserId,
-                    params: [targetUserId, search !== null && search !== void 0 ? search : null],
+                    params: [targetUserId, search !== null && search !== void 0 ? search : null, userId],
                 });
                 const postsWithEngagement = yield Promise.all(posts.map((post) => __awaiter(this, void 0, void 0, function* () {
+                    var _c;
                     const isLiked = yield database_1.db.one(query_1.default.isPostLiked, [post.id, userId]);
                     const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, userId]);
                     const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, userId]);
@@ -781,7 +784,7 @@ class PostsRepositoryImpl {
                             avatar: post.avatar,
                             display_name: post.display_name,
                         }, community: post.community_id
-                            ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar }
+                            ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar, is_community_owner: (_c = post.is_community_owner) !== null && _c !== void 0 ? _c : false }
                             : null }));
                 })));
                 return {
@@ -837,6 +840,7 @@ class PostsRepositoryImpl {
                     params: [userId, search !== null && search !== void 0 ? search : null],
                 });
                 const postsWithEngagement = yield Promise.all(posts.map((post) => __awaiter(this, void 0, void 0, function* () {
+                    var _c;
                     const isLiked = yield database_1.db.one(query_1.default.isPostLiked, [post.id, userId]);
                     const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, userId]);
                     const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, userId]);
@@ -846,7 +850,7 @@ class PostsRepositoryImpl {
                             username: post.username,
                             avatar: post.avatar,
                         }, community: post.community_id
-                            ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar }
+                            ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar, is_community_owner: (_c = post.is_community_owner) !== null && _c !== void 0 ? _c : false }
                             : null }));
                 })));
                 return {
@@ -870,6 +874,7 @@ class PostsRepositoryImpl {
                     params: [userId],
                 });
                 const postsWithEngagement = yield Promise.all(posts.map((post) => __awaiter(this, void 0, void 0, function* () {
+                    var _c;
                     const isLiked = yield database_1.db.one(query_1.default.isPostLiked, [post.id, userId]);
                     const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, userId]);
                     const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, userId]);
@@ -880,7 +885,7 @@ class PostsRepositoryImpl {
                             avatar: post.avatar,
                             display_name: post.display_name,
                         }, community: post.community_id
-                            ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar }
+                            ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar, is_community_owner: (_c = post.is_community_owner) !== null && _c !== void 0 ? _c : false }
                             : null }));
                 })));
                 return {

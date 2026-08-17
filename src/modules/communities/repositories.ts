@@ -27,16 +27,22 @@ export class CommunitiesRepositoryImpl implements CommunitiesInterface {
     payload: dtos.CreateCommunityDTO
   ): Promise<BadException | entities.CommunityWithOwnerEntity> {
     try {
-      const community = await db.one(CommunitiesQuery.createCommunity, [
-        payload.user_id,
-        payload.name,
-        payload.description || null,
-        payload.category || null,
-        payload.avatar || null,
-        payload.cover_image || null,
-        payload.visibility || 'public',
-        JSON.stringify(payload.rules || []),
-      ]);
+      const community = await db.tx(async (t) => {
+        const created = await t.one(CommunitiesQuery.createCommunity, [
+          payload.user_id,
+          payload.name,
+          payload.description || null,
+          payload.category || null,
+          payload.avatar || null,
+          payload.cover_image || null,
+          payload.visibility || 'public',
+          JSON.stringify(payload.rules || []),
+        ]);
+
+        await t.oneOrNone(CommunitiesQuery.joinCommunity, [created.id, payload.user_id, 'accepted']);
+
+        return created;
+      });
 
       const full = await db.one(CommunitiesQuery.getCommunityById, [community.id]);
       return mapToEntity(full);
@@ -138,6 +144,56 @@ export class CommunitiesRepositoryImpl implements CommunitiesInterface {
           },
         })
       );
+
+      return {
+        total: count,
+        currentPage: page,
+        totalPages: calcPages(count, limit),
+        communities,
+      };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async getUserCreatedCommunities(
+    payload: dtos.GetUserCreatedCommunitiesQueryDTO
+  ): Promise<BadException | FetchPaginatedResponse> {
+    try {
+      const { page = '1', limit = '20', target_user_id } = payload as { page?: string; limit?: string; target_user_id: string };
+      const [{ count }, rows] = await fetchResourceByPage({
+        page,
+        limit,
+        getResources: CommunitiesQuery.getMyCommunities,
+        params: [target_user_id],
+      });
+
+      const communities = rows.map((row: any) => mapToEntity(row));
+
+      return {
+        total: count,
+        currentPage: page,
+        totalPages: calcPages(count, limit),
+        communities,
+      };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async getUserJoinedCommunities(
+    payload: dtos.GetUserJoinedCommunitiesQueryDTO
+  ): Promise<BadException | FetchPaginatedResponse> {
+    try {
+      const { page = '1', limit = '20', target_user_id } = payload as { page?: string; limit?: string; target_user_id: string };
+      const [{ count }, rows] = await fetchResourceByPage({
+        page,
+        limit,
+        getResources: CommunitiesQuery.getJoinedCommunities,
+        params: [target_user_id],
+      });
+
+      const communities = rows.map((row: any) => mapToEntity(row));
 
       return {
         total: count,
@@ -582,12 +638,16 @@ export class CommunitiesRepositoryImpl implements CommunitiesInterface {
       );
       if (!post) return new NotFoundException('Testimony not found in this community');
 
-      await db.oneOrNone(CommunitiesQuery.reportTestimony, [
+      const report = await db.oneOrNone(CommunitiesQuery.reportTestimony, [
         payload.community_id,
         payload.user_id,
         payload.testimony_id,
         payload.reason || null,
       ]);
+
+      if (report) {
+        await db.none(CommunitiesQuery.incrementPostReportCount, [payload.testimony_id]);
+      }
     } catch (error) {
       return new BadException(`${error.message}`);
     }
@@ -621,8 +681,30 @@ export class CommunitiesRepositoryImpl implements CommunitiesInterface {
 
       const reports = rows.map((row: any) =>
         new entities.CommunityReportEntity({
-          ...row,
+          id: row.id,
+          community_id: row.community_id,
+          reporter_id: row.reporter_id,
+          entity_type: row.entity_type,
+          entity_id: row.entity_id,
+          reason: row.reason,
+          status: row.status,
+          reviewed_by: row.reviewed_by,
+          reviewed_at: row.reviewed_at,
+          created_at: row.created_at,
           reporter: { username: row.reporter_username, avatar: row.reporter_avatar },
+          reported_user: row.reported_user_id
+            ? { id: row.reported_user_id, username: row.reported_user_username, avatar: row.reported_user_avatar }
+            : null,
+          testimony: row.entity_type === 'testimony' && row.testimony_id
+            ? {
+                id: row.testimony_id,
+                content: row.testimony_content,
+                post_type: row.testimony_post_type,
+                media_attachments: row.testimony_media_attachments,
+                report_count: Number(row.testimony_report_count ?? 0),
+                created_at: row.testimony_created_at,
+              }
+            : null,
         })
       );
 

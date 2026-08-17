@@ -118,4 +118,17 @@ export class CommunityReportEntity extends BaseEntity<CommunityReportEntity> {
     username?: string;
     avatar?: string;
   };
+  reported_user?: {
+    id?: string;
+    username?: string;
+    avatar?: string;
+  } | null;
+  testimony?: {
+    id?: string;
+    content?: string;
+    post_type?: string;
+    media_attachments?: any;
+    report_count?: number;
+    created_at?: Date;
+  } | null;
 }

@@ -64,16 +64,20 @@ class CommunitiesRepositoryImpl {
     createCommunity(payload) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const community = yield database_1.db.one(query_1.default.createCommunity, [
-                    payload.user_id,
-                    payload.name,
-                    payload.description || null,
-                    payload.category || null,
-                    payload.avatar || null,
-                    payload.cover_image || null,
-                    payload.visibility || 'public',
-                    JSON.stringify(payload.rules || []),
-                ]);
+                const community = yield database_1.db.tx((t) => __awaiter(this, void 0, void 0, function* () {
+                    const created = yield t.one(query_1.default.createCommunity, [
+                        payload.user_id,
+                        payload.name,
+                        payload.description || null,
+                        payload.category || null,
+                        payload.avatar || null,
+                        payload.cover_image || null,
+                        payload.visibility || 'public',
+                        JSON.stringify(payload.rules || []),
+                    ]);
+                    yield t.oneOrNone(query_1.default.joinCommunity, [created.id, payload.user_id, 'accepted']);
+                    return created;
+                }));
                 const full = yield database_1.db.one(query_1.default.getCommunityById, [community.id]);
                 return mapToEntity(full);
             }
@@ -161,6 +165,52 @@ class CommunitiesRepositoryImpl {
                         avatar: row.owner_avatar,
                         display_name: row.owner_display_name,
                     } })));
+                return {
+                    total: count,
+                    currentPage: page,
+                    totalPages: (0, helpers_1.calcPages)(count, limit),
+                    communities,
+                };
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    getUserCreatedCommunities(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { page = '1', limit = '20', target_user_id } = payload;
+                const [{ count }, rows] = yield (0, helpers_1.fetchResourceByPage)({
+                    page,
+                    limit,
+                    getResources: query_1.default.getMyCommunities,
+                    params: [target_user_id],
+                });
+                const communities = rows.map((row) => mapToEntity(row));
+                return {
+                    total: count,
+                    currentPage: page,
+                    totalPages: (0, helpers_1.calcPages)(count, limit),
+                    communities,
+                };
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    getUserJoinedCommunities(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { page = '1', limit = '20', target_user_id } = payload;
+                const [{ count }, rows] = yield (0, helpers_1.fetchResourceByPage)({
+                    page,
+                    limit,
+                    getResources: query_1.default.getJoinedCommunities,
+                    params: [target_user_id],
+                });
+                const communities = rows.map((row) => mapToEntity(row));
                 return {
                     total: count,
                     currentPage: page,
@@ -542,12 +592,15 @@ class CommunitiesRepositoryImpl {
                 const post = yield database_1.db.oneOrNone('SELECT id FROM posts WHERE id = $1 AND community_id = $2 AND deleted_at IS NULL', [payload.testimony_id, payload.community_id]);
                 if (!post)
                     return new errors_1.NotFoundException('Testimony not found in this community');
-                yield database_1.db.oneOrNone(query_1.default.reportTestimony, [
+                const report = yield database_1.db.oneOrNone(query_1.default.reportTestimony, [
                     payload.community_id,
                     payload.user_id,
                     payload.testimony_id,
                     payload.reason || null,
                 ]);
+                if (report) {
+                    yield database_1.db.none(query_1.default.incrementPostReportCount, [payload.testimony_id]);
+                }
             }
             catch (error) {
                 return new errors_1.BadException(`${error.message}`);
@@ -570,7 +623,35 @@ class CommunitiesRepositoryImpl {
                     getResources: query_1.default.getReportedContent,
                     params: [community_id],
                 });
-                const reports = rows.map((row) => new entities.CommunityReportEntity(Object.assign(Object.assign({}, row), { reporter: { username: row.reporter_username, avatar: row.reporter_avatar } })));
+                const reports = rows.map((row) => {
+                    var _a;
+                    return new entities.CommunityReportEntity({
+                        id: row.id,
+                        community_id: row.community_id,
+                        reporter_id: row.reporter_id,
+                        entity_type: row.entity_type,
+                        entity_id: row.entity_id,
+                        reason: row.reason,
+                        status: row.status,
+                        reviewed_by: row.reviewed_by,
+                        reviewed_at: row.reviewed_at,
+                        created_at: row.created_at,
+                        reporter: { username: row.reporter_username, avatar: row.reporter_avatar },
+                        reported_user: row.reported_user_id
+                            ? { id: row.reported_user_id, username: row.reported_user_username, avatar: row.reported_user_avatar }
+                            : null,
+                        testimony: row.entity_type === 'testimony' && row.testimony_id
+                            ? {
+                                id: row.testimony_id,
+                                content: row.testimony_content,
+                                post_type: row.testimony_post_type,
+                                media_attachments: row.testimony_media_attachments,
+                                report_count: Number((_a = row.testimony_report_count) !== null && _a !== void 0 ? _a : 0),
+                                created_at: row.testimony_created_at,
+                            }
+                            : null,
+                    });
+                });
                 return {
                     total: count,
                     currentPage: page,

@@ -24,9 +24,10 @@ exports.default = {
       u.id as user_id,
       u.username,
       u.avatar,
-      c.id   AS community_id,
-      c.name AS community_name,
-      c.avatar AS community_avatar
+      c.id          AS community_id,
+      c.name        AS community_name,
+      c.avatar      AS community_avatar,
+      (c.owner_id = $2) AS is_community_owner
     FROM posts p
     JOIN users u ON p.user_id = u.id
     LEFT JOIN communities c ON p.community_id = c.id
@@ -39,9 +40,10 @@ exports.default = {
       u.username,
       u.avatar,
       u.display_name,
-      c.id   AS community_id,
-      c.name AS community_name,
-      c.avatar AS community_avatar
+      c.id          AS community_id,
+      c.name        AS community_name,
+      c.avatar      AS community_avatar,
+      (c.owner_id = $3) AS is_community_owner
     FROM posts p
     JOIN users u ON p.user_id = u.id
     LEFT JOIN communities c ON p.community_id = c.id
@@ -70,9 +72,10 @@ exports.default = {
       u.username,
       u.avatar,
       u.display_name,
-      c.id   AS community_id,
-      c.name AS community_name,
-      c.avatar AS community_avatar
+      c.id          AS community_id,
+      c.name        AS community_name,
+      c.avatar      AS community_avatar,
+      (c.owner_id = $5) AS is_community_owner
     FROM posts p
     JOIN users u ON p.user_id = u.id
     LEFT JOIN communities c ON p.community_id = c.id
@@ -91,9 +94,10 @@ exports.default = {
       u.username,
       u.display_name,
       u.avatar,
-      c.id   AS community_id,
-      c.name AS community_name,
-      c.avatar AS community_avatar
+      c.id          AS community_id,
+      c.name        AS community_name,
+      c.avatar      AS community_avatar,
+      (c.owner_id = $3) AS is_community_owner
     FROM posts p
     JOIN users u ON p.user_id = u.id
     LEFT JOIN communities c ON p.community_id = c.id
@@ -355,9 +359,10 @@ exports.default = {
         u.username,
         u.avatar,
         u.display_name,
-        c.id   AS community_id,
-        c.name AS community_name,
-        c.avatar AS community_avatar,
+        c.id          AS community_id,
+        c.name        AS community_name,
+        c.avatar      AS community_avatar,
+        (c.owner_id = $3) AS is_community_owner,
         ROW_NUMBER() OVER (PARTITION BY p.user_id ORDER BY p.created_at DESC) AS rn
       FROM posts p
       JOIN users u        ON p.user_id = u.id

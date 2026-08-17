@@ -9,6 +9,8 @@ export interface CommunitiesInterface {
   getMyCommunities(payload: dtos.GetMyCommunitiesQueryDTO): Promise<BadException | FetchPaginatedResponse>;
   getJoinedCommunities(payload: dtos.GetJoinedCommunitiesQueryDTO): Promise<BadException | FetchPaginatedResponse>;
   getAllUserCommunities(payload: dtos.GetAllUserCommunitiesQueryDTO): Promise<BadException | FetchPaginatedResponse>;
+  getUserCreatedCommunities(payload: dtos.GetUserCreatedCommunitiesQueryDTO): Promise<BadException | FetchPaginatedResponse>;
+  getUserJoinedCommunities(payload: dtos.GetUserJoinedCommunitiesQueryDTO): Promise<BadException | FetchPaginatedResponse>;
   exploreCommunities(payload: dtos.ExploreCommunityDTO): Promise<BadException | { top: entities.CommunityWithOwnerEntity[]; recommended: entities.CommunityWithOwnerEntity[] }>;
   searchCommunities(payload: dtos.SearchCommunitiesQueryDTO): Promise<BadException | FetchPaginatedResponse>;
   updateCommunity(payload: dtos.UpdateCommunityDTO): Promise<BadException | NotFoundException | entities.CommunityWithOwnerEntity>;

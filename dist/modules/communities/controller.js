@@ -100,6 +100,26 @@ class CommunitiesController {
             }
             return ResponseBuilder.success(res, 'Communities retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
         });
+        this.getUserCreatedCommunities = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            const dto = new dtos.GetUserCreatedCommunitiesQueryDTO(req.query);
+            dto.user_id = req.user.id;
+            dto.target_user_id = req.params.userId;
+            const response = yield services_1.default.getUserCreatedCommunities(dto);
+            if (response instanceof errors_1.BadException) {
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
+            }
+            return ResponseBuilder.success(res, 'Communities retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
+        this.getUserJoinedCommunities = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            const dto = new dtos.GetUserJoinedCommunitiesQueryDTO(req.query);
+            dto.user_id = req.user.id;
+            dto.target_user_id = req.params.userId;
+            const response = yield services_1.default.getUserJoinedCommunities(dto);
+            if (response instanceof errors_1.BadException) {
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
+            }
+            return ResponseBuilder.success(res, 'Joined communities retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
         this.exploreCommunities = (req, res) => __awaiter(this, void 0, void 0, function* () {
             const dto = new dtos.ExploreCommunityDTO({ user_id: req.user.id });
             const response = yield services_1.default.exploreCommunities(dto);

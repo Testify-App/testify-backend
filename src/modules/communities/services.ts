@@ -36,6 +36,18 @@ export class CommunitiesServiceImpl implements CommunitiesInterface {
     return CommunitiesRepository.getAllUserCommunities(payload);
   }
 
+  public async getUserCreatedCommunities(
+    payload: dtos.GetUserCreatedCommunitiesQueryDTO
+  ): Promise<BadException | FetchPaginatedResponse> {
+    return CommunitiesRepository.getUserCreatedCommunities(payload);
+  }
+
+  public async getUserJoinedCommunities(
+    payload: dtos.GetUserJoinedCommunitiesQueryDTO
+  ): Promise<BadException | FetchPaginatedResponse> {
+    return CommunitiesRepository.getUserJoinedCommunities(payload);
+  }
+
   public async exploreCommunities(
     payload: dtos.ExploreCommunityDTO
   ): Promise<BadException | { top: entities.CommunityWithOwnerEntity[]; recommended: entities.CommunityWithOwnerEntity[] }> {

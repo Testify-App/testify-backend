@@ -26,6 +26,7 @@ export default {
       c.avatar,
       c.cover_image,
       c.visibility,
+      c.rules,
       c.members_count,
       c.created_at,
       u.username     AS owner_username,
@@ -54,6 +55,7 @@ export default {
       c.avatar,
       c.cover_image,
       c.visibility,
+      c.rules,
       c.members_count,
       c.created_at,
       u.username     AS owner_username,
@@ -194,7 +196,6 @@ export default {
     INSERT INTO community_members (community_id, user_id, status)
     VALUES ($1, $2, $3)
     ON CONFLICT (community_id, user_id) DO NOTHING
-    RETURNING *;
   `,
 
   leaveCommunity: `
@@ -304,13 +305,34 @@ export default {
     RETURNING *;
   `,
 
+  incrementPostReportCount: `
+    UPDATE posts SET report_count = report_count + 1 WHERE id = $1;
+  `,
+
   getReportedContent: `
     SELECT COUNT(*) OVER () as count,
       cr.*,
-      u.username AS reporter_username,
-      u.avatar   AS reporter_avatar
+      u.username  AS reporter_username,
+      u.avatar    AS reporter_avatar,
+      ru.id       AS reported_user_id,
+      ru.username AS reported_user_username,
+      ru.avatar   AS reported_user_avatar,
+      p.id              AS testimony_id,
+      p.content         AS testimony_content,
+      p.post_type       AS testimony_post_type,
+      p.media_attachments AS testimony_media_attachments,
+      p.report_count    AS testimony_report_count,
+      p.created_at      AS testimony_created_at
     FROM community_reports cr
     JOIN users u ON cr.reporter_id = u.id
+    LEFT JOIN posts p ON cr.entity_type = 'testimony' AND p.id = cr.entity_id
+    LEFT JOIN users ru ON (
+      cr.entity_type = 'testimony' AND ru.id = p.user_id
+    ) OR (
+      cr.entity_type = 'community' AND ru.id = (
+        SELECT owner_id FROM communities WHERE id = cr.entity_id
+      )
+    )
     WHERE cr.community_id = $3 AND cr.status = 'pending'
     ORDER BY cr.created_at DESC
     LIMIT $2 OFFSET $1;
