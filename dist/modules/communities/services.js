@@ -40,6 +40,16 @@ class CommunitiesServiceImpl {
             return repositories_1.default.getAllUserCommunities(payload);
         });
     }
+    getUserCreatedCommunities(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return repositories_1.default.getUserCreatedCommunities(payload);
+        });
+    }
+    getUserJoinedCommunities(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return repositories_1.default.getUserJoinedCommunities(payload);
+        });
+    }
     exploreCommunities(payload) {
         return __awaiter(this, void 0, void 0, function* () {
             return repositories_1.default.exploreCommunities(payload);

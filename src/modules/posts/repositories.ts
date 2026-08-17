@@ -166,7 +166,7 @@ export class PostsRepositoryImpl implements PostsInterface {
               is_in_circle: isInCircle.exists,
             },
             community: post.community_id
-              ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar }
+              ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar, is_community_owner: post.is_community_owner ?? false }
               : null,
           });
         })
@@ -187,7 +187,7 @@ export class PostsRepositoryImpl implements PostsInterface {
     payload: dtos.GetPostQueryDTO
   ): Promise<NotFoundException | entities.PostWithUserEntity> {
     try {
-      const post = await db.oneOrNone(PostsQuery.getPostWithEngagement, [payload.post_id]);
+      const post = await db.oneOrNone(PostsQuery.getPostWithEngagement, [payload.post_id, payload.user_id]);
       if (!post) {
         return new NotFoundException('Post not found');
       }
@@ -209,7 +209,7 @@ export class PostsRepositoryImpl implements PostsInterface {
           avatar: post.avatar,
         },
         community: post.community_id
-          ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar }
+          ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar, is_community_owner: post.is_community_owner ?? false }
           : null,
       });
     } catch (error) {
@@ -905,7 +905,7 @@ export class PostsRepositoryImpl implements PostsInterface {
         page,
         limit,
         getResources: PostsQuery.getPostsByUserId,
-        params: [targetUserId, search ?? null],
+        params: [targetUserId, search ?? null, userId],
       });
 
       const postsWithEngagement = await Promise.all(
@@ -928,7 +928,7 @@ export class PostsRepositoryImpl implements PostsInterface {
               display_name: post.display_name,
             },
             community: post.community_id
-              ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar }
+              ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar, is_community_owner: post.is_community_owner ?? false }
               : null,
           });
         })
@@ -1020,7 +1020,7 @@ export class PostsRepositoryImpl implements PostsInterface {
               avatar: post.avatar,
             },
             community: post.community_id
-              ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar }
+              ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar, is_community_owner: post.is_community_owner ?? false }
               : null,
           });
         })
@@ -1068,7 +1068,7 @@ export class PostsRepositoryImpl implements PostsInterface {
               display_name: post.display_name,
             },
             community: post.community_id
-              ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar }
+              ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar, is_community_owner: post.is_community_owner ?? false }
               : null,
           });
         })

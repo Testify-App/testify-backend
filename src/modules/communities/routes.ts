@@ -172,12 +172,12 @@ communitiesRouter.get(
  *                   type: array
  *                   description: Up to 10 most popular public communities
  *                   items:
- *                     $ref: '#/components/schemas/Community'
+ *                     type: object
  *                 recommended:
  *                   type: array
  *                   description: Up to 5 randomly recommended communities the user has not joined
  *                   items:
- *                     $ref: '#/components/schemas/Community'
+ *                     type: object
  */
 communitiesRouter.get(
   '/explore',
@@ -220,6 +220,72 @@ communitiesRouter.get(
   verifyAuth,
   validateDataMiddleware(communitiesValidator.searchCommunitiesValidator, 'query'),
   WatchAsyncController(communitiesController.searchCommunities)
+);
+
+/**
+ * @swagger
+ * /communities/user/{userId}/created:
+ *   get:
+ *     summary: Get communities created by a specific user
+ *     tags: [Communities]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Communities retrieved successfully
+ */
+communitiesRouter.get(
+  '/user/:userId/created',
+  verifyAuth,
+  validateDataMiddleware(communitiesValidator.getMyCommunitiesValidator, 'query'),
+  WatchAsyncController(communitiesController.getUserCreatedCommunities)
+);
+
+/**
+ * @swagger
+ * /communities/user/{userId}/joined:
+ *   get:
+ *     summary: Get communities a specific user has joined
+ *     tags: [Communities]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Joined communities retrieved successfully
+ */
+communitiesRouter.get(
+  '/user/:userId/joined',
+  verifyAuth,
+  validateDataMiddleware(communitiesValidator.getMyCommunitiesValidator, 'query'),
+  WatchAsyncController(communitiesController.getUserJoinedCommunities)
 );
 
 /**
