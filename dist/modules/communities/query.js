@@ -154,7 +154,7 @@ exports.default = {
     FROM community_members cm
     JOIN communities c ON cm.community_id = c.id
     JOIN users u ON c.owner_id = u.id
-    WHERE cm.user_id = $3 AND cm.status = 'accepted'
+    WHERE cm.user_id = $3 AND cm.status = 'accepted' AND c.owner_id != $3
 
     ORDER BY sort_at DESC
     LIMIT $2 OFFSET $1;
