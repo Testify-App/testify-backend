@@ -95,7 +95,7 @@ export default {
       password,
       status
     FROM users
-    WHERE email = $1;
+    WHERE email = $1 AND deleted_at IS NULL;
   `,
 
   setBackofficeLastLoginTime: `
@@ -118,5 +118,21 @@ export default {
     UPDATE users
     SET fcm_token = $2, updated_at = NOW()
     WHERE id = $1;
+  `,
+
+  getPasswordById: `
+    SELECT id, password FROM users WHERE id = $1 AND deleted_at IS NULL;
+  `,
+
+  deactivateAccount: `
+    UPDATE users
+    SET status = 'deactivated', session_id = NULL, updated_at = NOW()
+    WHERE id = $1;
+  `,
+
+  deleteAccount: `
+    UPDATE users
+    SET deleted_at = NOW(), status = 'deactivated', session_id = NULL, updated_at = NOW()
+    WHERE id = $1 AND deleted_at IS NULL;
   `,
 };

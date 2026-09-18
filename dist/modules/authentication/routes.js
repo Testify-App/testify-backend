@@ -52,5 +52,7 @@ authenticationRouter.post('/forgot-password', (0, request_validator_middleware_1
 authenticationRouter.post('/forgot-password/verify', (0, request_validator_middleware_1.validateDataMiddleware)(authValidator.verifyForgotPasswordOTPPayloadValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.verifyForgotPasswordOTP));
 authenticationRouter.patch('/forgot-password/reset', (0, request_validator_middleware_1.validateDataMiddleware)(authValidator.resetPasswordPayloadValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.resetPassword));
 authenticationRouter.patch('/fcm-token', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(authValidator.updateFcmTokenValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.updateFcmToken));
+authenticationRouter.patch('/deactivate', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(authValidator.deactivateAccountPayloadValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.deactivateAccount));
+authenticationRouter.delete('/account', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(authValidator.deleteAccountPayloadValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.deleteAccount));
 exports.default = authenticationRouter;
 //# sourceMappingURL=routes.js.map

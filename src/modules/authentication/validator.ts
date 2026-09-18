@@ -106,3 +106,15 @@ export const resetPasswordPayloadValidator = Joi.object({
   new_password: passwordSchema.extract('password'),
   confirm_new_password: passwordSchema.extract('password'),
 });
+
+export const deactivateAccountPayloadValidator = Joi.object({
+  password: joiPassword
+    .string()
+    .required(),
+});
+
+export const deleteAccountPayloadValidator = Joi.object({
+  password: joiPassword
+    .string()
+    .required(),
+});

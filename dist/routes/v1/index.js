@@ -48,6 +48,7 @@ const routes_5 = __importDefault(require("../../modules/search/routes"));
 const routes_6 = __importDefault(require("../../modules/guest/routes"));
 const routes_7 = __importDefault(require("../../modules/communities/routes"));
 const routes_8 = __importDefault(require("../../modules/notifications/routes"));
+const routes_9 = __importDefault(require("../../modules/stories/routes"));
 const appRouter = express_1.default.Router();
 appRouter.get('/', (_req, res) => Response.success(res, 'Welcome to Testify API.', http_status_codes_1.StatusCodes.OK));
 appRouter.get('/healthcheck/ping', (_req, res) => Response.success(res, 'PONG', http_status_codes_1.StatusCodes.OK));
@@ -59,5 +60,6 @@ appRouter.use("/search", routes_5.default);
 appRouter.use("/guest", routes_6.default);
 appRouter.use("/communities", routes_7.default);
 appRouter.use("/notifications", routes_8.default);
+appRouter.use("/stories", routes_9.default);
 exports.Router = appRouter;
 //# sourceMappingURL=index.js.map

@@ -48,3 +48,13 @@ export const UploadFile = async (file: File) => {
     throw new Error(`Error uploading file. ${error}`);
   }
 };
+
+export const deleteAsset = async (url: string): Promise<void> => {
+  if (Env.get<string>('NODE_ENV') === 'test') return;
+
+  const match = url.match(/\/testify\/([^./]+)\.\w+$/);
+  if (!match) return;
+
+  const publicId = `testify/${match[1]}`;
+  await cloudinary.uploader.destroy(publicId, { resource_type: 'auto' });
+};

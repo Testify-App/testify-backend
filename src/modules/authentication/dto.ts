@@ -44,3 +44,13 @@ export class LoginDTO extends BaseEntity<LoginDTO> {
 export class UpdateFcmTokenDTO extends BaseEntity<UpdateFcmTokenDTO> {
   fcm_token: string;
 };
+
+export class DeactivateAccountDTO extends BaseEntity<DeactivateAccountDTO> {
+  user_id: string;
+  password: string;
+};
+
+export class DeleteAccountDTO extends BaseEntity<DeleteAccountDTO> {
+  user_id: string;
+  password: string;
+};
