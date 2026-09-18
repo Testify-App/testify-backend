@@ -6,6 +6,7 @@ import Logger from './config/logger';
 import { db } from './config/database';
 import { AppEnv } from './shared/enums';
 import { envValidatorSchema } from './shared/env-validator';
+import { startStoryCleanupJob } from './shared/jobs/story-cleanup.job';
 
 async function main(app: Express): Promise<void> {
   const logger = new Logger(app.name);
@@ -13,6 +14,8 @@ async function main(app: Express): Promise<void> {
   // run the following before initializing App function
   await Env.validateEnv(envValidatorSchema);
   await db.connect();
+
+  startStoryCleanupJob();
 
   const server = http.createServer(app);
 

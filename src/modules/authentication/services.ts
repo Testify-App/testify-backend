@@ -82,6 +82,18 @@ export class AuthenticationServiceImpl implements AuthenticationInterface {
   ): Promise<BadException | { message: string }> => {
     return await AuthenticationRepository.updateFcmToken(userId, payload);
   };
+
+  public deactivateAccount = async (
+    payload: dtos.DeactivateAccountDTO
+  ): Promise<BadException | { message: string }> => {
+    return await AuthenticationRepository.deactivateAccount(payload);
+  };
+
+  public deleteAccount = async (
+    payload: dtos.DeleteAccountDTO
+  ): Promise<BadException | { message: string }> => {
+    return await AuthenticationRepository.deleteAccount(payload);
+  };
 }
 
 const AuthenticationServices = new AuthenticationServiceImpl();

@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS users (
   twitter TEXT NULL,
   youtube TEXT NULL,
   terms_and_condition BOOLEAN DEFAULT NULL,
+  deleted_at TIMESTAMPTZ DEFAULT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NULL,
   search_vector tsvector GENERATED ALWAYS AS (
@@ -90,6 +91,7 @@ CREATE TABLE IF NOT EXISTS posts (
   comments_count INTEGER DEFAULT 0,
   reposts_count INTEGER DEFAULT 0,
   quotes_count INTEGER DEFAULT 0,
+  report_count INTEGER NOT NULL DEFAULT 0,
   deleted_at TIMESTAMPTZ DEFAULT NULL,
   deleted_by VARCHAR NULL REFERENCES users(id),
   content_flags JSONB DEFAULT NULL,
@@ -354,3 +356,35 @@ CREATE TABLE notifications (
 CREATE INDEX idx_notifications_user_id      ON notifications(user_id);
 CREATE INDEX idx_notifications_user_created ON notifications(user_id, created_at DESC);
 CREATE INDEX idx_notifications_user_unread  ON notifications(user_id, is_read) WHERE is_read = FALSE;
+
+-- Stories
+DROP TYPE IF EXISTS story_content_type;
+CREATE TYPE story_content_type AS ENUM ('text', 'image', 'video');
+
+CREATE TABLE IF NOT EXISTS stories (
+  id                VARCHAR PRIMARY KEY DEFAULT LOWER(CAST(uuid_generate_v1mc() AS VARCHAR(50))),
+  user_id           VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  content_type      story_content_type NOT NULL,
+  media_url         TEXT NULL,
+  thumbnail_url     TEXT NULL,
+  text_content      TEXT NULL,
+  background_style  JSONB DEFAULT NULL,
+  duration          INTEGER NULL,
+  views_count       INTEGER NOT NULL DEFAULT 0,
+  deleted_at        TIMESTAMPTZ DEFAULT NULL,
+  created_at        TIMESTAMPTZ DEFAULT NOW(),
+  expires_at        TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '24 hours')
+);
+
+CREATE TABLE IF NOT EXISTS story_views (
+  id          VARCHAR PRIMARY KEY DEFAULT LOWER(CAST(uuid_generate_v1mc() AS VARCHAR(50))),
+  story_id    VARCHAR NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+  viewer_id   VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  viewed_at   TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(story_id, viewer_id)
+);
+
+CREATE INDEX idx_stories_user_id       ON stories(user_id);
+CREATE INDEX idx_stories_expires_at    ON stories(expires_at);
+CREATE INDEX idx_story_views_story_id  ON story_views(story_id);
+CREATE INDEX idx_story_views_viewer_id ON story_views(viewer_id);

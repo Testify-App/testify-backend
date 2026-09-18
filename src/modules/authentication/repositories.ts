@@ -242,6 +242,44 @@ export class AuthenticationRepositoryImpl implements AuthenticationInterface {
       return new BadException(`${error.message}`);
     }
   };
+
+  public async deactivateAccount(
+    payload: dtos.DeactivateAccountDTO,
+  ): Promise<BadException | { message: string }> {
+    try {
+      const user = await db.oneOrNone(AuthenticationQuery.getPasswordById, [payload.user_id]);
+      if (!user) {
+        throw new BadException('Invalid user id.');
+      }
+      const isValid = await hashingService.compare(payload.password, user.password);
+      if (!isValid) {
+        throw new BadException('Incorrect password.');
+      }
+      await db.none(AuthenticationQuery.deactivateAccount, [payload.user_id]);
+      return { message: 'Account deactivated successfully' };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  };
+
+  public async deleteAccount(
+    payload: dtos.DeleteAccountDTO,
+  ): Promise<BadException | { message: string }> {
+    try {
+      const user = await db.oneOrNone(AuthenticationQuery.getPasswordById, [payload.user_id]);
+      if (!user) {
+        throw new BadException('Invalid user id.');
+      }
+      const isValid = await hashingService.compare(payload.password, user.password);
+      if (!isValid) {
+        throw new BadException('Incorrect password.');
+      }
+      await db.none(AuthenticationQuery.deleteAccount, [payload.user_id]);
+      return { message: 'Account deleted successfully' };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  };
 }
 
 const authenticationRepository = new AuthenticationRepositoryImpl();

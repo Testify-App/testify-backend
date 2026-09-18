@@ -19,11 +19,13 @@ const logger_1 = __importDefault(require("./config/logger"));
 const database_1 = require("./config/database");
 const enums_1 = require("./shared/enums");
 const env_validator_1 = require("./shared/env-validator");
+const story_cleanup_job_1 = require("./shared/jobs/story-cleanup.job");
 function main(app) {
     return __awaiter(this, void 0, void 0, function* () {
         const logger = new logger_1.default(app.name);
         yield env_1.default.validateEnv(env_validator_1.envValidatorSchema);
         yield database_1.db.connect();
+        (0, story_cleanup_job_1.startStoryCleanupJob)();
         const server = http_1.default.createServer(app);
         const PORT = env_1.default.get('PORT') || 8080;
         const NODE_ENV = env_1.default.get('NODE_ENV');

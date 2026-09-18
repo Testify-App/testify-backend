@@ -327,4 +327,76 @@ authenticationRouter.patch(
   WatchAsyncController(authenticationController.updateFcmToken)
 );
 
+/**
+ * @swagger
+ * /auth/deactivate:
+ *   patch:
+ *     summary: Deactivate the authenticated user's account
+ *     description: Requires the current password. The account can be reactivated by an admin or a future reactivation flow; login is blocked while deactivated.
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Account deactivated successfully
+ *       400:
+ *         description: Incorrect password
+ *       401:
+ *         description: Unauthorized
+ */
+authenticationRouter.patch(
+  '/deactivate',
+  verifyAuth,
+  validateDataMiddleware(authValidator.deactivateAccountPayloadValidator, 'body'),
+  WatchAsyncController(authenticationController.deactivateAccount)
+);
+
+/**
+ * @swagger
+ * /auth/account:
+ *   delete:
+ *     summary: Delete the authenticated user's account
+ *     description: Soft-deletes the account (sets deleted_at). Requires the current password. This action cannot be undone by the user.
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Account deleted successfully
+ *       400:
+ *         description: Incorrect password
+ *       401:
+ *         description: Unauthorized
+ */
+authenticationRouter.delete(
+  '/account',
+  verifyAuth,
+  validateDataMiddleware(authValidator.deleteAccountPayloadValidator, 'body'),
+  WatchAsyncController(authenticationController.deleteAccount)
+);
+
 export default authenticationRouter;

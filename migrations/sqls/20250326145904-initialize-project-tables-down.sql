@@ -1,4 +1,7 @@
 
+DROP TABLE IF EXISTS story_views;
+DROP TABLE IF EXISTS stories;
+DROP TYPE IF EXISTS story_content_type;
 DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS community_reports;
 DROP TYPE IF EXISTS community_report_status;

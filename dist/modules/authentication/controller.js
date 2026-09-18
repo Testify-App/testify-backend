@@ -138,6 +138,30 @@ class AuthenticationController {
             logger_1.default.info('FCM token updated successfully', 'authentication.controller.ts');
             return Response.success(res, response.message, http_status_codes_1.StatusCodes.OK);
         });
+        this.deactivateAccount = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const payload = new dtos.DeactivateAccountDTO(req.body);
+            payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const response = yield services_1.default.deactivateAccount(payload);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(`${response.message}`, 'authentication.controller.ts');
+                return Response.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
+            }
+            logger_1.default.info('Account deactivated successfully', 'authentication.controller.ts');
+            return Response.success(res, response.message, http_status_codes_1.StatusCodes.OK);
+        });
+        this.deleteAccount = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const payload = new dtos.DeleteAccountDTO(req.body);
+            payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const response = yield services_1.default.deleteAccount(payload);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(`${response.message}`, 'authentication.controller.ts');
+                return Response.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
+            }
+            logger_1.default.info('Account deleted successfully', 'authentication.controller.ts');
+            return Response.success(res, response.message, http_status_codes_1.StatusCodes.OK);
+        });
     }
 }
 exports.AuthenticationController = AuthenticationController;

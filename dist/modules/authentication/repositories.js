@@ -282,6 +282,46 @@ class AuthenticationRepositoryImpl {
         });
     }
     ;
+    deactivateAccount(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const user = yield database_1.db.oneOrNone(query_1.default.getPasswordById, [payload.user_id]);
+                if (!user) {
+                    throw new errors_1.BadException('Invalid user id.');
+                }
+                const isValid = yield hashing_1.default.compare(payload.password, user.password);
+                if (!isValid) {
+                    throw new errors_1.BadException('Incorrect password.');
+                }
+                yield database_1.db.none(query_1.default.deactivateAccount, [payload.user_id]);
+                return { message: 'Account deactivated successfully' };
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    ;
+    deleteAccount(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const user = yield database_1.db.oneOrNone(query_1.default.getPasswordById, [payload.user_id]);
+                if (!user) {
+                    throw new errors_1.BadException('Invalid user id.');
+                }
+                const isValid = yield hashing_1.default.compare(payload.password, user.password);
+                if (!isValid) {
+                    throw new errors_1.BadException('Incorrect password.');
+                }
+                yield database_1.db.none(query_1.default.deleteAccount, [payload.user_id]);
+                return { message: 'Account deleted successfully' };
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    ;
 }
 exports.AuthenticationRepositoryImpl = AuthenticationRepositoryImpl;
 const authenticationRepository = new AuthenticationRepositoryImpl();

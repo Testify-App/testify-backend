@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UploadFile = void 0;
+exports.deleteAsset = exports.UploadFile = void 0;
 exports.cloudinaryUpload = cloudinaryUpload;
 const crypto_1 = __importDefault(require("crypto"));
 const cloudinary_1 = require("cloudinary");
@@ -53,4 +53,14 @@ const UploadFile = (file) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.UploadFile = UploadFile;
+const deleteAsset = (url) => __awaiter(void 0, void 0, void 0, function* () {
+    if (env_1.default.get('NODE_ENV') === 'test')
+        return;
+    const match = url.match(/\/testify\/([^./]+)\.\w+$/);
+    if (!match)
+        return;
+    const publicId = `testify/${match[1]}`;
+    yield cloudinary_1.v2.uploader.destroy(publicId, { resource_type: 'auto' });
+});
+exports.deleteAsset = deleteAsset;
 //# sourceMappingURL=file.upload.js.map

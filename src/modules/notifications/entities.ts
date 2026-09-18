@@ -13,9 +13,10 @@ export type NotificationType =
   | 'circle_removed'
   | 'post_flagged'
   | 'post_removed'
-  | 'post_approved';
+  | 'post_approved'
+  | 'story_posted';
 
-export type NotificationEntityType = 'post' | 'comment' | 'user' | null;
+export type NotificationEntityType = 'post' | 'comment' | 'user' | 'story' | null;
 
 export interface NotificationData {
   actor_username?: string;

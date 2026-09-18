@@ -53,6 +53,12 @@ class AuthenticationServiceImpl {
         this.updateFcmToken = (userId, payload) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.updateFcmToken(userId, payload);
         });
+        this.deactivateAccount = (payload) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.deactivateAccount(payload);
+        });
+        this.deleteAccount = (payload) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.deleteAccount(payload);
+        });
     }
     forgotPassword(payload) {
         return __awaiter(this, void 0, void 0, function* () {
