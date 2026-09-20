@@ -135,7 +135,7 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
         page,
         limit,
         getResources: ProfilesQuery.getTribeMembers,
-        params: [user_id],
+        params: [user_id, payload.search || null],
       });
 
       return {
@@ -242,6 +242,35 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
       return parseInt(result?.total || '0', 10);
     } catch (error) {
       return new BadException(`${error.message}`);
+    }
+  }
+
+  public async getFollowers(
+    payload: dtos.GetFollowersQueryDTO
+  ): Promise<InternalServerErrorException | FetchPaginatedResponse> {
+    try {
+      const { page = '1', limit = '20', user_id, target_user_id } = payload as {
+        page?: string;
+        limit?: string;
+        user_id: string;
+        target_user_id: string;
+      };
+
+      const [{ count }, followers] = await fetchResourceByPage({
+        page,
+        limit,
+        getResources: ProfilesQuery.getFollowers,
+        params: [target_user_id, payload.search || null, user_id],
+      });
+
+      return {
+        total: count,
+        currentPage: page,
+        totalPages: calcPages(count, limit),
+        followers,
+      };
+    } catch (error) {
+      return new InternalServerErrorException(`${error.message}`);
     }
   }
 

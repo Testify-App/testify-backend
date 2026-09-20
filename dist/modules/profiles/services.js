@@ -54,6 +54,9 @@ class ProfilesServiceImpl {
         this.getFollowerCount = (userId) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.getFollowerCount(userId);
         });
+        this.getFollowers = (payload) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.getFollowers(payload);
+        });
         this.checkUserExists = (userId) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.checkUserExists(userId);
         });

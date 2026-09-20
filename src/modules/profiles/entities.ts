@@ -34,6 +34,17 @@ export class TribeMemberEntity extends BaseEntity<TribeMemberEntity> {
   username?: string;
   avatar?: string;
   followed_at?: Date;
+  is_in_circle?: boolean;
+}
+
+export class FollowerEntity extends BaseEntity<FollowerEntity> {
+  id?: string;
+  username?: string;
+  display_name?: string;
+  avatar?: string;
+  bio?: string;
+  followed_at?: Date;
+  is_following?: boolean;
 }
 
 export class UserConnectionEntity extends BaseEntity<UserConnectionEntity> {

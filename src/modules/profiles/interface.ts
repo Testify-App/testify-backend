@@ -20,6 +20,7 @@ export interface ProfilesInterface {
   fetchProfilePostHistoryById(query: dtos.FetchProfilePostHistoryByIdDTO): Promise<NotFoundException | FetchPaginatedResponse>;
   isInTribe(userId: string, followingId: string): Promise<BadException | boolean>;
   getFollowerCount(userId: string): Promise<BadException | number>;
+  getFollowers(query: dtos.GetFollowersQueryDTO): Promise<InternalServerErrorException | FetchPaginatedResponse>;
   checkUserExists(userId: string): Promise<boolean>;
 
   sendCircleRequest(payload: dtos.SendCircleRequestDTO): Promise<BadException | entities.CircleRequestEntity>;

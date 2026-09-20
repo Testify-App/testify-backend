@@ -70,10 +70,32 @@ export class StoriesRepositoryImpl implements StoriesInterface {
 
   public async getCircleStories(
     payload: dtos.GetCircleStoriesDTO
-  ): Promise<BadException | entities.StoryEntity[]> {
+  ): Promise<BadException | entities.UserStoriesGroupEntity[]> {
     try {
       const rows = await db.manyOrNone(StoriesQuery.getCircleStories, [payload.user_id]);
-      return rows.map((row: any) => mapToEntity(row));
+
+      const groups = new Map<string, entities.UserStoriesGroupEntity>();
+      for (const row of rows) {
+        if (!groups.has(row.user_id)) {
+          groups.set(row.user_id, new entities.UserStoriesGroupEntity({
+            user_id: row.user_id,
+            author: {
+              id: row.user_id,
+              username: row.author_username,
+              avatar: row.author_avatar,
+              display_name: row.author_display_name,
+            },
+            has_unviewed: false,
+            latest_created_at: row.user_latest_created_at,
+            stories: [],
+          }));
+        }
+        const group = groups.get(row.user_id)!;
+        group.stories!.push(mapToEntity(row));
+        if (!row.is_viewed) group.has_unviewed = true;
+      }
+
+      return Array.from(groups.values());
     } catch (error) {
       return new BadException(`${error.message}`);
     }

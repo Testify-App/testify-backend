@@ -99,10 +99,15 @@ export default {
       u.username,
       u.display_name,
       u.avatar,
-      uf.created_at as followed_at
+      uf.created_at as followed_at,
+      EXISTS(
+        SELECT 1 FROM user_connections
+        WHERE user_id = $3 AND connected_user_id = u.id AND status = 'accepted'
+      ) AS is_in_circle
     FROM user_follows uf
     JOIN users u ON uf.following_id = u.id
     WHERE uf.follower_id = $3
+      AND ($4::text IS NULL OR u.search_vector @@ plainto_tsquery('simple', $4))
     ORDER BY uf.created_at DESC
   `,
 
@@ -156,6 +161,26 @@ export default {
   getFollowerCount: `
     SELECT COUNT(*) as total FROM user_follows
     WHERE following_id = $1;
+  `,
+
+  getFollowers: `
+    SELECT COUNT(*) OVER () as count,
+      u.id,
+      u.username,
+      u.display_name,
+      u.avatar,
+      u.bio,
+      uf.created_at as followed_at,
+      EXISTS(
+        SELECT 1 FROM user_follows
+        WHERE follower_id = $5 AND following_id = u.id
+      ) AS is_following
+    FROM user_follows uf
+    JOIN users u ON uf.follower_id = u.id
+    WHERE uf.following_id = $3
+      AND ($4::text IS NULL OR u.search_vector @@ plainto_tsquery('simple', $4))
+    ORDER BY uf.created_at DESC
+    LIMIT $2 OFFSET $1;
   `,
 
   checkUserExists: `

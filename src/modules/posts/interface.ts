@@ -79,7 +79,13 @@ export interface PostsInterface {
     targetUserId: string,
     query: dtos.GetPostsQueryDTO
   ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }>;
-  
+
+  getUserReposts(
+    userId: string,
+    targetUserId: string,
+    query: dtos.GetPostsQueryDTO
+  ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }>;
+
   getUserBookmarks(
     userId: string,
     query: dtos.GetPostsQueryDTO

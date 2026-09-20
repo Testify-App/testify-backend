@@ -108,7 +108,28 @@ class StoriesRepositoryImpl {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const rows = yield database_1.db.manyOrNone(query_1.default.getCircleStories, [payload.user_id]);
-                return rows.map((row) => mapToEntity(row));
+                const groups = new Map();
+                for (const row of rows) {
+                    if (!groups.has(row.user_id)) {
+                        groups.set(row.user_id, new entities.UserStoriesGroupEntity({
+                            user_id: row.user_id,
+                            author: {
+                                id: row.user_id,
+                                username: row.author_username,
+                                avatar: row.author_avatar,
+                                display_name: row.author_display_name,
+                            },
+                            has_unviewed: false,
+                            latest_created_at: row.user_latest_created_at,
+                            stories: [],
+                        }));
+                    }
+                    const group = groups.get(row.user_id);
+                    group.stories.push(mapToEntity(row));
+                    if (!row.is_viewed)
+                        group.has_unviewed = true;
+                }
+                return Array.from(groups.values());
             }
             catch (error) {
                 return new errors_1.BadException(`${error.message}`);

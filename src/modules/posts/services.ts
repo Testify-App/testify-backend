@@ -153,6 +153,14 @@ export class PostsServiceImpl implements PostsInterface {
     return await PostsRepository.getPostsByUserId(userId, targetUserId, query);
   };
 
+  public getUserReposts = async (
+    userId: string,
+    targetUserId: string,
+    query: dtos.GetPostsQueryDTO
+  ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> => {
+    return await PostsRepository.getUserReposts(userId, targetUserId, query);
+  };
+
   public getUserBookmarks = async (
     userId: string,
     query: dtos.GetPostsQueryDTO

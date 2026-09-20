@@ -276,6 +276,30 @@ exports.default = {
     getPostRepostsCount: `
     SELECT COUNT(*) as total FROM reposts WHERE post_id = $1;
   `,
+    getUserReposts: `
+    SELECT COUNT(*) OVER () as count,
+      p.*,
+      u.id as user_id,
+      u.username,
+      u.avatar,
+      u.display_name,
+      c.id          AS community_id,
+      c.name        AS community_name,
+      c.avatar      AS community_avatar,
+      (c.owner_id = $5) AS is_community_owner,
+      r.created_at  AS reposted_at
+    FROM reposts r
+    JOIN posts p ON r.post_id = p.id
+    JOIN users u ON p.user_id = u.id
+    LEFT JOIN communities c ON p.community_id = c.id
+    WHERE r.user_id = $3
+      AND p.deleted_at IS NULL
+      AND p.status != 'archived'
+      AND (p.visibility = 'public' OR p.user_id = $5)
+      AND ($4::text IS NULL OR p.search_vector @@ plainto_tsquery('english', $4))
+    ORDER BY r.created_at DESC
+    LIMIT $2 OFFSET $1;
+  `,
     createPostMention: `
     INSERT INTO post_mentions (post_id, mentioned_user_id, mention_type)
     VALUES ($1, $2, $3)

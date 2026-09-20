@@ -116,6 +116,34 @@ export class ProfilesController {
     return ResponseBuilder.success(res, 'Tribe membership checked', StatusCodes.OK, { is_in_tribe: response });
   };
 
+  public getMyFollowers: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const query = new dtos.GetFollowersQueryDTO(req.query);
+    query.user_id = req.user?.id as string;
+    query.target_user_id = req.user?.id as string;
+
+    const response = await ProfilesService.getFollowers(query);
+    if (response instanceof InternalServerErrorException) {
+      logger.error(response.message, 'profiles.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.INTERNAL_SERVER_ERROR);
+    }
+    logger.info('Followers retrieved successfully', 'profiles.controller.ts');
+    return ResponseBuilder.success(res, 'Followers retrieved successfully', StatusCodes.OK, response);
+  };
+
+  public getFollowersByUserId: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const query = new dtos.GetFollowersQueryDTO(req.query);
+    query.user_id = req.user?.id as string;
+    query.target_user_id = req.params.userId;
+
+    const response = await ProfilesService.getFollowers(query);
+    if (response instanceof InternalServerErrorException) {
+      logger.error(response.message, 'profiles.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.INTERNAL_SERVER_ERROR);
+    }
+    logger.info('Followers retrieved successfully', 'profiles.controller.ts');
+    return ResponseBuilder.success(res, 'Followers retrieved successfully', StatusCodes.OK, response);
+  };
+
   public sendCircleRequest: fnRequest = async (req: AuthenticatedRequest, res) => {
     const payload = new dtos.SendCircleRequestDTO();
     payload.user_id = req.user?.id as string;

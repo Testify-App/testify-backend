@@ -127,6 +127,7 @@ export class PostWithUserEntity extends BaseEntity<PostWithUserEntity> {
   is_liked?: boolean;
   is_reposted?: boolean;
   is_bookmarked?: boolean;
+  reposted_at?: Date;
   user?: {
     id?: string;
     username?: string;
