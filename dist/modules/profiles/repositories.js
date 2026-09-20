@@ -166,7 +166,7 @@ class ProfilesRepositoryImpl {
                     page,
                     limit,
                     getResources: query_1.default.getTribeMembers,
-                    params: [user_id],
+                    params: [user_id, payload.search || null],
                 });
                 return {
                     total: count,
@@ -271,6 +271,28 @@ class ProfilesRepositoryImpl {
             }
             catch (error) {
                 return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    getFollowers(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { page = '1', limit = '20', user_id, target_user_id } = payload;
+                const [{ count }, followers] = yield (0, helpers_1.fetchResourceByPage)({
+                    page,
+                    limit,
+                    getResources: query_1.default.getFollowers,
+                    params: [target_user_id, payload.search || null, user_id],
+                });
+                return {
+                    total: count,
+                    currentPage: page,
+                    totalPages: (0, helpers_1.calcPages)(count, limit),
+                    followers,
+                };
+            }
+            catch (error) {
+                return new errors_1.InternalServerErrorException(`${error.message}`);
             }
         });
     }

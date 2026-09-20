@@ -943,6 +943,57 @@ export class PostsRepositoryImpl implements PostsInterface {
     }
   }
 
+  public async getUserReposts(
+    userId: string,
+    targetUserId: string,
+    query: dtos.GetPostsQueryDTO
+  ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> {
+    try {
+      const { page = '1', limit = '20' } = query as { page?: string; limit?: string };
+      const search = (query as any).search as string | undefined;
+      const [{ count }, posts] = await fetchResourceByPage({
+        page,
+        limit,
+        getResources: PostsQuery.getUserReposts,
+        params: [targetUserId, search ?? null, userId],
+      });
+
+      const postsWithEngagement = await Promise.all(
+        posts.map(async (post: any) => {
+          const isLiked = await db.one(PostsQuery.isPostLiked, [post.id, userId]);
+          const isReposted = await db.one(PostsQuery.isReposted, [post.id, userId]);
+          const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
+          const content_segments = await parseContentSegments(post.content);
+
+          return new entities.PostWithUserEntity({
+            ...post,
+            content_segments,
+            is_liked: isLiked.exists,
+            is_reposted: isReposted.exists,
+            is_bookmarked: isBookmarked.exists,
+            reposted_at: post.reposted_at,
+            user: {
+              id: post.user_id,
+              username: post.username,
+              avatar: post.avatar,
+              display_name: post.display_name,
+            },
+            community: post.community_id
+              ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar, is_community_owner: post.is_community_owner ?? false }
+              : null,
+          });
+        })
+      );
+
+      return {
+        posts: postsWithEngagement,
+        pagination: { page: String(page), limit: String(limit), total: count, totalPages: calcPages(count, limit) },
+      };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
   public async getUserBookmarks(
     userId: string,
     query: dtos.GetPostsQueryDTO

@@ -208,6 +208,11 @@ profilesRouter.delete(
  *     security:
  *       - bearerAuth: []
  *     parameters:
+ *       - name: search
+ *         in: query
+ *         schema:
+ *           type: string
+ *         description: Filter Tribe members by username or display name
  *       - name: page
  *         in: query
  *         schema:
@@ -427,6 +432,83 @@ profilesRouter.get(
   '/tribe/is-member/:userId',
   verifyAuth,
   WatchAsyncController(profilesController.isInTribe)
+);
+
+/**
+ * @swagger
+ * /profiles/followers:
+ *   get:
+ *     summary: Get followers of the authenticated user
+ *     description: Each follower includes profile details and whether the authenticated user is following them back.
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: search
+ *         in: query
+ *         schema:
+ *           type: string
+ *         description: Filter followers by username or display name
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 1
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Followers retrieved successfully
+ */
+profilesRouter.get(
+  '/followers',
+  verifyAuth,
+  validateDataMiddleware(profilesValidator.getFollowersValidator, 'query'),
+  WatchAsyncController(profilesController.getMyFollowers)
+);
+
+/**
+ * @swagger
+ * /profiles/{userId}/followers:
+ *   get:
+ *     summary: Get followers of a specific user
+ *     description: Each follower includes profile details and whether the authenticated user is following them.
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: search
+ *         in: query
+ *         schema:
+ *           type: string
+ *         description: Filter followers by username or display name
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 1
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Followers retrieved successfully
+ */
+profilesRouter.get(
+  '/:userId/followers',
+  verifyAuth,
+  validateDataMiddleware(profilesValidator.getFollowersValidator, 'query'),
+  WatchAsyncController(profilesController.getFollowersByUserId)
 );
 
 // Circle routes

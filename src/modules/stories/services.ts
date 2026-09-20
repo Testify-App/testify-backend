@@ -14,7 +14,7 @@ export class StoriesServiceImpl implements StoriesInterface {
 
   public async getCircleStories(
     payload: dtos.GetCircleStoriesDTO
-  ): Promise<BadException | entities.StoryEntity[]> {
+  ): Promise<BadException | entities.UserStoriesGroupEntity[]> {
     return StoriesRepository.getCircleStories(payload);
   }
 

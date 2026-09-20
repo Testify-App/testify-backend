@@ -30,3 +30,16 @@ export class StoryViewerEntity extends BaseEntity<StoryViewerEntity> {
   display_name?: string;
   viewed_at?: Date;
 }
+
+export class UserStoriesGroupEntity extends BaseEntity<UserStoriesGroupEntity> {
+  user_id?: string;
+  author?: {
+    id?: string;
+    username?: string;
+    avatar?: string;
+    display_name?: string;
+  };
+  has_unviewed?: boolean;
+  latest_created_at?: Date;
+  stories?: StoryEntity[];
+}

@@ -1024,4 +1024,31 @@ postsRouter.get(
   WatchAsyncController(postsController.getPostsByUserId)
 );
 
+/**
+ * @swagger
+ * /posts/user/{userId}/reposts:
+ *   get:
+ *     summary: Get posts reposted by a user
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: User reposts retrieved successfully
+ */
+postsRouter.get(
+  '/user/:userId/reposts',
+  verifyAuth,
+  validateDataMiddleware(postsValidator.userIdValidator, 'params'),
+  validateDataMiddleware(postsValidator.getPostsQueryValidator, 'query'),
+  WatchAsyncController(postsController.getUserReposts)
+);
+
 export default postsRouter;

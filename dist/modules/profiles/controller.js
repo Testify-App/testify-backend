@@ -150,6 +150,32 @@ class ProfilesController {
             }
             return ResponseBuilder.success(res, 'Tribe membership checked', http_status_codes_1.StatusCodes.OK, { is_in_tribe: response });
         });
+        this.getMyFollowers = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
+            const query = new dtos.GetFollowersQueryDTO(req.query);
+            query.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            query.target_user_id = (_b = req.user) === null || _b === void 0 ? void 0 : _b.id;
+            const response = yield services_1.default.getFollowers(query);
+            if (response instanceof errors_1.InternalServerErrorException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR);
+            }
+            logger_1.default.info('Followers retrieved successfully', 'profiles.controller.ts');
+            return ResponseBuilder.success(res, 'Followers retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
+        this.getFollowersByUserId = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const query = new dtos.GetFollowersQueryDTO(req.query);
+            query.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            query.target_user_id = req.params.userId;
+            const response = yield services_1.default.getFollowers(query);
+            if (response instanceof errors_1.InternalServerErrorException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR);
+            }
+            logger_1.default.info('Followers retrieved successfully', 'profiles.controller.ts');
+            return ResponseBuilder.success(res, 'Followers retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
         this.sendCircleRequest = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
             const payload = new dtos.SendCircleRequestDTO();

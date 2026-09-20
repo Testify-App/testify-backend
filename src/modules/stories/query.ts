@@ -40,7 +40,8 @@ export default {
       u.display_name AS author_display_name,
       EXISTS(
         SELECT 1 FROM story_views sv WHERE sv.story_id = s.id AND sv.viewer_id = $1
-      ) AS is_viewed
+      ) AS is_viewed,
+      MAX(s.created_at) OVER (PARTITION BY s.user_id) AS user_latest_created_at
     FROM stories s
     JOIN users u ON s.user_id = u.id
     WHERE s.deleted_at IS NULL
@@ -49,7 +50,7 @@ export default {
         SELECT connected_user_id FROM user_connections
         WHERE user_id = $1 AND status = 'accepted'
       )
-    ORDER BY s.user_id, s.created_at ASC;
+    ORDER BY user_latest_created_at DESC, s.user_id, s.created_at ASC;
   `,
 
   getMyStories: `

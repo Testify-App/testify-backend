@@ -1,1 +1,1 @@
-{"version":3,"file":"entities.js","sourceRoot":"","sources":["../../../src/modules/stories/entities.ts"],"names":[],"mappings":";;;AAAA,gEAA4D;AAI5D,MAAa,WAAY,SAAQ,wBAAuB;CAmBvD;AAnBD,kCAmBC;AAED,MAAa,iBAAkB,SAAQ,wBAA6B;CAMnE;AAND,8CAMC"}
+{"version":3,"file":"entities.js","sourceRoot":"","sources":["../../../src/modules/stories/entities.ts"],"names":[],"mappings":";;;AAAA,gEAA4D;AAI5D,MAAa,WAAY,SAAQ,wBAAuB;CAmBvD;AAnBD,kCAmBC;AAED,MAAa,iBAAkB,SAAQ,wBAA6B;CAMnE;AAND,8CAMC;AAED,MAAa,sBAAuB,SAAQ,wBAAkC;CAW7E;AAXD,wDAWC"}

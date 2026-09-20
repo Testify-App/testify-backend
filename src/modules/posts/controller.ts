@@ -324,6 +324,19 @@ export class PostsController {
     return ResponseBuilder.success(res, 'User posts retrieved successfully', StatusCodes.OK, response);
   };
 
+  public getUserReposts: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const targetUserId = req.params.userId;
+    const userId = req.user?.id as string;
+    const query = new dtos.GetPostsQueryDTO(req.query);
+    const response = await PostsService.getUserReposts(userId, targetUserId, query);
+    if (response instanceof BadException) {
+      logger.error(`${response.message}`, 'posts.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    logger.info('User reposts retrieved successfully', 'posts.controller.ts');
+    return ResponseBuilder.success(res, 'User reposts retrieved successfully', StatusCodes.OK, response);
+  };
+
   public getGuestPostsByUserId: fnRequest = async (req, res) => {
     const targetUserId = req.params.userId;
     const query = new dtos.GetPostsQueryDTO(req.query);

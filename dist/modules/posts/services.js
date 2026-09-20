@@ -79,6 +79,9 @@ class PostsServiceImpl {
         this.getPostsByUserId = (userId, targetUserId, query) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.getPostsByUserId(userId, targetUserId, query);
         });
+        this.getUserReposts = (userId, targetUserId, query) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.getUserReposts(userId, targetUserId, query);
+        });
         this.getUserBookmarks = (userId, query) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.getUserBookmarks(userId, query);
         });
