@@ -74,7 +74,7 @@ DROP TYPE IF EXISTS post_type;
 CREATE TYPE post_type AS ENUM ('text', 'image', 'video', 'audio', 'mixed');
 
 DROP TYPE IF EXISTS post_visibility;
-CREATE TYPE post_visibility AS ENUM ('public', 'followers_only', 'mentioned_only', 'private');
+CREATE TYPE post_visibility AS ENUM ('public', 'followers_only', 'mentioned_only', 'private', 'circle_only');
 
 CREATE TABLE IF NOT EXISTS posts (
   id VARCHAR PRIMARY KEY DEFAULT LOWER(CAST(uuid_generate_v1mc() As VARCHAR(50))),

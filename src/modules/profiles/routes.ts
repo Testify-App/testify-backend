@@ -517,7 +517,8 @@ profilesRouter.get(
  * @swagger
  * /profiles/circle:
  *   post:
- *     summary: Send Circle request
+ *     summary: Add a user to your Circle
+ *     description: Adds the user to your Circle immediately and mutually (no accept/decline step). Fails if either Circle already has 12 members.
  *     tags: [Profiles]
  *     security:
  *       - bearerAuth: []
@@ -530,68 +531,18 @@ profilesRouter.get(
  *             properties:
  *               connected_user_id:
  *                 type: string
- *                 description: ID of user to send Circle request to
+ *                 description: ID of user to add to your Circle
  *     responses:
  *       201:
- *         description: Circle request sent successfully
+ *         description: User added to Circle
  *       400:
- *         description: Cannot send request to yourself
- *       409:
- *         description: Request already pending or already connected
+ *         description: Cannot add yourself, already in Circle, or a Circle is full (max 12 members)
  */
 profilesRouter.post(
   '/circle',
   verifyAuth,
-  validateDataMiddleware(profilesValidator.sendCircleRequestValidator, 'body'),
-  WatchAsyncController(profilesController.sendCircleRequest)
-);
-
-/**
- * @swagger
- * /profiles/circle/accept/{requestId}:
- *   put:
- *     summary: Accept Circle request
- *     tags: [Profiles]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: requestId
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Circle request accepted
- */
-profilesRouter.put(
-  '/circle/accept/:requestId',
-  verifyAuth,
-  WatchAsyncController(profilesController.acceptCircleRequest)
-);
-
-/**
- * @swagger
- * /profiles/circle/reject/{requestId}:
- *   put:
- *     summary: Reject Circle request
- *     tags: [Profiles]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: requestId
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Circle request rejected
- */
-profilesRouter.put(
-  '/circle/reject/:requestId',
-  verifyAuth,
-  WatchAsyncController(profilesController.rejectCircleRequest)
+  validateDataMiddleware(profilesValidator.addToCircleValidator, 'body'),
+  WatchAsyncController(profilesController.addToCircle)
 );
 
 /**
@@ -703,42 +654,6 @@ profilesRouter.get(
   '/circle/is-member/:userId',
   verifyAuth,
   WatchAsyncController(profilesController.isInCircle)
-);
-
-/**
- * @swagger
- * /profiles/circle/requests:
- *   get:
- *     summary: Get pending Circle requests
- *     tags: [Profiles]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Pending requests retrieved
- */
-profilesRouter.get(
-  '/circle/requests',
-  verifyAuth,
-  WatchAsyncController(profilesController.getPendingRequests)
-);
-
-/**
- * @swagger
- * /profiles/circle/requests/sent:
- *   get:
- *     summary: Get sent Circle requests
- *     tags: [Profiles]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Sent requests retrieved
- */
-profilesRouter.get(
-  '/circle/requests/sent',
-  verifyAuth,
-  WatchAsyncController(profilesController.getSentRequests)
 );
 
 export default profilesRouter;

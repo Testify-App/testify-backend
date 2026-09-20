@@ -40,16 +40,8 @@ export const unfollowValidator = Joi.object({
 });
 
 // Circle validators
-export const sendCircleRequestValidator = Joi.object({
+export const addToCircleValidator = Joi.object({
   connected_user_id: Joi.string().required(),
-});
-
-export const acceptCircleRequestValidator = Joi.object({
-  request_id: Joi.string().required(),
-});
-
-export const rejectCircleRequestValidator = Joi.object({
-  request_id: Joi.string().required(),
 });
 
 export const getCircleMembersValidator = Joi.object({

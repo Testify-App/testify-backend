@@ -23,13 +23,9 @@ export interface ProfilesInterface {
   getFollowers(query: dtos.GetFollowersQueryDTO): Promise<InternalServerErrorException | FetchPaginatedResponse>;
   checkUserExists(userId: string): Promise<boolean>;
 
-  sendCircleRequest(payload: dtos.SendCircleRequestDTO): Promise<BadException | entities.CircleRequestEntity>;
-  acceptCircleRequest(payload: dtos.AcceptCircleRequestDTO): Promise<BadException | entities.UserConnectionEntity>;
-  rejectCircleRequest(payload: dtos.RejectCircleRequestDTO): Promise<BadException | void>;
+  addToCircle(payload: dtos.AddToCircleDTO): Promise<BadException | entities.UserConnectionEntity>;
   removeFromCircle(payload: dtos.RemoveFromCircleDTO): Promise<BadException | void>;
   getCircleMembers(payload: dtos.GetCircleMembersDTO): Promise<InternalServerErrorException | FetchPaginatedResponse>;
   getCircleCount(userId: string): Promise<BadException | number>;
   isInCircle(userId: string, connectedUserId: string): Promise<BadException | boolean>;
-  getPendingRequests(userId: string): Promise<BadException | entities.CircleRequestEntity[]>;
-  getSentRequests(userId: string): Promise<BadException | entities.CircleRequestEntity[]>;
 };

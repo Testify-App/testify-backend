@@ -99,65 +99,10 @@ export class ProfilesServiceImpl implements ProfilesInterface {
 
   // Circle methods
 
-  public sendCircleRequest = async (
-    payload: dtos.SendCircleRequestDTO
-  ): Promise<BadException | entities.CircleRequestEntity> => {
-    // Validate user is not trying to add themselves
-    if (payload.user_id === payload.connected_user_id) {
-      return new BadException('You cannot send a Circle request to yourself');
-    }
-
-    // // Validate connected user exists
-    // const userExists = await ProfilesRepository.checkUserExists(payload.connected_user_id);
-    // if (!userExists) {
-    //   return new NotFoundException('User not found');
-    // }
-
-    // // Check if there's already a pending request
-    // const hasPending = await ProfilesRepository.hasPendingRequest(payload.user_id, payload.connected_user_id);
-    // if (hasPending) {
-    //   return new ConflictException('A Circle request is already pending');
-    // }
-
-    // // Check if already connected
-    // const isConnected = await ProfilesRepository.isInCircle(payload.user_id, payload.connected_user_id);
-    // if (isConnected) {
-    //   return new ConflictException('User is already in your Circle');
-    // }
-
-    return await ProfilesRepository.sendCircleRequest(payload);
-  };
-
-  public acceptCircleRequest = async (
-    payload: dtos.AcceptCircleRequestDTO
+  public addToCircle = async (
+    payload: dtos.AddToCircleDTO
   ): Promise<BadException | entities.UserConnectionEntity> => {
-    // Get the request
-    const request = await ProfilesRepository.getRequestById(payload.request_id, payload.user_id);
-    if (!request) {
-      return new NotFoundException('Circle request not found');
-    }
-
-    if (request.status !== 'pending') {
-      return new BadException('This request has already been processed');
-    }
-
-    return await ProfilesRepository.acceptCircleRequest(payload);
-  };
-
-  public rejectCircleRequest = async (
-    payload: dtos.RejectCircleRequestDTO
-  ): Promise<BadException | void> => {
-    // Get the request
-    const request = await ProfilesRepository.getRequestById(payload.request_id, payload.user_id);
-    if (!request) {
-      return new BadException('Circle request not found');
-    }
-
-    if (request.status !== 'pending') {
-      return new BadException('This request has already been processed');
-    }
-
-    return await ProfilesRepository.rejectCircleRequest(payload);
+    return await ProfilesRepository.addToCircle(payload);
   };
 
   public removeFromCircle = async (
@@ -185,17 +130,6 @@ export class ProfilesServiceImpl implements ProfilesInterface {
     return await ProfilesRepository.isInCircle(userId, connectedUserId);
   };
 
-  public getPendingRequests = async (
-    userId: string
-  ): Promise<BadException | entities.CircleRequestEntity[]> => {
-    return await ProfilesRepository.getPendingRequests(userId);
-  };
-
-  public getSentRequests = async (
-    userId: string
-  ): Promise<BadException | entities.CircleRequestEntity[]> => {
-    return await ProfilesRepository.getSentRequests(userId);
-  };
 }
 
 const ProfilesService = new ProfilesServiceImpl();

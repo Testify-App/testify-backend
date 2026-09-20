@@ -31,7 +31,15 @@ export default {
     FROM posts p
     JOIN users u ON p.user_id = u.id
     LEFT JOIN communities c ON p.community_id = c.id
-    WHERE p.id = $1 AND p.deleted_at IS NULL;
+    WHERE p.id = $1 AND p.deleted_at IS NULL
+      AND (
+        (p.visibility = 'public')
+        OR (p.user_id = $2)
+        OR (p.visibility = 'circle_only' AND EXISTS (
+          SELECT 1 FROM user_connections
+          WHERE user_id = $2 AND connected_user_id = p.user_id AND status = 'accepted'
+        ))
+      );
   `,
 
   getPostsFeed: `
@@ -54,17 +62,25 @@ export default {
       AND (
         (p.visibility = 'public')
         OR (p.user_id = $3)
+        OR (p.visibility = 'circle_only' AND EXISTS (
+          SELECT 1 FROM user_connections
+          WHERE user_id = $3 AND connected_user_id = p.user_id AND status = 'accepted'
+        ))
       )
     ORDER BY p.created_at DESC;
   `,
 
   getPostsCount: `
-    SELECT COUNT(*) as total FROM posts 
-    WHERE deleted_at IS NULL
-      AND parent_post_id IS NULL
+    SELECT COUNT(*) as total FROM posts p
+    WHERE p.deleted_at IS NULL
+      AND p.parent_post_id IS NULL
       AND (
-        (visibility = 'public')
-        OR (user_id = $1)
+        (p.visibility = 'public')
+        OR (p.user_id = $1)
+        OR (p.visibility = 'circle_only' AND EXISTS (
+          SELECT 1 FROM user_connections
+          WHERE user_id = $1 AND connected_user_id = p.user_id AND status = 'accepted'
+        ))
       );
   `,
 
@@ -87,6 +103,14 @@ export default {
       AND p.status != 'archived'
       AND p.parent_post_id IS NULL
       AND ($4::text IS NULL OR p.search_vector @@ plainto_tsquery('english', $4))
+      AND (
+        (p.visibility = 'public')
+        OR (p.user_id = $5)
+        OR (p.visibility = 'circle_only' AND EXISTS (
+          SELECT 1 FROM user_connections
+          WHERE user_id = $5 AND connected_user_id = p.user_id AND status = 'accepted'
+        ))
+      )
     ORDER BY p.created_at DESC
     LIMIT $2 OFFSET $1;
   `,
@@ -327,7 +351,14 @@ export default {
     WHERE r.user_id = $3
       AND p.deleted_at IS NULL
       AND p.status != 'archived'
-      AND (p.visibility = 'public' OR p.user_id = $5)
+      AND (
+        (p.visibility = 'public')
+        OR (p.user_id = $5)
+        OR (p.visibility = 'circle_only' AND EXISTS (
+          SELECT 1 FROM user_connections
+          WHERE user_id = $5 AND connected_user_id = p.user_id AND status = 'accepted'
+        ))
+      )
       AND ($4::text IS NULL OR p.search_vector @@ plainto_tsquery('english', $4))
     ORDER BY r.created_at DESC
     LIMIT $2 OFFSET $1;
@@ -439,6 +470,14 @@ export default {
         AND p.deleted_at IS NULL
         AND p.status != 'archived'
         AND p.parent_post_id IS NULL
+        AND (
+          (p.visibility = 'public')
+          OR (p.user_id = $3)
+          OR (p.visibility = 'circle_only' AND EXISTS (
+            SELECT 1 FROM user_connections
+            WHERE user_id = $3 AND connected_user_id = p.user_id AND status = 'accepted'
+          ))
+        )
     )
     SELECT
       COUNT(*) OVER () AS count,

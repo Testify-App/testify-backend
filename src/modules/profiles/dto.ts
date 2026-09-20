@@ -63,19 +63,9 @@ export class RemoveFromTribeDTO extends BaseEntity<RemoveFromTribeDTO> {
   following_id: string;
 }
 
-export class SendCircleRequestDTO extends BaseEntity<SendCircleRequestDTO> {
+export class AddToCircleDTO extends BaseEntity<AddToCircleDTO> {
   user_id: string;
   connected_user_id: string;
-}
-
-export class AcceptCircleRequestDTO extends BaseEntity<AcceptCircleRequestDTO> {
-  user_id: string;
-  request_id: string;
-}
-
-export class RejectCircleRequestDTO extends BaseEntity<RejectCircleRequestDTO> {
-  user_id: string;
-  request_id: string;
 }
 
 export class GetCircleMembersDTO extends BaseEntity<GetCircleMembersDTO> {

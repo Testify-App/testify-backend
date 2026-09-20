@@ -51,18 +51,8 @@ export class UserConnectionEntity extends BaseEntity<UserConnectionEntity> {
   id?: string;
   user_id?: string;
   connected_user_id?: string;
-  status?: 'pending' | 'accepted' | 'rejected';
+  status?: 'accepted';
   created_at?: Date;
   updated_at?: Date;
 }
 
-export class CircleRequestEntity extends BaseEntity<CircleRequestEntity> {
-  id?: string;
-  user_id?: string;
-  connected_user_id?: string;
-  status?: 'pending' | 'accepted' | 'rejected';
-  created_at?: Date;
-  updated_at?: Date;
-  username?: string;
-  avatar?: string;
-}

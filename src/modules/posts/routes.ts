@@ -38,7 +38,7 @@ const postsRouter = Router();
  *                 example: Hello world! This is my first post.
  *               visibility:
  *                 type: string
- *                 enum: [public, followers_only, mentioned_only, private]
+ *                 enum: [public, followers_only, mentioned_only, private, circle_only]
  *                 default: public
  *                 example: public
  *               media_attachments:
@@ -357,7 +357,7 @@ postsRouter.get(
  *                 maxLength: 5000
  *               visibility:
  *                 type: string
- *                 enum: [public, followers_only, mentioned_only, private]
+ *                 enum: [public, followers_only, mentioned_only, private, circle_only]
  *               media_attachments:
  *                 type: array
  *                 items:
@@ -697,7 +697,7 @@ postsRouter.get(
  *                 maxLength: 500
  *               visibility:
  *                 type: string
- *                 enum: [public, followers_only, mentioned_only, private]
+ *                 enum: [public, followers_only, mentioned_only, private, circle_only]
  *     responses:
  *       201:
  *         description: Quote repost created successfully
