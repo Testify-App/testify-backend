@@ -15,6 +15,8 @@ import {
   FetchPaginatedResponse,
 } from '../../shared/helpers';
 
+const CIRCLE_MEMBER_LIMIT = 12;
+
 export class ProfilesRepositoryImpl implements ProfilesInterface {
   public async getProfile(
     payload: dtos.GetProfileDTO
@@ -274,78 +276,45 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
     }
   }
 
-  public async sendCircleRequest(
-    payload: dtos.SendCircleRequestDTO
-  ): Promise<BadException | entities.CircleRequestEntity> {
-    try {
-      const result = await db.oneOrNone(ProfilesQuery.sendCircleRequest, [
-        payload.user_id,
-        payload.connected_user_id,
-      ]);
-
-      if (!result) {
-        return new BadException('Circle request already exists');
-      }
-
-      // Notify the target user of the circle request (fire-and-forget)
-      createNotification({
-        user_id: payload.connected_user_id,
-        actor_id: payload.user_id,
-        type: 'circle_request',
-        entity_type: 'user',
-        entity_id: payload.user_id,
-        data: {},
-      }).catch(() => {});
-
-      return new entities.CircleRequestEntity(result);
-    } catch (error) {
-      return new BadException(`${error.message}`);
-    }
-  }
-
-  public async acceptCircleRequest(
-    payload: dtos.AcceptCircleRequestDTO
+  public async addToCircle(
+    payload: dtos.AddToCircleDTO
   ): Promise<BadException | entities.UserConnectionEntity> {
     try {
-      // First update the request status to accepted
-      const result = await db.tx(async (t) => {
-        // Update the original request
-        const updated = await t.oneOrNone(ProfilesQuery.acceptCircleRequest, [
-          payload.request_id,
-          payload.user_id,
-        ]);
-
-        if (!updated) {
-          return null;
-        }
-
-        // Get the original request to find who sent it
-        const request = await t.oneOrNone(
-          'SELECT * FROM user_connections WHERE id = $1',
-          [payload.request_id]
-        );
-
-        if (!request) {
-          return null;
-        }
-
-        // Create mutual connection
-        await t.none(ProfilesQuery.createMutualConnection, [
-          payload.user_id,
-          request.user_id,
-        ]);
-
-        return updated;
-      });
-
-      if (!result) {
-        return new BadException('Circle request not found or already processed');
+      if (payload.user_id === payload.connected_user_id) {
+        return new BadException('You cannot add yourself to your Circle');
       }
 
-      // Notify the original requester that their request was accepted (fire-and-forget)
-      // result.user_id is the requester (the one who sent the original request)
+      const result = await db.tx(async (t) => {
+        const senderCount = await t.one(ProfilesQuery.getCircleCount, [payload.user_id]);
+        const targetCount = await t.one(ProfilesQuery.getCircleCount, [payload.connected_user_id]);
+
+        if (parseInt(senderCount?.total || '0', 10) >= CIRCLE_MEMBER_LIMIT) {
+          throw new BadException(`Your Circle is full (max ${CIRCLE_MEMBER_LIMIT} members)`);
+        }
+        if (parseInt(targetCount?.total || '0', 10) >= CIRCLE_MEMBER_LIMIT) {
+          throw new BadException(`This user's Circle is full (max ${CIRCLE_MEMBER_LIMIT} members)`);
+        }
+
+        const forward = await t.oneOrNone(ProfilesQuery.addToCircle, [
+          payload.user_id,
+          payload.connected_user_id,
+        ]);
+
+        if (!forward) {
+          throw new BadException('User is already in your Circle');
+        }
+
+        await t.none(ProfilesQuery.addToCircle, [
+          payload.connected_user_id,
+          payload.user_id,
+        ]);
+
+        return forward;
+      });
+
+      // Notify the added user (fire-and-forget)
       createNotification({
-        user_id: result.user_id,
+        user_id: payload.connected_user_id,
         actor_id: payload.user_id,
         type: 'circle_accepted',
         entity_type: 'user',
@@ -355,25 +324,7 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
 
       return new entities.UserConnectionEntity(result);
     } catch (error) {
-      return new BadException(`${error.message}`);
-    }
-  }
-
-  public async rejectCircleRequest(
-    payload: dtos.RejectCircleRequestDTO
-  ): Promise<BadException | void> {
-    try {
-      const result = await db.oneOrNone(ProfilesQuery.rejectCircleRequest, [
-        payload.request_id,
-        payload.user_id,
-      ]);
-
-      if (!result) {
-        return new BadException('Circle request not found or already processed');
-      }
-
-      return;
-    } catch (error) {
+      if (error instanceof BadException) return error;
       return new BadException(`${error.message}`);
     }
   }
@@ -408,13 +359,12 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
   ): Promise<InternalServerErrorException | FetchPaginatedResponse> {
     try {
       const { page = '1', limit = '20', user_id, } = payload as { page?: string; limit?: string; user_id: string };
-      const searchPattern = payload.search ? `%${payload.search}%` : `%`;
 
       const [{ count }, circle_members] = await fetchResourceByPage({
         page,
         limit,
         getResources: ProfilesQuery.getCircleMembers,
-        params: [user_id, searchPattern],
+        params: [user_id, payload.search || null],
       });
 
       return {
@@ -451,51 +401,6 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
     }
   }
 
-  public async getPendingRequests(
-    userId: string
-  ): Promise<BadException | entities.CircleRequestEntity[]> {
-    try {
-      const requests = await db.manyOrNone(ProfilesQuery.getPendingRequests, [userId]);
-      return requests.map((request: any) => new entities.CircleRequestEntity(request));
-    } catch (error) {
-      return new BadException(`${error.message}`);
-    }
-  }
-
-  public async getSentRequests(
-    userId: string
-  ): Promise<BadException | entities.CircleRequestEntity[]> {
-    try {
-      const requests = await db.manyOrNone(ProfilesQuery.getSentRequests, [userId]);
-      return requests.map((request: any) => new entities.CircleRequestEntity(request));
-    } catch (error) {
-      return new BadException(`${error.message}`);
-    }
-  }
-
-  public async hasPendingRequest(
-    userId: string,
-    connectedUserId: string
-  ): Promise<boolean> {
-    try {
-      const result = await db.oneOrNone(ProfilesQuery.hasPendingRequest, [userId, connectedUserId]);
-      return result?.exists || false;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  public async getRequestById(
-    requestId: string,
-    userId: string
-  ): Promise<entities.CircleRequestEntity | null> {
-    try {
-      const result = await db.oneOrNone(ProfilesQuery.getRequestById, [requestId, userId]);
-      return result ? new entities.CircleRequestEntity(result) : null;
-    } catch (error) {
-      return null;
-    }
-  }
 };
 
 const ProfilesRepository = new ProfilesRepositoryImpl();

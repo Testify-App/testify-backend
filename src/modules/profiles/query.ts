@@ -187,31 +187,10 @@ export default {
     SELECT EXISTS(SELECT 1 FROM users WHERE id = $1);
   `,
 
-  sendCircleRequest: `
+  addToCircle: `
     INSERT INTO user_connections (user_id, connected_user_id, status)
     VALUES ($1, $2, 'accepted')
     ON CONFLICT (user_id, connected_user_id) DO NOTHING
-    RETURNING *;
-  `,
-
-  acceptCircleRequest: `
-    UPDATE user_connections
-    SET status = 'accepted', updated_at = NOW()
-    WHERE id = $1 AND connected_user_id = $2 AND status = 'pending'
-    RETURNING *;
-  `,
-
-  createMutualConnection: `
-    INSERT INTO user_connections (user_id, connected_user_id, status)
-    VALUES ($1, $2, 'accepted')
-    ON CONFLICT (user_id, connected_user_id) DO NOTHING
-    RETURNING *;
-  `,
-
-  rejectCircleRequest: `
-    UPDATE user_connections
-    SET status = 'rejected', updated_at = NOW()
-    WHERE id = $1 AND connected_user_id = $2 AND status = 'pending'
     RETURNING *;
   `,
 
@@ -233,8 +212,9 @@ export default {
     JOIN users u ON uc.connected_user_id = u.id
     WHERE uc.user_id = $3
       AND uc.status = 'accepted'
-      AND u.search_vector @@ plainto_tsquery('simple', $4)
-    ORDER BY uc.updated_at DESC;
+      AND ($4::text IS NULL OR u.search_vector @@ plainto_tsquery('simple', $4))
+    ORDER BY uc.updated_at DESC
+    LIMIT $2 OFFSET $1;
   `,
 
   getCircleCount: `
@@ -247,34 +227,6 @@ export default {
       SELECT 1 FROM user_connections
       WHERE user_id = $1 AND connected_user_id = $2 AND status = 'accepted'
     );
-  `,
-
-  getPendingRequests: `
-    SELECT uc.*, u.username, u.avatar
-    FROM user_connections uc
-    JOIN users u ON uc.user_id = u.id
-    WHERE uc.connected_user_id = $1 AND uc.status = 'pending'
-    ORDER BY uc.created_at DESC;
-  `,
-
-  getSentRequests: `
-    SELECT uc.*, u.username, u.avatar
-    FROM user_connections uc
-    JOIN users u ON uc.connected_user_id = u.id
-    WHERE uc.user_id = $1 AND uc.status = 'pending'
-    ORDER BY uc.created_at DESC;
-  `,
-
-  hasPendingRequest: `
-    SELECT EXISTS(
-      SELECT 1 FROM user_connections
-      WHERE (user_id = $1 AND connected_user_id = $2 AND status = 'pending')
-         OR (user_id = $2 AND connected_user_id = $1 AND status = 'pending')
-    );
-  `,
-
-  getRequestById: `
-    SELECT * FROM user_connections WHERE id = $1 AND connected_user_id = $2;
   `,
 };
 

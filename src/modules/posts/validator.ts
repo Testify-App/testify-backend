@@ -13,7 +13,7 @@ const hashtagContentRule = Joi.string().min(1).max(5000).custom((value, helpers)
 export const createPostValidator = Joi.object({
   community_id: Joi.string().optional(),
   content: hashtagContentRule,
-  visibility: Joi.string().valid('public', 'followers_only', 'mentioned_only', 'private').optional(),
+  visibility: Joi.string().valid('public', 'followers_only', 'mentioned_only', 'private', 'circle_only').optional(),
   media_attachments: Joi.array().max(10).items(
     Joi.object({
       type: Joi.string().valid('image', 'video', 'audio').required(),
@@ -33,7 +33,7 @@ export const createPostValidator = Joi.object({
 
 export const updatePostValidator = Joi.object({
   content: hashtagContentRule,
-  visibility: Joi.string().valid('public', 'followers_only', 'mentioned_only', 'private').optional(),
+  visibility: Joi.string().valid('public', 'followers_only', 'mentioned_only', 'private', 'circle_only').optional(),
   media_attachments: Joi.array().max(10).items(
     Joi.object({
       type: Joi.string().valid('image', 'video', 'audio').required(),
@@ -77,7 +77,7 @@ export const getPostsQueryValidator = Joi.object({
   sort: Joi.string().valid('created_at', 'likes_count', 'reposts_count').optional(),
   order: Joi.string().valid('ASC', 'DESC', 'asc', 'desc').optional(),
   user_id: Joi.string().uuid().optional(),
-  visibility: Joi.string().valid('public', 'followers_only', 'mentioned_only', 'private').optional(),
+  visibility: Joi.string().valid('public', 'followers_only', 'mentioned_only', 'private', 'circle_only').optional(),
   search: Joi.string().max(200).optional(),
 });
 

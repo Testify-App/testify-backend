@@ -9,7 +9,6 @@ import * as ResponseBuilder from '../../shared/lib/api-response';
 import {
   BadException,
   NotFoundException,
-  ConflictException,
   InternalServerErrorException,
 } from '../../shared/lib/errors';
 
@@ -144,67 +143,20 @@ export class ProfilesController {
     return ResponseBuilder.success(res, 'Followers retrieved successfully', StatusCodes.OK, response);
   };
 
-  public sendCircleRequest: fnRequest = async (req: AuthenticatedRequest, res) => {
-    const payload = new dtos.SendCircleRequestDTO();
+  public addToCircle: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const payload = new dtos.AddToCircleDTO();
     payload.user_id = req.user?.id as string;
     payload.connected_user_id = req.body.connected_user_id;
 
-    const response = await ProfilesService.sendCircleRequest(payload);
+    const response = await ProfilesService.addToCircle(payload);
 
     if (response instanceof BadException) {
       logger.error(response.message, 'profiles.controller.ts');
       return ResponseBuilder.error(res, response, response.code);
     }
 
-    if (response instanceof ConflictException) {
-      logger.error(response.message, 'profiles.controller.ts');
-      return ResponseBuilder.error(res, response, StatusCodes.CONFLICT);
-    }
-
-    if (response instanceof NotFoundException) {
-      logger.error(response.message, 'profiles.controller.ts');
-      return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
-    }
-
-    logger.info('Circle request sent successfully', 'profiles.controller.ts');
-    return ResponseBuilder.success(res, 'Circle request sent', StatusCodes.CREATED, response);
-  };
-
-  public acceptCircleRequest: fnRequest = async (req: AuthenticatedRequest, res) => {
-    const payload = new dtos.AcceptCircleRequestDTO();
-    payload.user_id = req.user?.id as string;
-    payload.request_id = req.params.requestId;
-
-    const response = await ProfilesService.acceptCircleRequest(payload);
-
-    if (response instanceof BadException) {
-      logger.error(response.message, 'profiles.controller.ts');
-      return ResponseBuilder.error(res, response, response.code);
-    }
-
-    if (response instanceof NotFoundException) {
-      logger.error(response.message, 'profiles.controller.ts');
-      return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
-    }
-
-    logger.info('Circle request accepted successfully', 'profiles.controller.ts');
-    return ResponseBuilder.success(res, 'Circle request accepted', StatusCodes.OK, response);
-  };
-
-  public rejectCircleRequest: fnRequest = async (req: AuthenticatedRequest, res) => {
-    const payload = new dtos.RejectCircleRequestDTO();
-    payload.user_id = req.user?.id as string;
-    payload.request_id = req.params.requestId;
-
-    const response = await ProfilesService.rejectCircleRequest(payload);
-
-    if (response instanceof BadException) {
-      logger.error(response.message, 'profiles.controller.ts');
-      return ResponseBuilder.error(res, response, response.code);
-    }
-
-    logger.info('Circle request rejected', 'profiles.controller.ts');
-    return ResponseBuilder.success(res, 'Circle request rejected', StatusCodes.OK, response);
+    logger.info('User added to Circle successfully', 'profiles.controller.ts');
+    return ResponseBuilder.success(res, 'User added to Circle', StatusCodes.CREATED, response);
   };
 
   public removeFromCircle: fnRequest = async (req: AuthenticatedRequest, res) => {
@@ -258,32 +210,6 @@ export class ProfilesController {
     }
 
     return ResponseBuilder.success(res, 'Circle membership checked', StatusCodes.OK, { is_in_circle: response });
-  };
-
-  public getPendingRequests: fnRequest = async (req: AuthenticatedRequest, res) => {
-    const userId = req.user?.id as string;
-    const response = await ProfilesService.getPendingRequests(userId);
-
-    if (response instanceof BadException) {
-      logger.error(response.message, 'profiles.controller.ts');
-      return ResponseBuilder.error(res, response, response.code);
-    }
-
-    logger.info('Pending Circle requests retrieved', 'profiles.controller.ts');
-    return ResponseBuilder.success(res, 'Pending requests retrieved', StatusCodes.OK, response);
-  };
-
-  public getSentRequests: fnRequest = async (req: AuthenticatedRequest, res) => {
-    const userId = req.user?.id as string;
-    const response = await ProfilesService.getSentRequests(userId);
-
-    if (response instanceof BadException) {
-      logger.error(response.message, 'profiles.controller.ts');
-      return ResponseBuilder.error(res, response, response.code);
-    }
-
-    logger.info('Sent Circle requests retrieved', 'profiles.controller.ts');
-    return ResponseBuilder.success(res, 'Sent requests retrieved', StatusCodes.OK, response);
   };
 
   public getGuestProfile: fnRequest = async (req, res) => {

@@ -13,6 +13,7 @@ export enum PostVisibility {
   FOLLOWERS_ONLY = 'followers_only',
   MENTIONED_ONLY = 'mentioned_only',
   PRIVATE = 'private',
+  CIRCLE_ONLY = 'circle_only',
 }
 
 export interface ContentSegment {
