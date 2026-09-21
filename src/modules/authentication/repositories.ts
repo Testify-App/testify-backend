@@ -280,6 +280,52 @@ export class AuthenticationRepositoryImpl implements AuthenticationInterface {
       return new BadException(`${error.message}`);
     }
   };
+
+  public async resendActivation(
+    payload: dtos.ResendActivationDTO,
+  ): Promise<BadException | entities.UserEntity> {
+    try {
+      const response = await db.tx(async (t) => {
+        const user = await t.oneOrNone(AuthenticationQuery.getUserByEmailForActivation, [payload.email]);
+        if (!user) {
+          throw new BadException('Email does not exist.');
+        }
+        if (user.activated_at) {
+          throw new BadException('Account is already activated.');
+        }
+        const otp = await otpGenerate.generateTOTP({ id: user.id, expiresIn: 5 }, 'user', t);
+        // await MailService.registerTOTP(payload.email, otp, ...);
+        const data: entities.UserEntity = new entities.UserEntity({
+          id: user.id,
+          otp,
+        });
+        return data;
+      });
+      return response;
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  };
+
+  public async changePassword(
+    payload: dtos.ChangePasswordDTO,
+  ): Promise<BadException | { message: string }> {
+    try {
+      const user = await db.oneOrNone(AuthenticationQuery.getPasswordById, [payload.user_id]);
+      if (!user) {
+        throw new BadException('Invalid user id.');
+      }
+      const isValid = await hashingService.compare(payload.current_password, user.password);
+      if (!isValid) {
+        throw new BadException('Incorrect current password.');
+      }
+      const hashedPassword = await hashingService.hash(payload.new_password);
+      await db.none(AuthenticationQuery.changePassword, [payload.user_id, hashedPassword]);
+      return { message: 'Password changed successfully' };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  };
 }
 
 const authenticationRepository = new AuthenticationRepositoryImpl();

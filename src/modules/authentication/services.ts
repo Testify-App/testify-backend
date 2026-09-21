@@ -94,6 +94,22 @@ export class AuthenticationServiceImpl implements AuthenticationInterface {
   ): Promise<BadException | { message: string }> => {
     return await AuthenticationRepository.deleteAccount(payload);
   };
+
+  public resendActivation = async (
+    payload: dtos.ResendActivationDTO
+  ): Promise<BadException | entities.UserEntity> => {
+    return await AuthenticationRepository.resendActivation(payload);
+  };
+
+  public changePassword = async (
+    payload: dtos.ChangePasswordDTO
+  ): Promise<BadException | { message: string }> => {
+    const { new_password, confirm_new_password } = payload;
+    if (new_password !== confirm_new_password) {
+      return new BadException('Password does not match confirm password field');
+    }
+    return await AuthenticationRepository.changePassword(payload);
+  };
 }
 
 const AuthenticationServices = new AuthenticationServiceImpl();

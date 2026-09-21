@@ -399,4 +399,80 @@ authenticationRouter.delete(
   WatchAsyncController(authenticationController.deleteAccount)
 );
 
+/**
+ * @swagger
+ * /auth/register/resend-activation:
+ *   post:
+ *     summary: Resend the account activation OTP
+ *     description: Generates and returns a new 4-digit OTP for an unactivated account, invalidating any previously issued OTP.
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: A new verification code has been sent
+ *       400:
+ *         description: Email does not exist, or account is already activated
+ */
+authenticationRouter.post(
+  '/register/resend-activation',
+  validateDataMiddleware(authValidator.resendActivationPayloadValidator, 'body'),
+  WatchAsyncController(authenticationController.resendActivation)
+);
+
+/**
+ * @swagger
+ * /auth/change-password:
+ *   patch:
+ *     summary: Change the authenticated user's password
+ *     description: Requires the current password. Invalidates the current session on success.
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - current_password
+ *               - new_password
+ *               - confirm_new_password
+ *             properties:
+ *               current_password:
+ *                 type: string
+ *                 format: password
+ *               new_password:
+ *                 type: string
+ *                 format: password
+ *               confirm_new_password:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *       400:
+ *         description: Incorrect current password, or passwords do not match
+ *       401:
+ *         description: Unauthorized
+ */
+authenticationRouter.patch(
+  '/change-password',
+  verifyAuth,
+  validateDataMiddleware(authValidator.changePasswordPayloadValidator, 'body'),
+  WatchAsyncController(authenticationController.changePassword)
+);
+
 export default authenticationRouter;

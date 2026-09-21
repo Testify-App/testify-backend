@@ -376,6 +376,9 @@ profilesRouter.get(
  *                     tribe_members_count:
  *                       type: integer
  *                       example: 10
+ *                     followers_count:
+ *                       type: integer
+ *                       example: 10
  *                     prayer_count:
  *                       type: integer
  *                       example: 2

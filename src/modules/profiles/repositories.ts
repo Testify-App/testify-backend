@@ -195,8 +195,9 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
           u.bio,
           u.display_name,
           COUNT(DISTINCT uf.follower_id) as tribe_members_count,
+          COUNT(DISTINCT uf.follower_id) as followers_count,
           CASE WHEN EXISTS (
-            SELECT 1 FROM user_follows 
+            SELECT 1 FROM user_follows
             WHERE follower_id = $2 AND following_id = u.id
           ) THEN true ELSE false END as is_following
         FROM users u

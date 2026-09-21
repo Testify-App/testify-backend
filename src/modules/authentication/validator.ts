@@ -118,3 +118,15 @@ export const deleteAccountPayloadValidator = Joi.object({
     .string()
     .required(),
 });
+
+export const resendActivationPayloadValidator = Joi.object({
+  email: Joi.string().email().required(),
+});
+
+export const changePasswordPayloadValidator = Joi.object({
+  current_password: joiPassword
+    .string()
+    .required(),
+  new_password: passwordSchema.extract('password'),
+  confirm_new_password: passwordSchema.extract('password'),
+});

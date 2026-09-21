@@ -125,6 +125,29 @@ export class AuthenticationController {
     logger.info('Account deleted successfully', 'authentication.controller.ts');
     return Response.success(res, response.message, StatusCodes.OK);
   };
+
+  public resendActivation: fnRequest = async (req, res) => {
+    const payload = new dtos.ResendActivationDTO(req.body);
+    const response = await AuthenticationService.resendActivation(payload);
+    if (response instanceof BadException) {
+      logger.error(`${response.message}`, 'authentication.controller.ts');
+      return Response.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    logger.info(`A new verification code has been sent to ${payload.email}.`, 'authentication.controller.ts');
+    return Response.success(res, `A new verification code has been sent to ${payload.email}.`, StatusCodes.OK, response);
+  };
+
+  public changePassword: fnRequest = async (req, res) => {
+    const payload = new dtos.ChangePasswordDTO(req.body);
+    payload.user_id = (req as ExtendedRequest).user?.id as string;
+    const response = await AuthenticationService.changePassword(payload);
+    if (response instanceof BadException) {
+      logger.error(`${response.message}`, 'authentication.controller.ts');
+      return Response.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    logger.info('Password changed successfully', 'authentication.controller.ts');
+    return Response.success(res, response.message, StatusCodes.OK);
+  };
 }
 
 const authenticationController = new AuthenticationController();

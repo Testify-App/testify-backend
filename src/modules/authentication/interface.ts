@@ -17,4 +17,6 @@ export interface AuthenticationInterface {
   updateFcmToken(userId: string, payload: dtos.UpdateFcmTokenDTO): Promise<BadException | { message: string }>;
   deactivateAccount(payload: dtos.DeactivateAccountDTO): Promise<BadException | { message: string }>;
   deleteAccount(payload: dtos.DeleteAccountDTO): Promise<BadException | { message: string }>;
+  resendActivation(payload: dtos.ResendActivationDTO): Promise<BadException | entities.UserEntity>;
+  changePassword(payload: dtos.ChangePasswordDTO): Promise<BadException | { message: string }>;
 };

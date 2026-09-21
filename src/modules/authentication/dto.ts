@@ -54,3 +54,14 @@ export class DeleteAccountDTO extends BaseEntity<DeleteAccountDTO> {
   user_id: string;
   password: string;
 };
+
+export class ResendActivationDTO extends BaseEntity<ResendActivationDTO> {
+  email: string;
+};
+
+export class ChangePasswordDTO extends BaseEntity<ChangePasswordDTO> {
+  user_id: string;
+  current_password: string;
+  new_password: string;
+  confirm_new_password: string;
+};
