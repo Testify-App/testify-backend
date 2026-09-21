@@ -124,6 +124,20 @@ export default {
     SELECT id, password FROM users WHERE id = $1 AND deleted_at IS NULL;
   `,
 
+  getUserByEmailForActivation: `
+    SELECT id, activated_at FROM users WHERE email = $1 AND deleted_at IS NULL;
+  `,
+
+  changePassword: `
+    UPDATE users
+    SET
+      password = $2,
+      password_changed_count = password_changed_count + 1,
+      session_id = NULL,
+      updated_at = NOW()
+    WHERE id = $1;
+  `,
+
   deactivateAccount: `
     UPDATE users
     SET status = 'deactivated', session_id = NULL, updated_at = NOW()

@@ -59,6 +59,16 @@ class AuthenticationServiceImpl {
         this.deleteAccount = (payload) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.deleteAccount(payload);
         });
+        this.resendActivation = (payload) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.resendActivation(payload);
+        });
+        this.changePassword = (payload) => __awaiter(this, void 0, void 0, function* () {
+            const { new_password, confirm_new_password } = payload;
+            if (new_password !== confirm_new_password) {
+                return new errors_1.BadException('Password does not match confirm password field');
+            }
+            return yield repositories_1.default.changePassword(payload);
+        });
     }
     forgotPassword(payload) {
         return __awaiter(this, void 0, void 0, function* () {

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteAccountPayloadValidator = exports.deactivateAccountPayloadValidator = exports.resetPasswordPayloadValidator = exports.verifyForgotPasswordOTPPayloadValidator = exports.forgotPasswordPayloadValidator = exports.updateFcmTokenValidator = exports.activateRegistrationPayloadValidator = exports.usernameAvailabilityQueryValidator = exports.loginPayloadValidator = exports.registerPayloadValidator = exports.passwordSchema = void 0;
+exports.changePasswordPayloadValidator = exports.resendActivationPayloadValidator = exports.deleteAccountPayloadValidator = exports.deactivateAccountPayloadValidator = exports.resetPasswordPayloadValidator = exports.verifyForgotPasswordOTPPayloadValidator = exports.forgotPasswordPayloadValidator = exports.updateFcmTokenValidator = exports.activateRegistrationPayloadValidator = exports.usernameAvailabilityQueryValidator = exports.loginPayloadValidator = exports.registerPayloadValidator = exports.passwordSchema = void 0;
 const joi_1 = __importDefault(require("joi"));
 const joi_password_1 = require("joi-password");
 const joiPassword = joi_1.default.extend(joi_password_1.joiPasswordExtendCore);
@@ -98,5 +98,15 @@ exports.deleteAccountPayloadValidator = joi_1.default.object({
     password: joiPassword
         .string()
         .required(),
+});
+exports.resendActivationPayloadValidator = joi_1.default.object({
+    email: joi_1.default.string().email().required(),
+});
+exports.changePasswordPayloadValidator = joi_1.default.object({
+    current_password: joiPassword
+        .string()
+        .required(),
+    new_password: exports.passwordSchema.extract('password'),
+    confirm_new_password: exports.passwordSchema.extract('password'),
 });
 //# sourceMappingURL=validator.js.map

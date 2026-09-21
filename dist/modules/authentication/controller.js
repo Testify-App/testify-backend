@@ -162,6 +162,28 @@ class AuthenticationController {
             logger_1.default.info('Account deleted successfully', 'authentication.controller.ts');
             return Response.success(res, response.message, http_status_codes_1.StatusCodes.OK);
         });
+        this.resendActivation = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            const payload = new dtos.ResendActivationDTO(req.body);
+            const response = yield services_1.default.resendActivation(payload);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(`${response.message}`, 'authentication.controller.ts');
+                return Response.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
+            }
+            logger_1.default.info(`A new verification code has been sent to ${payload.email}.`, 'authentication.controller.ts');
+            return Response.success(res, `A new verification code has been sent to ${payload.email}.`, http_status_codes_1.StatusCodes.OK, response);
+        });
+        this.changePassword = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const payload = new dtos.ChangePasswordDTO(req.body);
+            payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const response = yield services_1.default.changePassword(payload);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(`${response.message}`, 'authentication.controller.ts');
+                return Response.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
+            }
+            logger_1.default.info('Password changed successfully', 'authentication.controller.ts');
+            return Response.success(res, response.message, http_status_codes_1.StatusCodes.OK);
+        });
     }
 }
 exports.AuthenticationController = AuthenticationController;

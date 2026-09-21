@@ -176,56 +176,18 @@ class ProfilesController {
             logger_1.default.info('Followers retrieved successfully', 'profiles.controller.ts');
             return ResponseBuilder.success(res, 'Followers retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
         });
-        this.sendCircleRequest = (req, res) => __awaiter(this, void 0, void 0, function* () {
+        this.addToCircle = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
-            const payload = new dtos.SendCircleRequestDTO();
+            const payload = new dtos.AddToCircleDTO();
             payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
             payload.connected_user_id = req.body.connected_user_id;
-            const response = yield services_1.default.sendCircleRequest(payload);
+            const response = yield services_1.default.addToCircle(payload);
             if (response instanceof errors_1.BadException) {
                 logger_1.default.error(response.message, 'profiles.controller.ts');
                 return ResponseBuilder.error(res, response, response.code);
             }
-            if (response instanceof errors_1.ConflictException) {
-                logger_1.default.error(response.message, 'profiles.controller.ts');
-                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.CONFLICT);
-            }
-            if (response instanceof errors_1.NotFoundException) {
-                logger_1.default.error(response.message, 'profiles.controller.ts');
-                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.NOT_FOUND);
-            }
-            logger_1.default.info('Circle request sent successfully', 'profiles.controller.ts');
-            return ResponseBuilder.success(res, 'Circle request sent', http_status_codes_1.StatusCodes.CREATED, response);
-        });
-        this.acceptCircleRequest = (req, res) => __awaiter(this, void 0, void 0, function* () {
-            var _a;
-            const payload = new dtos.AcceptCircleRequestDTO();
-            payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-            payload.request_id = req.params.requestId;
-            const response = yield services_1.default.acceptCircleRequest(payload);
-            if (response instanceof errors_1.BadException) {
-                logger_1.default.error(response.message, 'profiles.controller.ts');
-                return ResponseBuilder.error(res, response, response.code);
-            }
-            if (response instanceof errors_1.NotFoundException) {
-                logger_1.default.error(response.message, 'profiles.controller.ts');
-                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.NOT_FOUND);
-            }
-            logger_1.default.info('Circle request accepted successfully', 'profiles.controller.ts');
-            return ResponseBuilder.success(res, 'Circle request accepted', http_status_codes_1.StatusCodes.OK, response);
-        });
-        this.rejectCircleRequest = (req, res) => __awaiter(this, void 0, void 0, function* () {
-            var _a;
-            const payload = new dtos.RejectCircleRequestDTO();
-            payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-            payload.request_id = req.params.requestId;
-            const response = yield services_1.default.rejectCircleRequest(payload);
-            if (response instanceof errors_1.BadException) {
-                logger_1.default.error(response.message, 'profiles.controller.ts');
-                return ResponseBuilder.error(res, response, response.code);
-            }
-            logger_1.default.info('Circle request rejected', 'profiles.controller.ts');
-            return ResponseBuilder.success(res, 'Circle request rejected', http_status_codes_1.StatusCodes.OK, response);
+            logger_1.default.info('User added to Circle successfully', 'profiles.controller.ts');
+            return ResponseBuilder.success(res, 'User added to Circle', http_status_codes_1.StatusCodes.CREATED, response);
         });
         this.removeFromCircle = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
@@ -272,28 +234,6 @@ class ProfilesController {
                 return ResponseBuilder.error(res, response, response.code);
             }
             return ResponseBuilder.success(res, 'Circle membership checked', http_status_codes_1.StatusCodes.OK, { is_in_circle: response });
-        });
-        this.getPendingRequests = (req, res) => __awaiter(this, void 0, void 0, function* () {
-            var _a;
-            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-            const response = yield services_1.default.getPendingRequests(userId);
-            if (response instanceof errors_1.BadException) {
-                logger_1.default.error(response.message, 'profiles.controller.ts');
-                return ResponseBuilder.error(res, response, response.code);
-            }
-            logger_1.default.info('Pending Circle requests retrieved', 'profiles.controller.ts');
-            return ResponseBuilder.success(res, 'Pending requests retrieved', http_status_codes_1.StatusCodes.OK, response);
-        });
-        this.getSentRequests = (req, res) => __awaiter(this, void 0, void 0, function* () {
-            var _a;
-            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-            const response = yield services_1.default.getSentRequests(userId);
-            if (response instanceof errors_1.BadException) {
-                logger_1.default.error(response.message, 'profiles.controller.ts');
-                return ResponseBuilder.error(res, response, response.code);
-            }
-            logger_1.default.info('Sent Circle requests retrieved', 'profiles.controller.ts');
-            return ResponseBuilder.success(res, 'Sent requests retrieved', http_status_codes_1.StatusCodes.OK, response);
         });
         this.getGuestProfile = (req, res) => __awaiter(this, void 0, void 0, function* () {
             const payload = new dtos.GetByUsernameDTO({ username: req.params.username });

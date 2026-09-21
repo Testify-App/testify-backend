@@ -20,6 +20,7 @@ export class ProfileEntity extends BaseEntity<ProfileEntity> {
   posts_count?: number;
   tribes_count?: number;
   circles_count?: number;
+  followers_count?: number;
 }
 
 export class UserFollowEntity extends BaseEntity<UserFollowEntity> {

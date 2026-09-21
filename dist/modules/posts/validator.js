@@ -18,7 +18,7 @@ const hashtagContentRule = joi_1.default.string().min(1).max(5000).custom((value
 exports.createPostValidator = joi_1.default.object({
     community_id: joi_1.default.string().optional(),
     content: hashtagContentRule,
-    visibility: joi_1.default.string().valid('public', 'followers_only', 'mentioned_only', 'private').optional(),
+    visibility: joi_1.default.string().valid('public', 'followers_only', 'mentioned_only', 'private', 'circle_only').optional(),
     media_attachments: joi_1.default.array().max(10).items(joi_1.default.object({
         type: joi_1.default.string().valid('image', 'video', 'audio').required(),
         url: joi_1.default.string().uri().required(),
@@ -35,7 +35,7 @@ exports.createPostValidator = joi_1.default.object({
 });
 exports.updatePostValidator = joi_1.default.object({
     content: hashtagContentRule,
-    visibility: joi_1.default.string().valid('public', 'followers_only', 'mentioned_only', 'private').optional(),
+    visibility: joi_1.default.string().valid('public', 'followers_only', 'mentioned_only', 'private', 'circle_only').optional(),
     media_attachments: joi_1.default.array().max(10).items(joi_1.default.object({
         type: joi_1.default.string().valid('image', 'video', 'audio').required(),
         url: joi_1.default.string().uri().required(),
@@ -72,7 +72,7 @@ exports.getPostsQueryValidator = joi_1.default.object({
     sort: joi_1.default.string().valid('created_at', 'likes_count', 'reposts_count').optional(),
     order: joi_1.default.string().valid('ASC', 'DESC', 'asc', 'desc').optional(),
     user_id: joi_1.default.string().uuid().optional(),
-    visibility: joi_1.default.string().valid('public', 'followers_only', 'mentioned_only', 'private').optional(),
+    visibility: joi_1.default.string().valid('public', 'followers_only', 'mentioned_only', 'private', 'circle_only').optional(),
     search: joi_1.default.string().max(200).optional(),
 });
 exports.getCommentsQueryValidator = joi_1.default.object({
