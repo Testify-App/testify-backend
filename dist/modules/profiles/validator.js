@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fetchProfilePostHistoryByIdValidator = exports.searchProfilesByUsernameValidator = exports.getCircleMembersValidator = exports.rejectCircleRequestValidator = exports.acceptCircleRequestValidator = exports.sendCircleRequestValidator = exports.unfollowValidator = exports.getFollowersValidator = exports.getTribeMembersValidator = exports.addToTribeValidator = exports.getByUsernameValidator = exports.updateProfileValidator = void 0;
+exports.fetchProfilePostHistoryByIdValidator = exports.searchProfilesByUsernameValidator = exports.getCircleMembersValidator = exports.addToCircleValidator = exports.unfollowValidator = exports.getFollowersValidator = exports.getTribeMembersValidator = exports.addToTribeValidator = exports.getByUsernameValidator = exports.updateProfileValidator = void 0;
 const joi_1 = __importDefault(require("joi"));
 exports.updateProfileValidator = joi_1.default.object({
     first_name: joi_1.default.string().max(100).optional(),
@@ -38,14 +38,8 @@ exports.getFollowersValidator = joi_1.default.object({
 exports.unfollowValidator = joi_1.default.object({
     confirm: joi_1.default.boolean().optional().default(false),
 });
-exports.sendCircleRequestValidator = joi_1.default.object({
+exports.addToCircleValidator = joi_1.default.object({
     connected_user_id: joi_1.default.string().required(),
-});
-exports.acceptCircleRequestValidator = joi_1.default.object({
-    request_id: joi_1.default.string().required(),
-});
-exports.rejectCircleRequestValidator = joi_1.default.object({
-    request_id: joi_1.default.string().required(),
 });
 exports.getCircleMembersValidator = joi_1.default.object({
     search: joi_1.default.string().min(1).max(100).optional(),

@@ -51,6 +51,7 @@ const entities = __importStar(require("./entities"));
 const database_1 = require("../../config/database");
 const errors_1 = require("../../shared/lib/errors");
 const helpers_1 = require("../../shared/helpers");
+const CIRCLE_MEMBER_LIMIT = 12;
 class ProfilesRepositoryImpl {
     getProfile(payload) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -223,8 +224,9 @@ class ProfilesRepositoryImpl {
           u.bio,
           u.display_name,
           COUNT(DISTINCT uf.follower_id) as tribe_members_count,
+          COUNT(DISTINCT uf.follower_id) as followers_count,
           CASE WHEN EXISTS (
-            SELECT 1 FROM user_follows 
+            SELECT 1 FROM user_follows
             WHERE follower_id = $2 AND following_id = u.id
           ) THEN true ELSE false END as is_following
         FROM users u
@@ -296,57 +298,36 @@ class ProfilesRepositoryImpl {
             }
         });
     }
-    sendCircleRequest(payload) {
+    addToCircle(payload) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const result = yield database_1.db.oneOrNone(query_1.default.sendCircleRequest, [
-                    payload.user_id,
-                    payload.connected_user_id,
-                ]);
-                if (!result) {
-                    return new errors_1.BadException('Circle request already exists');
+                if (payload.user_id === payload.connected_user_id) {
+                    return new errors_1.BadException('You cannot add yourself to your Circle');
                 }
+                const result = yield database_1.db.tx((t) => __awaiter(this, void 0, void 0, function* () {
+                    const senderCount = yield t.one(query_1.default.getCircleCount, [payload.user_id]);
+                    const targetCount = yield t.one(query_1.default.getCircleCount, [payload.connected_user_id]);
+                    if (parseInt((senderCount === null || senderCount === void 0 ? void 0 : senderCount.total) || '0', 10) >= CIRCLE_MEMBER_LIMIT) {
+                        throw new errors_1.BadException(`Your Circle is full (max ${CIRCLE_MEMBER_LIMIT} members)`);
+                    }
+                    if (parseInt((targetCount === null || targetCount === void 0 ? void 0 : targetCount.total) || '0', 10) >= CIRCLE_MEMBER_LIMIT) {
+                        throw new errors_1.BadException(`This user's Circle is full (max ${CIRCLE_MEMBER_LIMIT} members)`);
+                    }
+                    const forward = yield t.oneOrNone(query_1.default.addToCircle, [
+                        payload.user_id,
+                        payload.connected_user_id,
+                    ]);
+                    if (!forward) {
+                        throw new errors_1.BadException('User is already in your Circle');
+                    }
+                    yield t.none(query_1.default.addToCircle, [
+                        payload.connected_user_id,
+                        payload.user_id,
+                    ]);
+                    return forward;
+                }));
                 (0, helpers_1.createNotification)({
                     user_id: payload.connected_user_id,
-                    actor_id: payload.user_id,
-                    type: 'circle_request',
-                    entity_type: 'user',
-                    entity_id: payload.user_id,
-                    data: {},
-                }).catch(() => { });
-                return new entities.CircleRequestEntity(result);
-            }
-            catch (error) {
-                return new errors_1.BadException(`${error.message}`);
-            }
-        });
-    }
-    acceptCircleRequest(payload) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const result = yield database_1.db.tx((t) => __awaiter(this, void 0, void 0, function* () {
-                    const updated = yield t.oneOrNone(query_1.default.acceptCircleRequest, [
-                        payload.request_id,
-                        payload.user_id,
-                    ]);
-                    if (!updated) {
-                        return null;
-                    }
-                    const request = yield t.oneOrNone('SELECT * FROM user_connections WHERE id = $1', [payload.request_id]);
-                    if (!request) {
-                        return null;
-                    }
-                    yield t.none(query_1.default.createMutualConnection, [
-                        payload.user_id,
-                        request.user_id,
-                    ]);
-                    return updated;
-                }));
-                if (!result) {
-                    return new errors_1.BadException('Circle request not found or already processed');
-                }
-                (0, helpers_1.createNotification)({
-                    user_id: result.user_id,
                     actor_id: payload.user_id,
                     type: 'circle_accepted',
                     entity_type: 'user',
@@ -356,23 +337,8 @@ class ProfilesRepositoryImpl {
                 return new entities.UserConnectionEntity(result);
             }
             catch (error) {
-                return new errors_1.BadException(`${error.message}`);
-            }
-        });
-    }
-    rejectCircleRequest(payload) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const result = yield database_1.db.oneOrNone(query_1.default.rejectCircleRequest, [
-                    payload.request_id,
-                    payload.user_id,
-                ]);
-                if (!result) {
-                    return new errors_1.BadException('Circle request not found or already processed');
-                }
-                return;
-            }
-            catch (error) {
+                if (error instanceof errors_1.BadException)
+                    return error;
                 return new errors_1.BadException(`${error.message}`);
             }
         });
@@ -403,12 +369,11 @@ class ProfilesRepositoryImpl {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const { page = '1', limit = '20', user_id, } = payload;
-                const searchPattern = payload.search ? `%${payload.search}%` : `%`;
                 const [{ count }, circle_members] = yield (0, helpers_1.fetchResourceByPage)({
                     page,
                     limit,
                     getResources: query_1.default.getCircleMembers,
-                    params: [user_id, searchPattern],
+                    params: [user_id, payload.search || null],
                 });
                 return {
                     total: count,
@@ -442,50 +407,6 @@ class ProfilesRepositoryImpl {
             }
             catch (error) {
                 return new errors_1.BadException(`${error.message}`);
-            }
-        });
-    }
-    getPendingRequests(userId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const requests = yield database_1.db.manyOrNone(query_1.default.getPendingRequests, [userId]);
-                return requests.map((request) => new entities.CircleRequestEntity(request));
-            }
-            catch (error) {
-                return new errors_1.BadException(`${error.message}`);
-            }
-        });
-    }
-    getSentRequests(userId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const requests = yield database_1.db.manyOrNone(query_1.default.getSentRequests, [userId]);
-                return requests.map((request) => new entities.CircleRequestEntity(request));
-            }
-            catch (error) {
-                return new errors_1.BadException(`${error.message}`);
-            }
-        });
-    }
-    hasPendingRequest(userId, connectedUserId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const result = yield database_1.db.oneOrNone(query_1.default.hasPendingRequest, [userId, connectedUserId]);
-                return (result === null || result === void 0 ? void 0 : result.exists) || false;
-            }
-            catch (error) {
-                return false;
-            }
-        });
-    }
-    getRequestById(requestId, userId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const result = yield database_1.db.oneOrNone(query_1.default.getRequestById, [requestId, userId]);
-                return result ? new entities.CircleRequestEntity(result) : null;
-            }
-            catch (error) {
-                return null;
             }
         });
     }

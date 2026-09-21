@@ -54,14 +54,10 @@ profilesRouter.get('/:following_id/posts', verifyAuth, (0, request_validator_mid
 profilesRouter.get('/tribe/is-member/:userId', verifyAuth, (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.isInTribe));
 profilesRouter.get('/followers', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(profilesValidator.getFollowersValidator, 'query'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.getMyFollowers));
 profilesRouter.get('/:userId/followers', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(profilesValidator.getFollowersValidator, 'query'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.getFollowersByUserId));
-profilesRouter.post('/circle', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(profilesValidator.sendCircleRequestValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.sendCircleRequest));
-profilesRouter.put('/circle/accept/:requestId', verifyAuth, (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.acceptCircleRequest));
-profilesRouter.put('/circle/reject/:requestId', verifyAuth, (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.rejectCircleRequest));
+profilesRouter.post('/circle', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(profilesValidator.addToCircleValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.addToCircle));
 profilesRouter.delete('/circle/:userId', verifyAuth, (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.removeFromCircle));
 profilesRouter.get('/circle', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(profilesValidator.getCircleMembersValidator, 'query'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.getCircleMembers));
 profilesRouter.get('/circle/count', verifyAuth, (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.getCircleCount));
 profilesRouter.get('/circle/is-member/:userId', verifyAuth, (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.isInCircle));
-profilesRouter.get('/circle/requests', verifyAuth, (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.getPendingRequests));
-profilesRouter.get('/circle/requests/sent', verifyAuth, (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.getSentRequests));
 exports.default = profilesRouter;
 //# sourceMappingURL=routes.js.map

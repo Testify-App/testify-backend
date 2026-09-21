@@ -60,31 +60,8 @@ class ProfilesServiceImpl {
         this.checkUserExists = (userId) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.checkUserExists(userId);
         });
-        this.sendCircleRequest = (payload) => __awaiter(this, void 0, void 0, function* () {
-            if (payload.user_id === payload.connected_user_id) {
-                return new errors_1.BadException('You cannot send a Circle request to yourself');
-            }
-            return yield repositories_1.default.sendCircleRequest(payload);
-        });
-        this.acceptCircleRequest = (payload) => __awaiter(this, void 0, void 0, function* () {
-            const request = yield repositories_1.default.getRequestById(payload.request_id, payload.user_id);
-            if (!request) {
-                return new errors_1.NotFoundException('Circle request not found');
-            }
-            if (request.status !== 'pending') {
-                return new errors_1.BadException('This request has already been processed');
-            }
-            return yield repositories_1.default.acceptCircleRequest(payload);
-        });
-        this.rejectCircleRequest = (payload) => __awaiter(this, void 0, void 0, function* () {
-            const request = yield repositories_1.default.getRequestById(payload.request_id, payload.user_id);
-            if (!request) {
-                return new errors_1.BadException('Circle request not found');
-            }
-            if (request.status !== 'pending') {
-                return new errors_1.BadException('This request has already been processed');
-            }
-            return yield repositories_1.default.rejectCircleRequest(payload);
+        this.addToCircle = (payload) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.addToCircle(payload);
         });
         this.removeFromCircle = (payload) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.removeFromCircle(payload);
@@ -97,12 +74,6 @@ class ProfilesServiceImpl {
         });
         this.isInCircle = (userId, connectedUserId) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.isInCircle(userId, connectedUserId);
-        });
-        this.getPendingRequests = (userId) => __awaiter(this, void 0, void 0, function* () {
-            return yield repositories_1.default.getPendingRequests(userId);
-        });
-        this.getSentRequests = (userId) => __awaiter(this, void 0, void 0, function* () {
-            return yield repositories_1.default.getSentRequests(userId);
         });
     }
 }

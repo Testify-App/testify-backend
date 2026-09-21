@@ -322,6 +322,53 @@ class AuthenticationRepositoryImpl {
         });
     }
     ;
+    resendActivation(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const response = yield database_1.db.tx((t) => __awaiter(this, void 0, void 0, function* () {
+                    const user = yield t.oneOrNone(query_1.default.getUserByEmailForActivation, [payload.email]);
+                    if (!user) {
+                        throw new errors_1.BadException('Email does not exist.');
+                    }
+                    if (user.activated_at) {
+                        throw new errors_1.BadException('Account is already activated.');
+                    }
+                    const otp = yield token_1.default.generateTOTP({ id: user.id, expiresIn: 5 }, 'user', t);
+                    const data = new entities.UserEntity({
+                        id: user.id,
+                        otp,
+                    });
+                    return data;
+                }));
+                return response;
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    ;
+    changePassword(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const user = yield database_1.db.oneOrNone(query_1.default.getPasswordById, [payload.user_id]);
+                if (!user) {
+                    throw new errors_1.BadException('Invalid user id.');
+                }
+                const isValid = yield hashing_1.default.compare(payload.current_password, user.password);
+                if (!isValid) {
+                    throw new errors_1.BadException('Incorrect current password.');
+                }
+                const hashedPassword = yield hashing_1.default.hash(payload.new_password);
+                yield database_1.db.none(query_1.default.changePassword, [payload.user_id, hashedPassword]);
+                return { message: 'Password changed successfully' };
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    ;
 }
 exports.AuthenticationRepositoryImpl = AuthenticationRepositoryImpl;
 const authenticationRepository = new AuthenticationRepositoryImpl();

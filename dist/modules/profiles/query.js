@@ -21,25 +21,31 @@ exports.default = {
       u.updated_at,
       COALESCE(posts_count.count, 0) as posts_count,
       COALESCE(tribes_count.count, 0) as tribes_count,
-      COALESCE(circles_count.count, 0) as circles_count
+      COALESCE(circles_count.count, 0) as circles_count,
+      COALESCE(followers_count.count, 0) as followers_count
     FROM users u
     LEFT JOIN (
-      SELECT user_id, COUNT(*) as count 
-      FROM posts 
+      SELECT user_id, COUNT(*) as count
+      FROM posts
       WHERE deleted_at IS NULL
       GROUP BY user_id
     ) posts_count ON u.id = posts_count.user_id
     LEFT JOIN (
-      SELECT follower_id, COUNT(*) as count 
-      FROM user_follows 
+      SELECT follower_id, COUNT(*) as count
+      FROM user_follows
       GROUP BY follower_id
     ) tribes_count ON u.id = tribes_count.follower_id
     LEFT JOIN (
-      SELECT user_id, COUNT(*) as count 
-      FROM user_connections 
+      SELECT user_id, COUNT(*) as count
+      FROM user_connections
       WHERE status = 'accepted'
       GROUP BY user_id
     ) circles_count ON u.id = circles_count.user_id
+    LEFT JOIN (
+      SELECT following_id, COUNT(*) as count
+      FROM user_follows
+      GROUP BY following_id
+    ) followers_count ON u.id = followers_count.following_id
     WHERE u.id = $1;
   `,
     getByUsername: `
@@ -176,28 +182,10 @@ exports.default = {
     checkUserExists: `
     SELECT EXISTS(SELECT 1 FROM users WHERE id = $1);
   `,
-    sendCircleRequest: `
+    addToCircle: `
     INSERT INTO user_connections (user_id, connected_user_id, status)
     VALUES ($1, $2, 'accepted')
     ON CONFLICT (user_id, connected_user_id) DO NOTHING
-    RETURNING *;
-  `,
-    acceptCircleRequest: `
-    UPDATE user_connections
-    SET status = 'accepted', updated_at = NOW()
-    WHERE id = $1 AND connected_user_id = $2 AND status = 'pending'
-    RETURNING *;
-  `,
-    createMutualConnection: `
-    INSERT INTO user_connections (user_id, connected_user_id, status)
-    VALUES ($1, $2, 'accepted')
-    ON CONFLICT (user_id, connected_user_id) DO NOTHING
-    RETURNING *;
-  `,
-    rejectCircleRequest: `
-    UPDATE user_connections
-    SET status = 'rejected', updated_at = NOW()
-    WHERE id = $1 AND connected_user_id = $2 AND status = 'pending'
     RETURNING *;
   `,
     removeFromCircle: `
@@ -217,8 +205,9 @@ exports.default = {
     JOIN users u ON uc.connected_user_id = u.id
     WHERE uc.user_id = $3
       AND uc.status = 'accepted'
-      AND u.search_vector @@ plainto_tsquery('simple', $4)
-    ORDER BY uc.updated_at DESC;
+      AND ($4::text IS NULL OR u.search_vector @@ plainto_tsquery('simple', $4))
+    ORDER BY uc.updated_at DESC
+    LIMIT $2 OFFSET $1;
   `,
     getCircleCount: `
     SELECT COUNT(*) as total FROM user_connections
@@ -229,30 +218,6 @@ exports.default = {
       SELECT 1 FROM user_connections
       WHERE user_id = $1 AND connected_user_id = $2 AND status = 'accepted'
     );
-  `,
-    getPendingRequests: `
-    SELECT uc.*, u.username, u.avatar
-    FROM user_connections uc
-    JOIN users u ON uc.user_id = u.id
-    WHERE uc.connected_user_id = $1 AND uc.status = 'pending'
-    ORDER BY uc.created_at DESC;
-  `,
-    getSentRequests: `
-    SELECT uc.*, u.username, u.avatar
-    FROM user_connections uc
-    JOIN users u ON uc.connected_user_id = u.id
-    WHERE uc.user_id = $1 AND uc.status = 'pending'
-    ORDER BY uc.created_at DESC;
-  `,
-    hasPendingRequest: `
-    SELECT EXISTS(
-      SELECT 1 FROM user_connections
-      WHERE (user_id = $1 AND connected_user_id = $2 AND status = 'pending')
-         OR (user_id = $2 AND connected_user_id = $1 AND status = 'pending')
-    );
-  `,
-    getRequestById: `
-    SELECT * FROM user_connections WHERE id = $1 AND connected_user_id = $2;
   `,
 };
 //# sourceMappingURL=query.js.map

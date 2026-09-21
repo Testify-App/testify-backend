@@ -16,6 +16,7 @@ var PostVisibility;
     PostVisibility["FOLLOWERS_ONLY"] = "followers_only";
     PostVisibility["MENTIONED_ONLY"] = "mentioned_only";
     PostVisibility["PRIVATE"] = "private";
+    PostVisibility["CIRCLE_ONLY"] = "circle_only";
 })(PostVisibility || (exports.PostVisibility = PostVisibility = {}));
 class PostEntity extends base_entity_1.BaseEntity {
 }
