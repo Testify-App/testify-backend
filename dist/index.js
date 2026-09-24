@@ -36,7 +36,42 @@ function main(app) {
                 logger.log(`Swagger Documentation: http://localhost:${PORT}/docs`);
             });
         server.listen(PORT);
+        installShutdownHandlers(server, logger);
     });
+}
+function installShutdownHandlers(server, logger) {
+    var _a;
+    const FORCE_EXIT_MS = Number((_a = process.env.SHUTDOWN_TIMEOUT_MS) !== null && _a !== void 0 ? _a : 25000);
+    let shuttingDown = false;
+    const shutdown = (signal) => __awaiter(this, void 0, void 0, function* () {
+        if (shuttingDown)
+            return;
+        shuttingDown = true;
+        logger.log(`${signal} received — draining`, 'shutdown');
+        const forceExit = setTimeout(() => {
+            logger.error(new Error(`drain exceeded ${FORCE_EXIT_MS}ms — exiting anyway`));
+            process.exit(1);
+        }, FORCE_EXIT_MS);
+        forceExit.unref();
+        try {
+            const closed = new Promise((resolve) => server.close(() => resolve()));
+            const sweepIdle = setInterval(() => { var _a; return (_a = server.closeIdleConnections) === null || _a === void 0 ? void 0 : _a.call(server); }, 250);
+            sweepIdle.unref();
+            yield closed;
+            clearInterval(sweepIdle);
+            yield database_1.db.$pool.end();
+            logger.log('drain complete', 'shutdown');
+            clearTimeout(forceExit);
+            process.exit(0);
+        }
+        catch (err) {
+            logger.error(err);
+            clearTimeout(forceExit);
+            process.exit(1);
+        }
+    });
+    process.on('SIGTERM', () => void shutdown('SIGTERM'));
+    process.on('SIGINT', () => void shutdown('SIGINT'));
 }
 main(express_1.default);
 //# sourceMappingURL=index.js.map
