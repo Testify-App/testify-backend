@@ -6,6 +6,9 @@ import swaggerRouter from './swagger/routes';
 import {
   GlobalErrorCatcherMiddleware,
 } from '../shared/middlewares/global-error-catcher.middleware';
+import {
+  OriginVerifyMiddleware,
+} from '../shared/middlewares/origin-verify.middleware';
 
 const app = express();
 
@@ -38,6 +41,14 @@ app.use(helmet());
 app.disable('x-powered-by');
 
 // Env.get<string>('NODE_ENV') !== 'test' && app.use(limiter);
+
+/**
+ * Refuse anything that did not come through our CloudFront distribution.
+ * Mounted before the routes and before /docs, so the API surface and the
+ * Swagger documentation are both covered. No-ops when ORIGIN_VERIFY_SECRET is
+ * unset, which is the case locally and in tests.
+ */
+app.use(OriginVerifyMiddleware);
 
 app.use(ROUTE_BASE.V1_PATH, Router);
 
