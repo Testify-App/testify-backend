@@ -18,17 +18,38 @@ function buildCredential() {
     privateKey = privateKey.replace(/\\n/g, '\n');
     return { projectId, clientEmail, privateKey };
 }
+let cachedApp;
 function initFirebase() {
+    if (cachedApp)
+        return cachedApp;
     const existing = (0, app_1.getApps)();
     if (existing.length > 0) {
-        return existing[0];
+        cachedApp = existing[0];
+        return cachedApp;
     }
     const storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
-    return (0, app_1.initializeApp)(Object.assign({ credential: (0, app_1.cert)(buildCredential()) }, (storageBucket && { storageBucket })));
+    cachedApp = (0, app_1.initializeApp)(Object.assign({ credential: (0, app_1.cert)(buildCredential()) }, (storageBucket && { storageBucket })));
+    return cachedApp;
 }
-const firebaseApp = initFirebase();
-exports.firebaseAuth = (0, auth_1.getAuth)(firebaseApp);
-exports.firebaseFirestore = (0, firestore_1.getFirestore)(firebaseApp);
-exports.firebaseMessaging = (0, messaging_1.getMessaging)(firebaseApp);
-exports.default = firebaseApp;
+function lazyService(resolve) {
+    let instance;
+    const load = () => (instance !== null && instance !== void 0 ? instance : (instance = resolve()));
+    return new Proxy({}, {
+        get(_target, property) {
+            const service = load();
+            const value = service[property];
+            return typeof value === 'function' ? value.bind(service) : value;
+        },
+        has(_target, property) {
+            return property in load();
+        },
+        getPrototypeOf() {
+            return Reflect.getPrototypeOf(load());
+        },
+    });
+}
+exports.firebaseAuth = lazyService(() => (0, auth_1.getAuth)(initFirebase()));
+exports.firebaseFirestore = lazyService(() => (0, firestore_1.getFirestore)(initFirebase()));
+exports.firebaseMessaging = lazyService(() => (0, messaging_1.getMessaging)(initFirebase()));
+exports.default = lazyService(() => initFirebase());
 //# sourceMappingURL=firebase.js.map
