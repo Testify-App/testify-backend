@@ -10,6 +10,7 @@ const routes_1 = require("../routes");
 const routes_2 = __importDefault(require("./swagger/routes"));
 const global_error_catcher_middleware_1 = require("../shared/middlewares/global-error-catcher.middleware");
 const app = (0, express_1.default)();
+app.set('trust proxy', 1);
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: false }));
 const corsOptions = {

@@ -8,6 +8,21 @@ import {
 } from '../shared/middlewares/global-error-catcher.middleware';
 
 const app = express();
+
+/**
+ * Every request now arrives from CloudFront, never directly from the user, so
+ * the TCP peer address is a CloudFront edge server. Without this, `req.ip` is
+ * that edge address and every visitor in the world looks like the same handful
+ * of IPs — which silently breaks rate limiting (one shared bucket for
+ * everyone) and makes audit logs useless.
+ *
+ * CloudFront puts the real viewer address in X-Forwarded-For. `1` means trust
+ * exactly one proxy hop: CloudFront, and nothing beyond it. Using `true` would
+ * trust the whole X-Forwarded-For chain, letting a caller spoof any IP by
+ * sending their own header.
+ */
+app.set('trust proxy', 1);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
