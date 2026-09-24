@@ -13,7 +13,19 @@ async function main(app: Express): Promise<void> {
 
   // run the following before initializing App function
   await Env.validateEnv(envValidatorSchema);
-  await db.connect();
+
+  /**
+   * Prove the database is reachable before accepting traffic — and give the
+   * connection back.
+   *
+   * `db.connect()` takes a connection out of the pool and holds it until
+   * `done()` is called. That call was missing, so one connection was leaked
+   * for the entire life of the process. With the pool now explicitly bounded
+   * at 10, that is a tenth of the capacity gone permanently, and it would have
+   * been invisible until the pool ran short under load.
+   */
+  const startupProbe = await db.connect();
+  startupProbe.done();
 
   startStoryCleanupJob();
 

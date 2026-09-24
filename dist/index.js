@@ -24,7 +24,8 @@ function main(app) {
     return __awaiter(this, void 0, void 0, function* () {
         const logger = new logger_1.default(app.name);
         yield env_1.default.validateEnv(env_validator_1.envValidatorSchema);
-        yield database_1.db.connect();
+        const startupProbe = yield database_1.db.connect();
+        startupProbe.done();
         (0, story_cleanup_job_1.startStoryCleanupJob)();
         const server = http_1.default.createServer(app);
         const PORT = env_1.default.get('PORT') || 8080;
