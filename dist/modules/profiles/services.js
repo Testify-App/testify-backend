@@ -75,6 +75,18 @@ class ProfilesServiceImpl {
         this.isInCircle = (userId, connectedUserId) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.isInCircle(userId, connectedUserId);
         });
+        this.blockUser = (payload) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.blockUser(payload);
+        });
+        this.unblockUser = (payload) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.unblockUser(payload);
+        });
+        this.getBlockedUsers = (query) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.getBlockedUsers(query);
+        });
+        this.isBlocked = (blockerId, blockedId) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.isBlocked(blockerId, blockedId);
+        });
     }
 }
 exports.ProfilesServiceImpl = ProfilesServiceImpl;

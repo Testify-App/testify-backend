@@ -59,5 +59,9 @@ profilesRouter.delete('/circle/:userId', verifyAuth, (0, watch_async_controller_
 profilesRouter.get('/circle', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(profilesValidator.getCircleMembersValidator, 'query'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.getCircleMembers));
 profilesRouter.get('/circle/count', verifyAuth, (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.getCircleCount));
 profilesRouter.get('/circle/is-member/:userId', verifyAuth, (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.isInCircle));
+profilesRouter.post('/blocks', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(profilesValidator.blockUserValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.blockUser));
+profilesRouter.delete('/blocks/:userId', verifyAuth, (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.unblockUser));
+profilesRouter.get('/blocks', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(profilesValidator.getBlockedUsersValidator, 'query'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.getBlockedUsers));
+profilesRouter.get('/blocks/is-blocked/:userId', verifyAuth, (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.isBlocked));
 exports.default = profilesRouter;
 //# sourceMappingURL=routes.js.map

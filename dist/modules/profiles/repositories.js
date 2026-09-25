@@ -410,6 +410,77 @@ class ProfilesRepositoryImpl {
             }
         });
     }
+    blockUser(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                if (payload.user_id === payload.blocked_id) {
+                    return new errors_1.BadException('You cannot block yourself');
+                }
+                yield database_1.db.tx((t) => __awaiter(this, void 0, void 0, function* () {
+                    const blocked = yield t.oneOrNone(query_1.default.blockUser, [payload.user_id, payload.blocked_id]);
+                    if (!blocked) {
+                        throw new errors_1.BadException('User is already blocked');
+                    }
+                    yield t.none(query_1.default.removeFromTribe, [payload.user_id, payload.blocked_id]);
+                    yield t.none(query_1.default.removeFromTribe, [payload.blocked_id, payload.user_id]);
+                    yield t.none(query_1.default.removeFromCircle, [payload.user_id, payload.blocked_id]);
+                }));
+                return;
+            }
+            catch (error) {
+                if (error instanceof errors_1.BadException)
+                    return error;
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    unblockUser(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const result = yield database_1.db.oneOrNone(query_1.default.unblockUser, [payload.user_id, payload.blocked_id]);
+                if (!result) {
+                    return new errors_1.BadException('User is not blocked');
+                }
+                return;
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    getBlockedUsers(query) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { page = '1', limit = '20', user_id } = query;
+                const [{ count }, blocked_users] = yield (0, helpers_1.fetchResourceByPage)({
+                    page,
+                    limit,
+                    getResources: query_1.default.getBlockedUsers,
+                    params: [user_id, query.search || null],
+                });
+                return {
+                    total: count,
+                    currentPage: page,
+                    totalPages: (0, helpers_1.calcPages)(count, limit),
+                    blocked_users,
+                };
+            }
+            catch (error) {
+                return new errors_1.InternalServerErrorException(`${error.message}`);
+            }
+        });
+    }
+    isBlocked(blockerId, blockedId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const result = yield database_1.db.oneOrNone(query_1.default.isBlocked, [blockerId, blockedId]);
+                return (result === null || result === void 0 ? void 0 : result.exists) || false;
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
 }
 exports.ProfilesRepositoryImpl = ProfilesRepositoryImpl;
 ;
