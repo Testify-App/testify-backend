@@ -182,7 +182,7 @@ export class PostsController {
   };
 
   public getPostLikes: fnRequest = async (req: AuthenticatedRequest, res) => {
-    const postId = req.params.id;
+    const postId = req.params.post_id;
     const query = new dtos.GetLikesQueryDTO(req.query);
     const response = await PostsService.getPostLikes(postId, query);
     if (response instanceof NotFoundException) {

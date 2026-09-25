@@ -313,7 +313,7 @@ export default {
     JOIN users u ON pl.user_id = u.id
     WHERE pl.post_id = $3
     ORDER BY pl.created_at DESC
-    LIMIT $1 OFFSET $2;
+    LIMIT $2 OFFSET $1;
   `,
 
   getPostLikesCount: `
