@@ -659,4 +659,125 @@ profilesRouter.get(
   WatchAsyncController(profilesController.isInCircle)
 );
 
+// Block routes
+
+/**
+ * @swagger
+ * /profiles/blocks:
+ *   post:
+ *     summary: Block a user
+ *     description: Blocking removes any existing Tribe/Circle relationship between the two users. Blocked users' posts and comments are hidden from the blocker, and vice versa.
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - blocked_id
+ *             properties:
+ *               blocked_id:
+ *                 type: string
+ *                 description: ID of the user to block
+ *     responses:
+ *       200:
+ *         description: User blocked successfully
+ *       400:
+ *         description: Cannot block yourself, or user is already blocked
+ */
+profilesRouter.post(
+  '/blocks',
+  verifyAuth,
+  validateDataMiddleware(profilesValidator.blockUserValidator, 'body'),
+  WatchAsyncController(profilesController.blockUser)
+);
+
+/**
+ * @swagger
+ * /profiles/blocks/{userId}:
+ *   delete:
+ *     summary: Unblock a user
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User unblocked successfully
+ *       400:
+ *         description: User is not blocked
+ */
+profilesRouter.delete(
+  '/blocks/:userId',
+  verifyAuth,
+  WatchAsyncController(profilesController.unblockUser)
+);
+
+/**
+ * @swagger
+ * /profiles/blocks:
+ *   get:
+ *     summary: Get the authenticated user's blocked users list
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: search
+ *         in: query
+ *         schema:
+ *           type: string
+ *         description: Filter blocked users by username or display name
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 1
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Blocked users retrieved successfully
+ */
+profilesRouter.get(
+  '/blocks',
+  verifyAuth,
+  validateDataMiddleware(profilesValidator.getBlockedUsersValidator, 'query'),
+  WatchAsyncController(profilesController.getBlockedUsers)
+);
+
+/**
+ * @swagger
+ * /profiles/blocks/is-blocked/{userId}:
+ *   get:
+ *     summary: Check if the authenticated user has blocked a specific user
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Block status checked
+ */
+profilesRouter.get(
+  '/blocks/is-blocked/:userId',
+  verifyAuth,
+  WatchAsyncController(profilesController.isBlocked)
+);
+
 export default profilesRouter;

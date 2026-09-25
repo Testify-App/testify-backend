@@ -10,6 +10,7 @@ import guestRouter from '../../modules/guest/routes';
 import communitiesRouter from '../../modules/communities/routes';
 import notificationsRouter from '../../modules/notifications/routes';
 import storiesRouter from '../../modules/stories/routes';
+import reportsRouter from '../../modules/reports/routes';
 
 const appRouter = express.Router();
 
@@ -38,5 +39,7 @@ appRouter.use("/communities", communitiesRouter);
 appRouter.use("/notifications", notificationsRouter);
 
 appRouter.use("/stories", storiesRouter);
+
+appRouter.use("/reports", reportsRouter);
 
 export const Router = appRouter;

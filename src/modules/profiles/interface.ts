@@ -28,4 +28,9 @@ export interface ProfilesInterface {
   getCircleMembers(payload: dtos.GetCircleMembersDTO): Promise<InternalServerErrorException | FetchPaginatedResponse>;
   getCircleCount(userId: string): Promise<BadException | number>;
   isInCircle(userId: string, connectedUserId: string): Promise<BadException | boolean>;
+
+  blockUser(payload: dtos.BlockUserDTO): Promise<BadException | void>;
+  unblockUser(payload: dtos.UnblockUserDTO): Promise<BadException | void>;
+  getBlockedUsers(query: dtos.GetBlockedUsersQueryDTO): Promise<InternalServerErrorException | FetchPaginatedResponse>;
+  isBlocked(blockerId: string, blockedId: string): Promise<BadException | boolean>;
 };

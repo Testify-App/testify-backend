@@ -57,3 +57,11 @@ export class UserConnectionEntity extends BaseEntity<UserConnectionEntity> {
   updated_at?: Date;
 }
 
+export class BlockedUserEntity extends BaseEntity<BlockedUserEntity> {
+  id?: string;
+  username?: string;
+  display_name?: string;
+  avatar?: string;
+  blocked_at?: Date;
+}
+

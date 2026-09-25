@@ -212,6 +212,65 @@ export class ProfilesController {
     return ResponseBuilder.success(res, 'Circle membership checked', StatusCodes.OK, { is_in_circle: response });
   };
 
+  public blockUser: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const payload = new dtos.BlockUserDTO({
+      user_id: req.user?.id as string,
+      blocked_id: req.body.blocked_id,
+    });
+
+    const response = await ProfilesService.blockUser(payload);
+    if (response instanceof BadException) {
+      logger.error(response.message, 'profiles.controller.ts');
+      return ResponseBuilder.error(res, response, response.code);
+    }
+
+    logger.info('User blocked successfully', 'profiles.controller.ts');
+    return ResponseBuilder.success(res, 'User blocked successfully', StatusCodes.OK, null);
+  };
+
+  public unblockUser: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const payload = new dtos.UnblockUserDTO({
+      user_id: req.user?.id as string,
+      blocked_id: req.params.userId,
+    });
+
+    const response = await ProfilesService.unblockUser(payload);
+    if (response instanceof BadException) {
+      logger.error(response.message, 'profiles.controller.ts');
+      return ResponseBuilder.error(res, response, response.code);
+    }
+
+    logger.info('User unblocked successfully', 'profiles.controller.ts');
+    return ResponseBuilder.success(res, 'User unblocked successfully', StatusCodes.OK, null);
+  };
+
+  public getBlockedUsers: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const query = new dtos.GetBlockedUsersQueryDTO(req.query);
+    query.user_id = req.user?.id as string;
+
+    const response = await ProfilesService.getBlockedUsers(query);
+    if (response instanceof InternalServerErrorException) {
+      logger.error(response.message, 'profiles.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.INTERNAL_SERVER_ERROR);
+    }
+
+    logger.info('Blocked users retrieved successfully', 'profiles.controller.ts');
+    return ResponseBuilder.success(res, 'Blocked users retrieved successfully', StatusCodes.OK, response);
+  };
+
+  public isBlocked: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const userId = req.user?.id as string;
+    const blockedId = req.params.userId;
+    const response = await ProfilesService.isBlocked(userId, blockedId);
+
+    if (response instanceof BadException) {
+      logger.error(response.message, 'profiles.controller.ts');
+      return ResponseBuilder.error(res, response, response.code);
+    }
+
+    return ResponseBuilder.success(res, 'Block status checked', StatusCodes.OK, { is_blocked: response });
+  };
+
   public getGuestProfile: fnRequest = async (req, res) => {
     const payload = new dtos.GetByUsernameDTO({ username: req.params.username });
     const response = await ProfilesService.getByUsername(payload);
