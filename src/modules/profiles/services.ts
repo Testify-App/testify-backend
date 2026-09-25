@@ -130,6 +130,33 @@ export class ProfilesServiceImpl implements ProfilesInterface {
     return await ProfilesRepository.isInCircle(userId, connectedUserId);
   };
 
+  // Block methods
+
+  public blockUser = async (
+    payload: dtos.BlockUserDTO
+  ): Promise<BadException | void> => {
+    return await ProfilesRepository.blockUser(payload);
+  };
+
+  public unblockUser = async (
+    payload: dtos.UnblockUserDTO
+  ): Promise<BadException | void> => {
+    return await ProfilesRepository.unblockUser(payload);
+  };
+
+  public getBlockedUsers = async (
+    query: dtos.GetBlockedUsersQueryDTO
+  ): Promise<InternalServerErrorException | FetchPaginatedResponse> => {
+    return await ProfilesRepository.getBlockedUsers(query);
+  };
+
+  public isBlocked = async (
+    blockerId: string,
+    blockedId: string
+  ): Promise<BadException | boolean> => {
+    return await ProfilesRepository.isBlocked(blockerId, blockedId);
+  };
+
 }
 
 const ProfilesService = new ProfilesServiceImpl();

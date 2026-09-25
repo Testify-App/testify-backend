@@ -402,6 +402,83 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
     }
   }
 
+  public async blockUser(
+    payload: dtos.BlockUserDTO
+  ): Promise<BadException | void> {
+    try {
+      if (payload.user_id === payload.blocked_id) {
+        return new BadException('You cannot block yourself');
+      }
+
+      await db.tx(async (t) => {
+        const blocked = await t.oneOrNone(ProfilesQuery.blockUser, [payload.user_id, payload.blocked_id]);
+        if (!blocked) {
+          throw new BadException('User is already blocked');
+        }
+
+        // Blocking removes any existing Tribe/Circle relationship in both directions
+        await t.none(ProfilesQuery.removeFromTribe, [payload.user_id, payload.blocked_id]);
+        await t.none(ProfilesQuery.removeFromTribe, [payload.blocked_id, payload.user_id]);
+        await t.none(ProfilesQuery.removeFromCircle, [payload.user_id, payload.blocked_id]);
+      });
+
+      return;
+    } catch (error) {
+      if (error instanceof BadException) return error;
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async unblockUser(
+    payload: dtos.UnblockUserDTO
+  ): Promise<BadException | void> {
+    try {
+      const result = await db.oneOrNone(ProfilesQuery.unblockUser, [payload.user_id, payload.blocked_id]);
+      if (!result) {
+        return new BadException('User is not blocked');
+      }
+      return;
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async getBlockedUsers(
+    query: dtos.GetBlockedUsersQueryDTO
+  ): Promise<InternalServerErrorException | FetchPaginatedResponse> {
+    try {
+      const { page = '1', limit = '20', user_id } = query as { page?: string; limit?: string; user_id: string };
+
+      const [{ count }, blocked_users] = await fetchResourceByPage({
+        page,
+        limit,
+        getResources: ProfilesQuery.getBlockedUsers,
+        params: [user_id, query.search || null],
+      });
+
+      return {
+        total: count,
+        currentPage: page,
+        totalPages: calcPages(count, limit),
+        blocked_users,
+      };
+    } catch (error) {
+      return new InternalServerErrorException(`${error.message}`);
+    }
+  }
+
+  public async isBlocked(
+    blockerId: string,
+    blockedId: string
+  ): Promise<BadException | boolean> {
+    try {
+      const result = await db.oneOrNone(ProfilesQuery.isBlocked, [blockerId, blockedId]);
+      return result?.exists || false;
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
 };
 
 const ProfilesRepository = new ProfilesRepositoryImpl();
