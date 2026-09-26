@@ -24,13 +24,13 @@ const register_TOTP_1 = __importDefault(require("./templates/register.TOTP"));
 const forgot_password_1 = __importDefault(require("./templates/forgot.password"));
 const transportKind = () => {
     var _a;
-    return ((_a = env_1.default.get('MAIL_TRANSPORT')) !== null && _a !== void 0 ? _a : 'ses').toLowerCase() === 'smtp'
+    return ((_a = process.env.MAIL_TRANSPORT) !== null && _a !== void 0 ? _a : 'ses').toLowerCase() === 'smtp'
         ? 'smtp'
         : 'ses';
 };
 let cached;
 const buildTransport = () => {
-    var _a, _b;
+    var _a, _b, _c;
     if (transportKind() === 'smtp') {
         return nodemailer_1.default.createTransport({
             host: 'smtp.gmail.com',
@@ -43,25 +43,35 @@ const buildTransport = () => {
         });
     }
     const sesClient = new client_sesv2_1.SESv2Client({
-        region: (_b = (_a = env_1.default.get('AWS_SES_REGION')) !== null && _a !== void 0 ? _a : env_1.default.get('AWS_S3_REGION')) !== null && _b !== void 0 ? _b : 'us-east-1',
+        region: (_c = (_b = (_a = process.env.AWS_SES_REGION) !== null && _a !== void 0 ? _a : process.env.AWS_S3_REGION) !== null && _b !== void 0 ? _b : process.env.AWS_REGION) !== null && _c !== void 0 ? _c : 'us-east-1',
     });
     return nodemailer_1.default.createTransport({
         SES: { sesClient, SendEmailCommand: client_sesv2_1.SendEmailCommand },
     });
 };
 const transport = () => (cached !== null && cached !== void 0 ? cached : (cached = buildTransport()));
+const configurationSet = () => process.env.MAIL_CONFIGURATION_SET || undefined;
 function sendEmail(options) {
     return __awaiter(this, void 0, void 0, function* () {
+        var _a;
         if (env_1.default.get('NODE_ENV') === 'test')
             return true;
+        const set = configurationSet();
         try {
-            const info = yield transport().sendMail({
-                from: `${env_1.default.get('MAIL_FROM')}`,
-                to: options.to,
-                subject: options.subject,
-                html: options.html,
-            });
-            logger_1.default.info(`mail sent via ${transportKind()} to ${options.to}: ${info.messageId}`, 'mailer.ts');
+            const info = yield transport().sendMail(Object.assign({ from: `${env_1.default.get('MAIL_FROM')}`, to: options.to, subject: options.subject, html: options.html }, (set
+                ? {
+                    ses: {
+                        ConfigurationSetName: set,
+                        EmailTags: [
+                            {
+                                Name: 'email_type',
+                                Value: (_a = options.emailType) !== null && _a !== void 0 ? _a : 'transactional',
+                            },
+                        ],
+                    },
+                }
+                : {})));
+            logger_1.default.info(`mail sent via ${transportKind()}${set ? ` [${set}]` : ''} to ${options.to}: ${info.messageId}`, 'mailer.ts');
             return info.messageId;
         }
         catch (error) {
@@ -81,6 +91,7 @@ function registerTOTP(email, otp, username, expiresIn) {
             to: email,
             subject: 'Activate Your Account.',
             html,
+            emailType: 'verification',
         });
     });
 }
@@ -96,6 +107,7 @@ function forgotPassword(email, otp, first_name, expiresIn) {
             to: email,
             subject: 'Reset Your Password.',
             html,
+            emailType: 'password-reset',
         });
     });
 }

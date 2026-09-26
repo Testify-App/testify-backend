@@ -24,8 +24,22 @@ import forgotPasswordEmailTemplate from './templates/forgot.password';
  * `MAIL_TRANSPORT` selects: `ses` (default) or `smtp`.
  */
 
+/**
+ * These read process.env directly rather than through the Env helper.
+ *
+ * Env.get only exposes keys declared in src/config/env/*.ts, so an undeclared
+ * variable silently returns undefined and falls back to its default — which is
+ * exactly what happened here first time round: MAIL_CONFIGURATION_SET was set
+ * in Parameter Store, read through Env.get, came back undefined, and every send
+ * quietly went out with no configuration set at all. Nothing failed; the
+ * suppression and metrics simply did not apply.
+ *
+ * Declaring each one in all four env files would work too, but these are
+ * deployment concerns rather than application config, and src/modules/uploads
+ * already reads process.env directly for the same reason.
+ */
 const transportKind = (): 'ses' | 'smtp' =>
-  (Env.get<string>('MAIL_TRANSPORT') ?? 'ses').toLowerCase() === 'smtp'
+  (process.env.MAIL_TRANSPORT ?? 'ses').toLowerCase() === 'smtp'
     ? 'smtp'
     : 'ses';
 
@@ -55,8 +69,9 @@ const buildTransport = (): Transporter => {
    */
   const sesClient = new SESv2Client({
     region:
-      Env.get<string>('AWS_SES_REGION') ??
-      Env.get<string>('AWS_S3_REGION') ??
+      process.env.AWS_SES_REGION ??
+      process.env.AWS_S3_REGION ??
+      process.env.AWS_REGION ??
       'us-east-1',
   });
 
@@ -74,12 +89,29 @@ const buildTransport = (): Transporter => {
 /** Built on first use so an unconfigured transport cannot break start-up. */
 const transport = (): Transporter => (cached ??= buildTransport());
 
+/**
+ * Naming the configuration set is what makes SES's bounce/complaint
+ * suppression and event publishing apply TO THIS MESSAGE. Omit it and the
+ * configuration set exists but does nothing: bounces are not suppressed, no
+ * metrics are published, and a dead address keeps being mailed until AWS pauses
+ * the account.
+ *
+ * There is no way to set it as an identity default from Terraform, so it has to
+ * travel with every send.
+ */
+const configurationSet = (): string | undefined =>
+  process.env.MAIL_CONFIGURATION_SET || undefined;
+
 export async function sendEmail(options: {
   to: string;
   subject: string;
   html: string;
+  /** Populates the email_type CloudWatch dimension, so bounce rates can be read per mail type. */
+  emailType?: string;
 }) {
   if (Env.get<string>('NODE_ENV') === 'test') return true;
+
+  const set = configurationSet();
 
   try {
     const info = await transport().sendMail({
@@ -87,9 +119,27 @@ export async function sendEmail(options: {
       to: options.to,
       subject: options.subject,
       html: options.html,
-    });
+      /**
+       * nodemailer copies the keys of `ses` straight into the SESv2 request,
+       * so this is how per-message SES options are passed. Only set when a
+       * configuration set is configured, so the SMTP transport is unaffected.
+       */
+      ...(set
+        ? {
+            ses: {
+              ConfigurationSetName: set,
+              EmailTags: [
+                {
+                  Name: 'email_type',
+                  Value: options.emailType ?? 'transactional',
+                },
+              ],
+            },
+          }
+        : {}),
+    } as never);
     logger.info(
-      `mail sent via ${transportKind()} to ${options.to}: ${info.messageId}`,
+      `mail sent via ${transportKind()}${set ? ` [${set}]` : ''} to ${options.to}: ${info.messageId}`,
       'mailer.ts',
     );
     return info.messageId;
@@ -117,6 +167,7 @@ export async function registerTOTP(
     to: email,
     subject: 'Activate Your Account.',
     html,
+    emailType: 'verification',
   });
 };
 
@@ -136,5 +187,6 @@ export async function forgotPassword(
     to: email,
     subject: 'Reset Your Password.',
     html,
+    emailType: 'password-reset',
   });
 };
