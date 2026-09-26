@@ -53,6 +53,8 @@ const database_1 = require("../../config/database");
 const token_1 = __importDefault(require("../../shared/services/token"));
 const jwt_1 = __importDefault(require("../../shared/services/jwt"));
 const hashing_1 = __importDefault(require("../../shared/services/hashing"));
+const logger_1 = __importDefault(require("../../shared/services/logger"));
+const MailService = __importStar(require("../../shared/lib/email"));
 const errors_1 = require("../../shared/lib/errors");
 const helpers_1 = require("../../shared/helpers");
 class AuthenticationRepositoryImpl {
@@ -67,6 +69,8 @@ class AuthenticationRepositoryImpl {
                         }
                         else {
                             const otp = yield token_1.default.generateTOTP({ id: existingUser.id, expiresIn: 5 }, 'user', t);
+                            void MailService.registerTOTP(payload.email, otp, payload.username, 5)
+                                .catch((err) => logger_1.default.error(`activation mail failed: ${err}`, 'authentication.repositories.ts'));
                             const data = new entities.UserEntity({
                                 id: existingUser.id,
                                 otp,
@@ -88,6 +92,8 @@ class AuthenticationRepositoryImpl {
                         id: user.id,
                         otp,
                     });
+                    void MailService.registerTOTP(payload.email, otp, payload.username, 5)
+                        .catch((err) => logger_1.default.error(`activation mail failed: ${err}`, 'authentication.repositories.ts'));
                     return data;
                 }));
                 return response;
@@ -334,6 +340,8 @@ class AuthenticationRepositoryImpl {
                         throw new errors_1.BadException('Account is already activated.');
                     }
                     const otp = yield token_1.default.generateTOTP({ id: user.id, expiresIn: 5 }, 'user', t);
+                    void MailService.registerTOTP(payload.email, otp, user.username, 5)
+                        .catch((err) => logger_1.default.error(`resend activation mail failed: ${err}`, 'authentication.repositories.ts'));
                     const data = new entities.UserEntity({
                         id: user.id,
                         otp,

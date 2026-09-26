@@ -9,6 +9,8 @@ import { AuthenticationInterface } from './interface';
 import otpGenerate from '../../shared/services/token';
 import jwtSigningService from '../../shared/services/jwt';
 import hashingService from '../../shared/services/hashing';
+import logger from '../../shared/services/logger';
+import * as MailService from '../../shared/lib/email';
 // import * as MailService from '../../shared/lib/email/index';
 import {
   BadException,
@@ -28,7 +30,21 @@ export class AuthenticationRepositoryImpl implements AuthenticationInterface {
             throw new BadException('Email already exists');
           } else {
             const otp = await otpGenerate.generateTOTP({ id: existingUser.id, expiresIn: 5 }, 'user', t);
-            // await MailService.registerTOTP(payload.email, otp, payload.username, 5);
+            /**
+             * Deliberately NOT awaited inside this transaction.
+             *
+             * Awaiting would (a) hold a pooled database connection open for the
+             * duration of a network round trip to SES, and (b) roll the whole
+             * transaction back if delivery failed — so a transient mail problem
+             * would destroy an otherwise valid account. SES is also still in
+             * sandbox, where any unverified recipient is rejected outright, so
+             * awaiting here would make registration fail for most addresses.
+             *
+             * Failures are logged. The user can re-request a code via
+             * /auth/register/resend-activation.
+             */
+            void MailService.registerTOTP(payload.email, otp, payload.username, 5)
+              .catch((err) => logger.error(`activation mail failed: ${err}`, 'authentication.repositories.ts'));
             const data: entities.UserEntity = new entities.UserEntity({
               id: existingUser.id,
               otp,
@@ -50,7 +66,21 @@ export class AuthenticationRepositoryImpl implements AuthenticationInterface {
           id: user.id,
           otp,
         });
-        // await MailService.registerTOTP(payload.email, otp, payload.username, 5);
+        /**
+         * Deliberately NOT awaited inside this transaction.
+         *
+         * Awaiting would (a) hold a pooled database connection open for the
+         * duration of a network round trip to SES, and (b) roll the whole
+         * transaction back if delivery failed — so a transient mail problem
+         * would destroy an otherwise valid account. SES is also still in
+         * sandbox, where any unverified recipient is rejected outright, so
+         * awaiting here would make registration fail for most addresses.
+         *
+         * Failures are logged. The user can re-request a code via
+         * /auth/register/resend-activation.
+         */
+        void MailService.registerTOTP(payload.email, otp, payload.username, 5)
+          .catch((err) => logger.error(`activation mail failed: ${err}`, 'authentication.repositories.ts'));
         return data;
       });
       return response;
@@ -294,7 +324,21 @@ export class AuthenticationRepositoryImpl implements AuthenticationInterface {
           throw new BadException('Account is already activated.');
         }
         const otp = await otpGenerate.generateTOTP({ id: user.id, expiresIn: 5 }, 'user', t);
-        // await MailService.registerTOTP(payload.email, otp, ...);
+        /**
+         * Deliberately NOT awaited inside this transaction.
+         *
+         * Awaiting would (a) hold a pooled database connection open for the
+         * duration of a network round trip to SES, and (b) roll the whole
+         * transaction back if delivery failed — so a transient mail problem
+         * would destroy an otherwise valid account. SES is also still in
+         * sandbox, where any unverified recipient is rejected outright, so
+         * awaiting here would make registration fail for most addresses.
+         *
+         * Failures are logged. The user can re-request a code via
+         * /auth/register/resend-activation.
+         */
+        void MailService.registerTOTP(payload.email, otp, user.username, 5)
+          .catch((err) => logger.error(`resend activation mail failed: ${err}`, 'authentication.repositories.ts'));
         const data: entities.UserEntity = new entities.UserEntity({
           id: user.id,
           otp,
