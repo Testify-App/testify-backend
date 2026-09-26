@@ -1,0 +1,20 @@
+-- Add the missing `circle_only` value to post_visibility.
+--
+-- Same root cause as 20260926120000: the original migration was edited in place
+-- after it had run, so the value exists in the SQL file but never reached the
+-- database. Surfaced as a 500 on GET /api/v1/posts:
+--
+--   invalid input value for enum post_visibility: "circle_only"
+--
+-- The application queries it in four places in src/modules/posts/query.ts, so
+-- every post listing was failing.
+--
+-- My earlier drift check compared tables and columns but NOT enum values, which
+-- is why this was missed the first time. A full enum comparison has now been run
+-- against the live database; post_visibility was the only one adrift.
+--
+-- ADD VALUE IF NOT EXISTS is idempotent, so a fresh database that already has it
+-- from the original migration is unaffected. Safe inside a transaction on
+-- PostgreSQL 12+ as long as the new value is not USED in the same transaction —
+-- it is not.
+ALTER TYPE post_visibility ADD VALUE IF NOT EXISTS 'circle_only';
