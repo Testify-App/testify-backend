@@ -27,6 +27,8 @@
     "seed:up:test": "db-migrate up:seed --config database.json -e test"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1141.0",
+    "@aws-sdk/s3-request-presigner": "^3.1141.0",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "aws-sdk": "^2.1693.0",
