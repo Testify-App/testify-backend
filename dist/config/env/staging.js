@@ -17,6 +17,9 @@ const staging = {
     MAIL_APP_PASSWORD: process.env.TESTIFY_MAIL_APP_PASSWORD,
     REDIS_URL: process.env.TESTIFY_REDIS_URL,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    AWS_REGION: process.env.AWS_REGION,
+    AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
+    AWS_S3_PUBLIC_BASE_URL: process.env.AWS_S3_PUBLIC_BASE_URL,
 };
 exports.default = staging;
 //# sourceMappingURL=staging.js.map

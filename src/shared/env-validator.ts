@@ -9,6 +9,9 @@ export interface EnvProps {
   REDIS_SESSION_STORE_URL: string;
   MAIL_USERNAME: string;
   MAIL_PASSWORD: string;
+  AWS_REGION: string;
+  AWS_S3_BUCKET: string;
+  AWS_S3_PUBLIC_BASE_URL: string;
 }
 
 export const envValidatorSchema = Joi.object<EnvProps>({
@@ -28,5 +31,11 @@ export const envValidatorSchema = Joi.object<EnvProps>({
   MAIL_USERNAME: Joi.string(),
 
   MAIL_PASSWORD: Joi.string(),
+
+  AWS_REGION: Joi.string().required(),
+
+  AWS_S3_BUCKET: Joi.string().required(),
+
+  AWS_S3_PUBLIC_BASE_URL: Joi.string().uri().required(),
 
 }).unknown(true);
