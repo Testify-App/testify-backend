@@ -17,5 +17,8 @@ exports.envValidatorSchema = joi_1.default.object({
     SWAGGER_ROUTE: joi_1.default.string().default('/api/docs'),
     MAIL_USERNAME: joi_1.default.string(),
     MAIL_PASSWORD: joi_1.default.string(),
+    AWS_REGION: joi_1.default.string().required(),
+    AWS_S3_BUCKET: joi_1.default.string().required(),
+    AWS_S3_PUBLIC_BASE_URL: joi_1.default.string().uri().required(),
 }).unknown(true);
 //# sourceMappingURL=env-validator.js.map

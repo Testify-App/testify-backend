@@ -320,7 +320,7 @@ class ProfilesRepositoryImpl {
                     if (!forward) {
                         throw new errors_1.BadException('User is already in your Circle');
                     }
-                    yield t.none(query_1.default.addToCircle, [
+                    yield t.oneOrNone(query_1.default.addToCircle, [
                         payload.connected_user_id,
                         payload.user_id,
                     ]);

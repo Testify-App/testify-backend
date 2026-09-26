@@ -305,7 +305,7 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
           throw new BadException('User is already in your Circle');
         }
 
-        await t.none(ProfilesQuery.addToCircle, [
+        await t.oneOrNone(ProfilesQuery.addToCircle, [
           payload.connected_user_id,
           payload.user_id,
         ]);
