@@ -8,9 +8,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var _a, _b, _c;
+var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.confirmUpload = exports.presignUpload = void 0;
+exports.uploadLimits = exports.confirmUpload = exports.presignUpload = void 0;
 const crypto_1 = require("crypto");
 const client_s3_1 = require("@aws-sdk/client-s3");
 const client_s3_2 = require("@aws-sdk/client-s3");
@@ -27,38 +27,39 @@ const BUCKET = () => {
     return bucket;
 };
 const CDN_BASE = () => { var _a; return ((_a = process.env.CDN_BASE_URL) !== null && _a !== void 0 ? _a : 'https://cdn.testifyhub.co').replace(/\/+$/, ''); };
-const URL_TTL_SECONDS = Number((_c = process.env.UPLOAD_URL_TTL_SECONDS) !== null && _c !== void 0 ? _c : 300);
-const EXTENSION = {
-    'image/jpeg': 'jpg',
-    'image/png': 'png',
-    'image/webp': 'webp',
-};
+const ttlFor = (kind) => { var _a; return Number((_a = process.env.UPLOAD_URL_TTL_SECONDS) !== null && _a !== void 0 ? _a : validator_1.URL_TTL_SECONDS[kind]); };
 const FINAL_PREFIX = {
     post: 'posts',
     profile: 'profile',
 };
 const presignUpload = (userId, purpose, contentType, contentLength) => __awaiter(void 0, void 0, void 0, function* () {
-    if (!validator_1.ALLOWED_CONTENT_TYPES.includes(contentType)) {
+    const media = validator_1.MEDIA_TYPES[contentType];
+    if (!media) {
         throw new Error(`unsupported content type: ${contentType}`);
     }
-    if (contentLength < 1 || contentLength > validator_1.MAX_UPLOAD_BYTES) {
-        throw new Error(`contentLength must be between 1 and ${validator_1.MAX_UPLOAD_BYTES}`);
+    if (!validator_1.ALLOWED_KINDS[purpose].includes(media.kind)) {
+        throw new Error(`${media.kind} is not allowed for ${purpose} (allowed: ${validator_1.ALLOWED_KINDS[purpose].join(', ')})`);
     }
-    const key = `tmp/${userId}/${purpose}-${(0, crypto_1.randomUUID)()}.${EXTENSION[contentType]}`;
+    const maxBytes = validator_1.MAX_BYTES[media.kind];
+    if (contentLength < 1 || contentLength > maxBytes) {
+        throw new Error(`${media.kind} uploads must be between 1 and ${maxBytes} bytes (got ${contentLength})`);
+    }
+    const key = `tmp/${userId}/${purpose}-${(0, crypto_1.randomUUID)()}.${media.ext}`;
     const uploadUrl = yield (0, s3_request_presigner_1.getSignedUrl)(s3, new client_s3_2.PutObjectCommand({
         Bucket: BUCKET(),
         Key: key,
         ContentType: contentType,
         ContentLength: contentLength,
     }), {
-        expiresIn: URL_TTL_SECONDS,
+        expiresIn: ttlFor(media.kind),
         signableHeaders: new Set(['content-type']),
     });
     return {
         uploadUrl,
         key,
-        expiresIn: URL_TTL_SECONDS,
-        maxBytes: validator_1.MAX_UPLOAD_BYTES,
+        expiresIn: ttlFor(media.kind),
+        maxBytes,
+        kind: media.kind,
         contentType,
     };
 });
@@ -72,20 +73,21 @@ const confirmUpload = (userId, key) => __awaiter(void 0, void 0, void 0, functio
     const head = yield s3.send(new client_s3_1.HeadObjectCommand({ Bucket: bucket, Key: key }));
     const contentType = (_a = head.ContentType) !== null && _a !== void 0 ? _a : '';
     const bytes = (_b = head.ContentLength) !== null && _b !== void 0 ? _b : 0;
-    if (!validator_1.ALLOWED_CONTENT_TYPES.includes(contentType)) {
+    const media = validator_1.MEDIA_TYPES[contentType];
+    if (!media) {
         yield s3.send(new client_s3_1.DeleteObjectCommand({ Bucket: bucket, Key: key }));
         throw new Error(`rejected object with content type: ${contentType}`);
     }
-    if (bytes < 1 || bytes > validator_1.MAX_UPLOAD_BYTES) {
+    if (bytes < 1 || bytes > validator_1.MAX_BYTES[media.kind]) {
         yield s3.send(new client_s3_1.DeleteObjectCommand({ Bucket: bucket, Key: key }));
-        throw new Error(`rejected object of ${bytes} bytes`);
+        throw new Error(`rejected ${media.kind} object of ${bytes} bytes`);
     }
     const filename = key.slice(`tmp/${userId}/`.length);
     const purpose = validator_1.UPLOAD_PURPOSES.find((p) => filename.startsWith(`${p}-`));
     if (!purpose) {
         throw new Error('key does not encode a recognised upload purpose');
     }
-    const extension = EXTENSION[contentType];
+    const extension = media.ext;
     const fingerprint = ((_c = head.ETag) !== null && _c !== void 0 ? _c : (0, crypto_1.randomUUID)()).replace(/"/g, '');
     const finalKey = `${FINAL_PREFIX[purpose]}/${userId}/${fingerprint}.${extension}`;
     yield s3.send(new client_s3_1.CopyObjectCommand({
@@ -103,8 +105,16 @@ const confirmUpload = (userId, key) => __awaiter(void 0, void 0, void 0, functio
         url: `${CDN_BASE()}/${finalKey}`,
         bytes,
         contentType,
+        kind: media.kind,
     };
 });
 exports.confirmUpload = confirmUpload;
-exports.default = { presignUpload: exports.presignUpload, confirmUpload: exports.confirmUpload };
+const uploadLimits = () => ({
+    maxBytes: validator_1.MAX_BYTES,
+    allowedKinds: validator_1.ALLOWED_KINDS,
+    contentTypes: Object.fromEntries(Object.entries(validator_1.MEDIA_TYPES).map(([type, m]) => [type, m.kind])),
+    urlTtlSeconds: validator_1.URL_TTL_SECONDS,
+});
+exports.uploadLimits = uploadLimits;
+exports.default = { presignUpload: exports.presignUpload, confirmUpload: exports.confirmUpload, uploadLimits: exports.uploadLimits };
 //# sourceMappingURL=services.js.map

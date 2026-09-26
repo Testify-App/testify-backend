@@ -10,14 +10,17 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import {
   UploadPurpose,
   UPLOAD_PURPOSES,
-  MAX_UPLOAD_BYTES,
-  ALLOWED_CONTENT_TYPES,
+  MediaKind,
+  MEDIA_TYPES,
+  MAX_BYTES,
+  ALLOWED_KINDS,
+  URL_TTL_SECONDS,
 } from './validator';
 
 /**
  * Direct-to-S3 uploads.
  *
- * Image bytes never pass through this server. The client asks for permission,
+ * Media bytes never pass through this server — images, video and audio alike. The client asks for permission,
  * receives a short-lived signed URL, and sends the file straight to S3. Routing
  * images through Node consumes memory, blocks the event loop, and caps
  * throughput at the instance's bandwidth — with one t4g.small behind a single
@@ -50,14 +53,9 @@ const BUCKET = (): string => {
 const CDN_BASE = (): string =>
   (process.env.CDN_BASE_URL ?? 'https://cdn.testifyhub.co').replace(/\/+$/, '');
 
-/** Five minutes — long enough for a slow mobile connection, short enough to matter. */
-const URL_TTL_SECONDS = Number(process.env.UPLOAD_URL_TTL_SECONDS ?? 300);
-
-const EXTENSION: Record<string, string> = {
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-};
+/** Per-kind TTL, overridable as a blanket value if ever needed. */
+const ttlFor = (kind: MediaKind): number =>
+  Number(process.env.UPLOAD_URL_TTL_SECONDS ?? URL_TTL_SECONDS[kind]);
 
 /** Where a confirmed object lands, matching the prefixes on the bucket. */
 const FINAL_PREFIX: Record<UploadPurpose, string> = {
@@ -70,6 +68,7 @@ export interface PresignResult {
   key: string;
   expiresIn: number;
   maxBytes: number;
+  kind: MediaKind;
   /** The client MUST send exactly this, or S3 rejects the signature. */
   contentType: string;
 }
@@ -79,6 +78,7 @@ export interface ConfirmResult {
   url: string;
   bytes: number;
   contentType: string;
+  kind: MediaKind;
 }
 
 /**
@@ -94,11 +94,26 @@ export const presignUpload = async (
   contentType: string,
   contentLength: number,
 ): Promise<PresignResult> => {
-  if (!ALLOWED_CONTENT_TYPES.includes(contentType as never)) {
+  const media = MEDIA_TYPES[contentType];
+  if (!media) {
     throw new Error(`unsupported content type: ${contentType}`);
   }
-  if (contentLength < 1 || contentLength > MAX_UPLOAD_BYTES) {
-    throw new Error(`contentLength must be between 1 and ${MAX_UPLOAD_BYTES}`);
+
+  /**
+   * A profile image must not be a 100 MB video. Checked here rather than in the
+   * Joi schema because the limit depends on both the purpose and the media kind.
+   */
+  if (!ALLOWED_KINDS[purpose].includes(media.kind)) {
+    throw new Error(
+      `${media.kind} is not allowed for ${purpose} (allowed: ${ALLOWED_KINDS[purpose].join(', ')})`,
+    );
+  }
+
+  const maxBytes = MAX_BYTES[media.kind];
+  if (contentLength < 1 || contentLength > maxBytes) {
+    throw new Error(
+      `${media.kind} uploads must be between 1 and ${maxBytes} bytes (got ${contentLength})`,
+    );
   }
 
   /**
@@ -112,7 +127,7 @@ export const presignUpload = async (
    * The purpose is encoded in the filename because `confirm` receives only the
    * key and must know which permanent prefix the object belongs in.
    */
-  const key = `tmp/${userId}/${purpose}-${randomUUID()}.${EXTENSION[contentType]}`;
+  const key = `tmp/${userId}/${purpose}-${randomUUID()}.${media.ext}`;
 
   const uploadUrl = await getSignedUrl(
     s3,
@@ -123,7 +138,7 @@ export const presignUpload = async (
       ContentLength: contentLength,
     }),
     {
-      expiresIn: URL_TTL_SECONDS,
+      expiresIn: ttlFor(media.kind),
       /**
        * `signableHeaders` is load-bearing, not decoration.
        *
@@ -147,8 +162,9 @@ export const presignUpload = async (
   return {
     uploadUrl,
     key,
-    expiresIn: URL_TTL_SECONDS,
-    maxBytes: MAX_UPLOAD_BYTES,
+    expiresIn: ttlFor(media.kind),
+    maxBytes,
+    kind: media.kind,
     contentType,
   };
 };
@@ -182,14 +198,15 @@ export const confirmUpload = async (
   const contentType = head.ContentType ?? '';
   const bytes = head.ContentLength ?? 0;
 
-  if (!ALLOWED_CONTENT_TYPES.includes(contentType as never)) {
+  const media = MEDIA_TYPES[contentType];
+  if (!media) {
     // Should be impossible — the type was signed — but never promote unchecked.
     await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
     throw new Error(`rejected object with content type: ${contentType}`);
   }
-  if (bytes < 1 || bytes > MAX_UPLOAD_BYTES) {
+  if (bytes < 1 || bytes > MAX_BYTES[media.kind]) {
     await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
-    throw new Error(`rejected object of ${bytes} bytes`);
+    throw new Error(`rejected ${media.kind} object of ${bytes} bytes`);
   }
 
   /**
@@ -203,7 +220,7 @@ export const confirmUpload = async (
     throw new Error('key does not encode a recognised upload purpose');
   }
 
-  const extension = EXTENSION[contentType];
+  const extension = media.ext;
 
   // ETag is the content hash for a single-part upload. Quotes are part of the
   // header value and must be stripped.
@@ -230,7 +247,21 @@ export const confirmUpload = async (
     url: `${CDN_BASE()}/${finalKey}`,
     bytes,
     contentType,
+    kind: media.kind,
   };
 };
 
-export default { presignUpload, confirmUpload };
+/**
+ * Limits, so a client can reject an oversized file before asking for a URL
+ * rather than after a failed round trip.
+ */
+export const uploadLimits = () => ({
+  maxBytes: MAX_BYTES,
+  allowedKinds: ALLOWED_KINDS,
+  contentTypes: Object.fromEntries(
+    Object.entries(MEDIA_TYPES).map(([type, m]) => [type, m.kind]),
+  ),
+  urlTtlSeconds: URL_TTL_SECONDS,
+});
+
+export default { presignUpload, confirmUpload, uploadLimits };

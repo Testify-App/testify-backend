@@ -19,6 +19,22 @@ const uploadsRouter = Router();
 
 /**
  * @swagger
+ * /uploads/limits:
+ *   get:
+ *     summary: Maximum sizes and accepted content types for uploads
+ *     description: >
+ *       Call before letting a user pick a file, so an oversized or unsupported
+ *       file is rejected in the app rather than after a round trip. Images 10 MB,
+ *       audio 25 MB, video 100 MB. Profile uploads accept images only.
+ *     tags: [Uploads]
+ *     responses:
+ *       200:
+ *         description: Limits returned
+ */
+uploadsRouter.get('/limits', WatchAsyncController(uploadsController.limits));
+
+/**
+ * @swagger
  * /uploads/presign:
  *   post:
  *     summary: Request a short-lived URL to upload one image directly to S3
@@ -43,15 +59,20 @@ const uploadsRouter = Router();
  *                 enum: [post, profile]
  *               contentType:
  *                 type: string
- *                 enum: [image/jpeg, image/png, image/webp]
+ *                 enum: [image/jpeg, image/png, image/webp, video/mp4, video/quicktime, video/webm, audio/mpeg, audio/mp4, audio/aac]
  *               contentLength:
  *                 type: integer
- *                 description: Exact byte size of the file. Max 10485760 (10 MB).
+ *                 description: >
+ *                   Exact byte size. Limits differ by media kind — images
+ *                   10485760 (10 MB), audio 26214400 (25 MB), video 104857600
+ *                   (100 MB). GET /uploads/limits returns them.
  *     responses:
  *       200:
  *         description: Upload URL generated
  *       400:
- *         description: Unsupported type, or size outside the allowed range
+ *         description: >
+ *           Unsupported type, size outside the range for that media kind, or a
+ *           kind not permitted for the purpose (profile accepts images only)
  *       401:
  *         description: Unauthenticated
  */

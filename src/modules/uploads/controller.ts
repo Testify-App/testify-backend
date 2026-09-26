@@ -13,6 +13,19 @@ interface AuthenticatedRequest extends Request {
 
 export class UploadsController {
   /**
+   * Limits, so the client can reject a too-large file before asking for a URL.
+   * Unauthenticated: it exposes nothing but our own configuration, and the
+   * mobile app needs it before a user is necessarily signed in.
+   */
+  public limits: fnRequest = async (_req: AuthenticatedRequest, res) =>
+    ResponseBuilder.success(
+      res,
+      'Upload limits.',
+      StatusCodes.OK,
+      UploadsService.uploadLimits(),
+    );
+
+  /**
    * Hand the client a short-lived URL to upload one file directly to S3.
    * The bytes never reach this server.
    */

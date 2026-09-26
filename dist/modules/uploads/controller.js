@@ -52,6 +52,9 @@ const ResponseBuilder = __importStar(require("../../shared/lib/api-response"));
 const services_1 = __importDefault(require("./services"));
 class UploadsController {
     constructor() {
+        this.limits = (_req, res) => __awaiter(this, void 0, void 0, function* () {
+            return ResponseBuilder.success(res, 'Upload limits.', http_status_codes_1.StatusCodes.OK, services_1.default.uploadLimits());
+        });
         this.presign = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
             const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
