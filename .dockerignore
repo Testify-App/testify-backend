@@ -1,0 +1,49 @@
+# Keeps the Docker build context small.
+#
+# Without this file the context is 301 MB, 296 MB of which is node_modules —
+# and the daemon has to hash and transfer all of it before the first
+# instruction runs. It is pure waste: the Dockerfile installs dependencies
+# inside the image from package.json and never copies node_modules in.
+#
+# It is also a correctness matter, not only speed. node_modules built on a
+# developer's macOS arm64 machine contains native binaries (bcrypt) compiled
+# for that host. Any COPY that pulled them into a linux/arm64 image would
+# produce a container that fails at require() time, and the cause would not be
+# obvious from the error.
+#
+# Anything the Dockerfile needs must NOT be listed here: package.json,
+# tsconfig.json, src/, migrations/, database.json, winston-papertrail.d.ts.
+
+# Dependencies — installed inside the image, never copied in
+node_modules
+**/node_modules
+
+# Compiled output — the build stage runs tsc itself. This is tracked in git,
+# which is the team's convention, but shipping a host-built dist into the image
+# would mean deploying whatever happened to be on someone's laptop.
+dist
+
+# Version control and editor state
+.git
+.gitignore
+.vscode
+.idea
+*.swp
+.DS_Store
+
+# Local environment files. None are copied by the Dockerfile, but excluding
+# them means a real .env can never reach the daemon or an image layer.
+.env
+.env.*
+!.env.example
+
+# Logs and local runtime artefacts
+*.log
+logs
+coverage
+.nyc_output
+tmp
+
+# CI and docs, none of which affect the runtime image
+.github
+*.md
