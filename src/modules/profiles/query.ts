@@ -234,5 +234,37 @@ export default {
       WHERE user_id = $1 AND connected_user_id = $2 AND status = 'accepted'
     );
   `,
+
+  blockUser: `
+    INSERT INTO user_blocks (blocker_id, blocked_id)
+    VALUES ($1, $2)
+    ON CONFLICT (blocker_id, blocked_id) DO NOTHING
+    RETURNING *;
+  `,
+
+  unblockUser: `
+    DELETE FROM user_blocks WHERE blocker_id = $1 AND blocked_id = $2 RETURNING *;
+  `,
+
+  getBlockedUsers: `
+    SELECT COUNT(*) OVER () as count,
+      u.id,
+      u.username,
+      u.display_name,
+      u.avatar,
+      ub.created_at as blocked_at
+    FROM user_blocks ub
+    JOIN users u ON ub.blocked_id = u.id
+    WHERE ub.blocker_id = $3
+      AND ($4::text IS NULL OR u.search_vector @@ plainto_tsquery('simple', $4))
+    ORDER BY ub.created_at DESC
+    LIMIT $2 OFFSET $1;
+  `,
+
+  isBlocked: `
+    SELECT EXISTS(
+      SELECT 1 FROM user_blocks WHERE blocker_id = $1 AND blocked_id = $2
+    );
+  `,
 };
 

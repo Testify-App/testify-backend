@@ -83,3 +83,20 @@ export class RemoveFromCircleDTO extends BaseEntity<RemoveFromCircleDTO> {
 export class GetCircleRequestsDTO extends BaseEntity<GetCircleRequestsDTO> {
   user_id: string;
 }
+
+export class BlockUserDTO extends BaseEntity<BlockUserDTO> {
+  user_id: string;
+  blocked_id: string;
+}
+
+export class UnblockUserDTO extends BaseEntity<UnblockUserDTO> {
+  user_id: string;
+  blocked_id: string;
+}
+
+export class GetBlockedUsersQueryDTO extends BaseEntity<GetBlockedUsersQueryDTO> {
+  user_id: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}

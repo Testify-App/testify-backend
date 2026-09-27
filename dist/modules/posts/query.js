@@ -39,6 +39,11 @@ exports.default = {
           SELECT 1 FROM user_connections
           WHERE user_id = $2 AND connected_user_id = p.user_id AND status = 'accepted'
         ))
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM user_blocks
+        WHERE (blocker_id = $2 AND blocked_id = p.user_id)
+           OR (blocker_id = p.user_id AND blocked_id = $2)
       );
   `,
     getPostsFeed: `
@@ -66,6 +71,11 @@ exports.default = {
           WHERE user_id = $3 AND connected_user_id = p.user_id AND status = 'accepted'
         ))
       )
+      AND NOT EXISTS (
+        SELECT 1 FROM user_blocks
+        WHERE (blocker_id = $3 AND blocked_id = p.user_id)
+           OR (blocker_id = p.user_id AND blocked_id = $3)
+      )
     ORDER BY p.created_at DESC;
   `,
     getPostsCount: `
@@ -79,6 +89,11 @@ exports.default = {
           SELECT 1 FROM user_connections
           WHERE user_id = $1 AND connected_user_id = p.user_id AND status = 'accepted'
         ))
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM user_blocks
+        WHERE (blocker_id = $1 AND blocked_id = p.user_id)
+           OR (blocker_id = p.user_id AND blocked_id = $1)
       );
   `,
     getPostsByUserId: `
@@ -107,6 +122,11 @@ exports.default = {
           SELECT 1 FROM user_connections
           WHERE user_id = $5 AND connected_user_id = p.user_id AND status = 'accepted'
         ))
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM user_blocks
+        WHERE (blocker_id = $5 AND blocked_id = p.user_id)
+           OR (blocker_id = p.user_id AND blocked_id = $5)
       )
     ORDER BY p.created_at DESC
     LIMIT $2 OFFSET $1;
@@ -206,6 +226,11 @@ exports.default = {
     WHERE c.post_id = $3
       AND c.deleted_at IS NULL
       AND c.parent_comment_id IS NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM user_blocks
+        WHERE (blocker_id = $4 AND blocked_id = c.user_id)
+           OR (blocker_id = c.user_id AND blocked_id = $4)
+      )
     ORDER BY c.created_at DESC
     LIMIT $2 OFFSET $1;
   `,
@@ -225,6 +250,11 @@ exports.default = {
     JOIN users u ON c.user_id = u.id
     WHERE c.parent_comment_id = $3
       AND c.deleted_at IS NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM user_blocks
+        WHERE (blocker_id = $4 AND blocked_id = c.user_id)
+           OR (blocker_id = c.user_id AND blocked_id = $4)
+      )
     ORDER BY c.created_at ASC
     LIMIT $2 OFFSET $1;
   `,
@@ -261,7 +291,7 @@ exports.default = {
     JOIN users u ON pl.user_id = u.id
     WHERE pl.post_id = $3
     ORDER BY pl.created_at DESC
-    LIMIT $1 OFFSET $2;
+    LIMIT $2 OFFSET $1;
   `,
     getPostLikesCount: `
     SELECT COUNT(*) as total FROM post_likes WHERE post_id = $1;
@@ -328,6 +358,11 @@ exports.default = {
         ))
       )
       AND ($4::text IS NULL OR p.search_vector @@ plainto_tsquery('english', $4))
+      AND NOT EXISTS (
+        SELECT 1 FROM user_blocks
+        WHERE (blocker_id = $5 AND blocked_id IN (r.user_id, p.user_id))
+           OR (blocked_id = $5 AND blocker_id IN (r.user_id, p.user_id))
+      )
     ORDER BY r.created_at DESC
     LIMIT $2 OFFSET $1;
   `,
@@ -434,6 +469,11 @@ exports.default = {
             SELECT 1 FROM user_connections
             WHERE user_id = $3 AND connected_user_id = p.user_id AND status = 'accepted'
           ))
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM user_blocks
+          WHERE (blocker_id = $3 AND blocked_id = p.user_id)
+             OR (blocker_id = p.user_id AND blocked_id = $3)
         )
     )
     SELECT

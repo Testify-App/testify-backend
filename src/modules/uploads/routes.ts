@@ -5,44 +5,37 @@ import * as AuthenticationMiddleware from '../../shared/middlewares/auth.middlew
 import { WatchAsyncController } from '../../shared/utils/watch-async-controller';
 import { validateDataMiddleware } from '../../shared/middlewares/request-validator.middleware';
 
-const verifyAuth: RequestHandler =
-  AuthenticationMiddleware.verifyAuthTokenMiddleware as RequestHandler;
+const verifyAuth: RequestHandler = AuthenticationMiddleware.verifyAuthTokenMiddleware as RequestHandler;
 
 /**
  * @swagger
  * tags:
  *   name: Uploads
- *   description: Direct-to-S3 media upload
+ *   description: Presigned S3 upload endpoints. The client uploads file bytes directly to S3 using the returned url/fields — file bytes never pass through this API.
  */
 
 const uploadsRouter = Router();
 
 /**
  * @swagger
- * /uploads/limits:
- *   get:
- *     summary: Maximum sizes and accepted content types for uploads
- *     description: >
- *       Call before letting a user pick a file, so an oversized or unsupported
- *       file is rejected in the app rather than after a round trip. Images 10 MB,
- *       audio 25 MB, video 100 MB. Profile uploads accept images only.
- *     tags: [Uploads]
- *     responses:
- *       200:
- *         description: Limits returned
- */
-uploadsRouter.get('/limits', WatchAsyncController(uploadsController.limits));
-
-/**
- * @swagger
  * /uploads/presign:
  *   post:
- *     summary: Request a short-lived URL to upload one image directly to S3
- *     description: >
- *       Step 1 of 3. Image bytes never pass through the API. The returned
- *       uploadUrl is valid for 5 minutes and is signed for exactly the
- *       contentType and contentLength given here — the client must PUT with
- *       that exact Content-Type and body size or S3 rejects the request.
+ *     summary: Get a presigned S3 POST for direct-to-S3 upload
+ *     description: |
+ *       Returns a presigned S3 POST policy. The client must POST the file as multipart/form-data
+ *       directly to `url`, including all returned `fields` plus a `file` field with the file bytes,
+ *       in that order. On success, submit `public_url` into the relevant post/profile/community/story field.
+ *
+ *       Contexts and limits:
+ *       - avatar: image/jpeg, image/png, image/webp — max 5MB
+ *       - community_avatar: image/jpeg, image/png, image/webp — max 5MB
+ *       - community_cover: image/jpeg, image/png, image/webp — max 8MB
+ *       - post_image: image/jpeg, image/png, image/webp, image/heic — max 10MB
+ *       - post_video: video/mp4, video/quicktime, video/webm — max 200MB
+ *       - post_audio: audio/mpeg, audio/mp4, audio/wav, audio/webm — max 20MB
+ *       - comment_image: image/jpeg, image/png, image/webp — max 5MB
+ *       - story_image: image/jpeg, image/png, image/webp — max 10MB
+ *       - story_video: video/mp4, video/quicktime, video/webm — max 60MB
  *     tags: [Uploads]
  *     security:
  *       - bearerAuth: []
@@ -52,74 +45,50 @@ uploadsRouter.get('/limits', WatchAsyncController(uploadsController.limits));
  *         application/json:
  *           schema:
  *             type: object
- *             required: [purpose, contentType, contentLength]
+ *             required:
+ *               - context
+ *               - content_type
  *             properties:
- *               purpose:
+ *               context:
  *                 type: string
- *                 enum: [post, profile]
- *               contentType:
+ *                 enum: [avatar, community_avatar, community_cover, post_image, post_video, post_audio, comment_image, story_image, story_video]
+ *               content_type:
  *                 type: string
- *                 enum: [image/jpeg, image/png, image/webp, video/mp4, video/quicktime, video/webm, audio/mpeg, audio/mp4, audio/aac]
- *               contentLength:
- *                 type: integer
- *                 description: >
- *                   Exact byte size. Limits differ by media kind — images
- *                   10485760 (10 MB), audio 26214400 (25 MB), video 104857600
- *                   (100 MB). GET /uploads/limits returns them.
+ *                 example: image/jpeg
  *     responses:
- *       200:
- *         description: Upload URL generated
+ *       201:
+ *         description: Presigned upload created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     url:
+ *                       type: string
+ *                       description: The S3 endpoint to POST the file to
+ *                     fields:
+ *                       type: object
+ *                       description: Fields that must be included in the multipart POST body, in order, before the file field
+ *                     key:
+ *                       type: string
+ *                       description: The S3 object key
+ *                     public_url:
+ *                       type: string
+ *                       description: The URL to store once the upload completes
+ *                     expires_in:
+ *                       type: number
+ *                       description: Seconds until this presigned POST expires
  *       400:
- *         description: >
- *           Unsupported type, size outside the range for that media kind, or a
- *           kind not permitted for the purpose (profile accepts images only)
- *       401:
- *         description: Unauthenticated
+ *         description: Invalid context or unsupported content type for the given context
  */
 uploadsRouter.post(
   '/presign',
   verifyAuth,
-  validateDataMiddleware(uploadsValidator.presignUploadValidator, 'body'),
-  WatchAsyncController(uploadsController.presign),
-);
-
-/**
- * @swagger
- * /uploads/confirm:
- *   post:
- *     summary: Confirm a completed upload and receive its permanent CDN URL
- *     description: >
- *       Step 3 of 3, after the client has PUT the file to the signed URL.
- *       Moves the object out of the temporary area into its permanent prefix
- *       and returns the URL to store and display. Unconfirmed uploads are
- *       deleted automatically after 24 hours.
- *     tags: [Uploads]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [key]
- *             properties:
- *               key:
- *                 type: string
- *                 description: The key returned by /uploads/presign.
- *     responses:
- *       200:
- *         description: Upload confirmed; returns the CDN url
- *       404:
- *         description: Upload not found or expired (never completed, or over 24h old)
- *       401:
- *         description: Unauthenticated
- */
-uploadsRouter.post(
-  '/confirm',
-  verifyAuth,
-  validateDataMiddleware(uploadsValidator.confirmUploadValidator, 'body'),
-  WatchAsyncController(uploadsController.confirm),
+  validateDataMiddleware(uploadsValidator.createPresignedUploadValidator, 'body'),
+  WatchAsyncController(uploadsController.createPresignedUpload)
 );
 
 export default uploadsRouter;

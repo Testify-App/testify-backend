@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GetCircleRequestsDTO = exports.RemoveFromCircleDTO = exports.GetCircleMembersDTO = exports.AddToCircleDTO = exports.RemoveFromTribeDTO = exports.FetchProfilePostHistoryByIdDTO = exports.SearchProfilesByUsernameQueryDTO = exports.GetFollowersQueryDTO = exports.GetTribeMembersQueryDTO = exports.AddToTribeDTO = exports.UpdateProfileDTO = exports.GetByUsernameDTO = exports.GetProfileDTO = void 0;
+exports.GetBlockedUsersQueryDTO = exports.UnblockUserDTO = exports.BlockUserDTO = exports.GetCircleRequestsDTO = exports.RemoveFromCircleDTO = exports.GetCircleMembersDTO = exports.AddToCircleDTO = exports.RemoveFromTribeDTO = exports.FetchProfilePostHistoryByIdDTO = exports.SearchProfilesByUsernameQueryDTO = exports.GetFollowersQueryDTO = exports.GetTribeMembersQueryDTO = exports.AddToTribeDTO = exports.UpdateProfileDTO = exports.GetByUsernameDTO = exports.GetProfileDTO = void 0;
 const base_entity_1 = require("../../shared/utils/base-entity");
 class GetProfileDTO extends base_entity_1.BaseEntity {
 }
@@ -41,4 +41,13 @@ exports.RemoveFromCircleDTO = RemoveFromCircleDTO;
 class GetCircleRequestsDTO extends base_entity_1.BaseEntity {
 }
 exports.GetCircleRequestsDTO = GetCircleRequestsDTO;
+class BlockUserDTO extends base_entity_1.BaseEntity {
+}
+exports.BlockUserDTO = BlockUserDTO;
+class UnblockUserDTO extends base_entity_1.BaseEntity {
+}
+exports.UnblockUserDTO = UnblockUserDTO;
+class GetBlockedUsersQueryDTO extends base_entity_1.BaseEntity {
+}
+exports.GetBlockedUsersQueryDTO = GetBlockedUsersQueryDTO;
 //# sourceMappingURL=dto.js.map

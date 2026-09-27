@@ -659,7 +659,7 @@ postsRouter.delete(
 postsRouter.get(
   '/:id/reposts',
   verifyAuth,
-  validateDataMiddleware(postsValidator.postIdValidator, 'params'),
+  validateDataMiddleware(postsValidator.idValidator, 'params'),
   validateDataMiddleware(postsValidator.getRepostsQueryValidator, 'query'),
   WatchAsyncController(postsController.getPostReposts)
 );
@@ -737,7 +737,7 @@ postsRouter.post(
 postsRouter.post(
   '/:id/bookmark',
   verifyAuth,
-  validateDataMiddleware(postsValidator.postIdValidator, 'params'),
+  validateDataMiddleware(postsValidator.idValidator, 'params'),
   WatchAsyncController(postsController.bookmarkPost)
 );
 
@@ -765,7 +765,7 @@ postsRouter.post(
 postsRouter.delete(
   '/:id/bookmark',
   verifyAuth,
-  validateDataMiddleware(postsValidator.postIdValidator, 'params'),
+  validateDataMiddleware(postsValidator.idValidator, 'params'),
   WatchAsyncController(postsController.unbookmarkPost)
 );
 

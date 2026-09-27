@@ -12,55 +12,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteAsset = exports.UploadFile = void 0;
-exports.cloudinaryUpload = cloudinaryUpload;
-const crypto_1 = __importDefault(require("crypto"));
-const cloudinary_1 = require("cloudinary");
+exports.deleteAsset = void 0;
+const client_s3_1 = require("@aws-sdk/client-s3");
+const s3_1 = require("../../config/s3");
 const env_1 = __importDefault(require("../utils/env"));
-function cloudinaryUpload(publicId, fileBuffer, mimetype) {
-    return new Promise((resolve, reject) => {
-        console.log('mimetype -> ', mimetype);
-        const uploadStream = cloudinary_1.v2.uploader.upload_stream({
-            public_id: publicId,
-            resource_type: 'auto',
-            folder: 'testify',
-        }, (error, result) => {
-            if (error) {
-                reject(error);
-            }
-            else {
-                resolve(result);
-            }
-        });
-        uploadStream.end(fileBuffer);
-    });
-}
-const UploadFile = (file) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    try {
-        let publicId = crypto_1.default.randomUUID();
-        const buffer = Buffer.from(file.buffer);
-        const fileName = ((_a = file.originalname) === null || _a === void 0 ? void 0 : _a.split('.')[0]) || 'file';
-        publicId = `testify/${publicId}-${fileName}`;
-        if (env_1.default.get('NODE_ENV') === 'test') {
-            return 'https://www.google.com/photos/about/';
-        }
-        const result = yield cloudinaryUpload(publicId, buffer, file.mimetype);
-        return result.secure_url;
-    }
-    catch (error) {
-        throw new Error(`Error uploading file. ${error}`);
-    }
-});
-exports.UploadFile = UploadFile;
 const deleteAsset = (url) => __awaiter(void 0, void 0, void 0, function* () {
     if (env_1.default.get('NODE_ENV') === 'test')
         return;
-    const match = url.match(/\/testify\/([^./]+)\.\w+$/);
-    if (!match)
+    const baseUrl = (0, s3_1.S3_PUBLIC_BASE_URL)();
+    if (!url.startsWith(baseUrl))
         return;
-    const publicId = `testify/${match[1]}`;
-    yield cloudinary_1.v2.uploader.destroy(publicId, { resource_type: 'auto' });
+    const key = url.slice(baseUrl.length).replace(/^\/+/, '');
+    if (!key)
+        return;
+    yield s3_1.s3Client.send(new client_s3_1.DeleteObjectCommand({ Bucket: (0, s3_1.S3_BUCKET)(), Key: key }));
 });
 exports.deleteAsset = deleteAsset;
 //# sourceMappingURL=file.upload.js.map

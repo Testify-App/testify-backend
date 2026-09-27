@@ -47,41 +47,24 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UploadsController = void 0;
 const http_status_codes_1 = require("http-status-codes");
-const logger_1 = __importDefault(require("../../shared/services/logger"));
-const ResponseBuilder = __importStar(require("../../shared/lib/api-response"));
+const dtos = __importStar(require("./dto"));
 const services_1 = __importDefault(require("./services"));
+const ResponseBuilder = __importStar(require("../../shared/lib/api-response"));
+const errors_1 = require("../../shared/lib/errors");
 class UploadsController {
     constructor() {
-        this.limits = (_req, res) => __awaiter(this, void 0, void 0, function* () {
-            return ResponseBuilder.success(res, 'Upload limits.', http_status_codes_1.StatusCodes.OK, services_1.default.uploadLimits());
-        });
-        this.presign = (req, res) => __awaiter(this, void 0, void 0, function* () {
-            var _a;
-            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-            try {
-                const result = yield services_1.default.presignUpload(userId, req.body.purpose, req.body.contentType, req.body.contentLength);
-                return ResponseBuilder.success(res, 'Upload URL generated.', http_status_codes_1.StatusCodes.OK, result);
+        this.createPresignedUpload = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            const dto = new dtos.CreatePresignedUploadDTO(req.body);
+            dto.user_id = req.user.id;
+            const response = yield services_1.default.createPresignedUpload(dto);
+            if (response instanceof errors_1.BadException) {
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
             }
-            catch (err) {
-                logger_1.default.error(err.message, 'uploads.controller.ts');
-                return ResponseBuilder.error(res, err, http_status_codes_1.StatusCodes.BAD_REQUEST);
-            }
-        });
-        this.confirm = (req, res) => __awaiter(this, void 0, void 0, function* () {
-            var _a, _b;
-            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-            try {
-                const result = yield services_1.default.confirmUpload(userId, req.body.key);
-                return ResponseBuilder.success(res, 'Upload confirmed.', http_status_codes_1.StatusCodes.OK, result);
-            }
-            catch (err) {
-                logger_1.default.error(err.message, 'uploads.controller.ts');
-                const notFound = (err === null || err === void 0 ? void 0 : err.name) === 'NotFound' || ((_b = err === null || err === void 0 ? void 0 : err.$metadata) === null || _b === void 0 ? void 0 : _b.httpStatusCode) === 404;
-                return ResponseBuilder.error(res, notFound ? new Error('upload not found or expired') : err, notFound ? http_status_codes_1.StatusCodes.NOT_FOUND : http_status_codes_1.StatusCodes.BAD_REQUEST);
-            }
+            return ResponseBuilder.success(res, 'Presigned upload created successfully', http_status_codes_1.StatusCodes.CREATED, response);
         });
     }
 }
 exports.UploadsController = UploadsController;
-exports.default = new UploadsController();
+const uploadsController = new UploadsController();
+exports.default = uploadsController;
 //# sourceMappingURL=controller.js.map

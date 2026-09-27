@@ -218,7 +218,7 @@ class PostsController {
             return ResponseBuilder.success(res, response.message, http_status_codes_1.StatusCodes.OK);
         });
         this.getPostLikes = (req, res) => __awaiter(this, void 0, void 0, function* () {
-            const postId = req.params.id;
+            const postId = req.params.post_id;
             const query = new dtos.GetLikesQueryDTO(req.query);
             const response = yield services_1.default.getPostLikes(postId, query);
             if (response instanceof errors_1.NotFoundException) {

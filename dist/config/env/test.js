@@ -16,6 +16,9 @@ const test = {
     MAIL_API_KEY: process.env.KOINS_TEST_MAILJET_API_KEY,
     MAIL_API_SECRET: process.env.KOINS_TEST_MAILJET_API_SECRET,
     REDIS_URL: process.env.KOINS_REDIS_URL,
+    AWS_REGION: process.env.AWS_REGION,
+    AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
+    AWS_S3_PUBLIC_BASE_URL: process.env.AWS_S3_PUBLIC_BASE_URL,
 };
 exports.default = test;
 //# sourceMappingURL=test.js.map

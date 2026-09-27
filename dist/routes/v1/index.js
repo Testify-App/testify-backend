@@ -61,7 +61,8 @@ const routes_6 = __importDefault(require("../../modules/guest/routes"));
 const routes_7 = __importDefault(require("../../modules/communities/routes"));
 const routes_8 = __importDefault(require("../../modules/notifications/routes"));
 const routes_9 = __importDefault(require("../../modules/stories/routes"));
-const routes_10 = __importDefault(require("../../modules/uploads/routes"));
+const routes_10 = __importDefault(require("../../modules/reports/routes"));
+const routes_11 = __importDefault(require("../../modules/uploads/routes"));
 const appRouter = express_1.default.Router();
 appRouter.get('/', (_req, res) => Response.success(res, 'Welcome to Testify API.', http_status_codes_1.StatusCodes.OK));
 const HEALTHCHECK_TIMEOUT_MS = Number((_a = process.env.HEALTHCHECK_TIMEOUT_MS) !== null && _a !== void 0 ? _a : 2000);
@@ -82,7 +83,6 @@ appRouter.get('/healthcheck/ping', (_req, res) => __awaiter(void 0, void 0, void
         return Response.error(res, new Error('database unreachable'), http_status_codes_1.StatusCodes.SERVICE_UNAVAILABLE);
     }
 }));
-appRouter.use("/uploads", routes_10.default);
 appRouter.use("/auth", routes_1.default);
 appRouter.use("/posts", routes_2.default);
 appRouter.use("/profiles", routes_3.default);
@@ -92,5 +92,7 @@ appRouter.use("/guest", routes_6.default);
 appRouter.use("/communities", routes_7.default);
 appRouter.use("/notifications", routes_8.default);
 appRouter.use("/stories", routes_9.default);
+appRouter.use("/reports", routes_10.default);
+appRouter.use("/uploads", routes_11.default);
 exports.Router = appRouter;
 //# sourceMappingURL=index.js.map

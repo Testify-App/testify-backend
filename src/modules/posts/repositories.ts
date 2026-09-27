@@ -712,7 +712,7 @@ export class PostsRepositoryImpl implements PostsInterface {
         page,
         limit,
         getResources: PostsQuery.getPostComments,
-        params: [postId],
+        params: [postId, userId],
       });
 
       const commentsWithEngagement = await Promise.all(
@@ -761,7 +761,7 @@ export class PostsRepositoryImpl implements PostsInterface {
         page,
         limit,
         getResources: PostsQuery.getCommentReplies,
-        params: [commentId],
+        params: [commentId, userId],
       });
 
       const repliesWithEngagement = await Promise.all(

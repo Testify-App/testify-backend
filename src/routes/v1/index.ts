@@ -12,6 +12,7 @@ import guestRouter from '../../modules/guest/routes';
 import communitiesRouter from '../../modules/communities/routes';
 import notificationsRouter from '../../modules/notifications/routes';
 import storiesRouter from '../../modules/stories/routes';
+import reportsRouter from '../../modules/reports/routes';
 import uploadsRouter from '../../modules/uploads/routes';
 
 const appRouter = express.Router();
@@ -71,8 +72,6 @@ appRouter.get('/healthcheck/ping', async (_req, res) => {
   }
 });
 
-appRouter.use("/uploads", uploadsRouter);
-
 appRouter.use("/auth", authenticationRouter);
 
 appRouter.use("/posts", postsRouter);
@@ -90,5 +89,9 @@ appRouter.use("/communities", communitiesRouter);
 appRouter.use("/notifications", notificationsRouter);
 
 appRouter.use("/stories", storiesRouter);
+
+appRouter.use("/reports", reportsRouter);
+
+appRouter.use("/uploads", uploadsRouter);
 
 export const Router = appRouter;

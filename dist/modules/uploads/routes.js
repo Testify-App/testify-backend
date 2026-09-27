@@ -44,8 +44,6 @@ const watch_async_controller_1 = require("../../shared/utils/watch-async-control
 const request_validator_middleware_1 = require("../../shared/middlewares/request-validator.middleware");
 const verifyAuth = AuthenticationMiddleware.verifyAuthTokenMiddleware;
 const uploadsRouter = (0, express_1.Router)();
-uploadsRouter.get('/limits', (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.limits));
-uploadsRouter.post('/presign', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(uploadsValidator.presignUploadValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.presign));
-uploadsRouter.post('/confirm', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(uploadsValidator.confirmUploadValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.confirm));
+uploadsRouter.post('/presign', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(uploadsValidator.createPresignedUploadValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.createPresignedUpload));
 exports.default = uploadsRouter;
 //# sourceMappingURL=routes.js.map

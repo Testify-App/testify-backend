@@ -1,60 +1,15 @@
-import crypto from 'crypto';
-import { v2 as cloudinary } from 'cloudinary';
+import { DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { s3Client, S3_BUCKET, S3_PUBLIC_BASE_URL } from '../../config/s3';
 import Env from '../utils/env';
-import { File } from '../interface';
-
-export type FileUpload = {
-  Bucket?: string;
-  Body?: Buffer;
-  key: string;
-};
-
-export function cloudinaryUpload(publicId: string, fileBuffer: Buffer, mimetype: string) {
-  return new Promise((resolve, reject) => {
-    console.log('mimetype -> ', mimetype);
-    const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        public_id: publicId,
-        resource_type: 'auto',
-        folder: 'testify',
-      },
-      (error, result) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(result);
-        }
-      }
-    );
-
-    uploadStream.end(fileBuffer);
-  });
-}
-
-export const UploadFile = async (file: File) => {
-  try {
-    let publicId = crypto.randomUUID();
-    const buffer = Buffer.from(file.buffer);
-    const fileName = file.originalname?.split('.')[0] || 'file';
-    publicId = `testify/${publicId}-${fileName}`;
-
-    if (Env.get<string>('NODE_ENV') === 'test') {
-      return 'https://www.google.com/photos/about/';
-    }
-
-    const result = await cloudinaryUpload(publicId, buffer, file.mimetype) as { secure_url: string };
-    return result.secure_url;
-  } catch (error) {
-    throw new Error(`Error uploading file. ${error}`);
-  }
-};
 
 export const deleteAsset = async (url: string): Promise<void> => {
   if (Env.get<string>('NODE_ENV') === 'test') return;
 
-  const match = url.match(/\/testify\/([^./]+)\.\w+$/);
-  if (!match) return;
+  const baseUrl = S3_PUBLIC_BASE_URL();
+  if (!url.startsWith(baseUrl)) return;
 
-  const publicId = `testify/${match[1]}`;
-  await cloudinary.uploader.destroy(publicId, { resource_type: 'auto' });
+  const key = url.slice(baseUrl.length).replace(/^\/+/, '');
+  if (!key) return;
+
+  await s3Client.send(new DeleteObjectCommand({ Bucket: S3_BUCKET(), Key: key }));
 };

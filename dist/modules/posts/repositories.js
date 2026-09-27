@@ -623,7 +623,7 @@ class PostsRepositoryImpl {
                     page,
                     limit,
                     getResources: query_1.default.getPostComments,
-                    params: [postId],
+                    params: [postId, userId],
                 });
                 const commentsWithEngagement = yield Promise.all(comments.map((comment) => __awaiter(this, void 0, void 0, function* () {
                     const isLiked = yield database_1.db.one(query_1.default.isCommentLiked, [comment.id, userId]);
@@ -659,7 +659,7 @@ class PostsRepositoryImpl {
                     page,
                     limit,
                     getResources: query_1.default.getCommentReplies,
-                    params: [commentId],
+                    params: [commentId, userId],
                 });
                 const repliesWithEngagement = yield Promise.all(replies.map((comment) => __awaiter(this, void 0, void 0, function* () {
                     const isLiked = yield database_1.db.one(query_1.default.isCommentLiked, [comment.id, userId]);

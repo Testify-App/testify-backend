@@ -1,4 +1,9 @@
 
+DROP TABLE IF EXISTS user_blocks;
+DROP TABLE IF EXISTS reports;
+DROP TYPE IF EXISTS report_moderator_action;
+DROP TYPE IF EXISTS report_status;
+DROP TYPE IF EXISTS report_entity_type;
 DROP TABLE IF EXISTS story_views;
 DROP TABLE IF EXISTS stories;
 DROP TYPE IF EXISTS story_content_type;

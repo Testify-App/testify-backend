@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS users (
   youtube TEXT NULL,
   terms_and_condition BOOLEAN DEFAULT NULL,
   deleted_at TIMESTAMPTZ DEFAULT NULL,
+  is_admin BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NULL,
   search_vector tsvector GENERATED ALWAYS AS (
@@ -388,3 +389,47 @@ CREATE INDEX idx_stories_user_id       ON stories(user_id);
 CREATE INDEX idx_stories_expires_at    ON stories(expires_at);
 CREATE INDEX idx_story_views_story_id  ON story_views(story_id);
 CREATE INDEX idx_story_views_viewer_id ON story_views(viewer_id);
+
+-- Global content reports (posts & comments, independent of communities)
+DROP TYPE IF EXISTS report_entity_type;
+CREATE TYPE report_entity_type AS ENUM ('post', 'comment');
+
+DROP TYPE IF EXISTS report_status;
+CREATE TYPE report_status AS ENUM ('pending', 'under_review', 'resolved');
+
+DROP TYPE IF EXISTS report_moderator_action;
+CREATE TYPE report_moderator_action AS ENUM ('no_action', 'content_removed', 'user_action_taken');
+
+CREATE TABLE IF NOT EXISTS reports (
+  id                VARCHAR PRIMARY KEY DEFAULT LOWER(CAST(uuid_generate_v1mc() AS VARCHAR(50))),
+  entity_type       report_entity_type NOT NULL,
+  entity_id         VARCHAR NOT NULL,
+  content_owner_id  VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reporter_id       VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reason            VARCHAR NOT NULL,
+  details           TEXT NULL,
+  status            report_status NOT NULL DEFAULT 'pending',
+  moderator_action   report_moderator_action NOT NULL DEFAULT 'no_action',
+  reviewed_by       VARCHAR NULL REFERENCES users(id) ON DELETE SET NULL,
+  reviewed_at       TIMESTAMPTZ DEFAULT NULL,
+  created_at        TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(entity_type, entity_id, reporter_id)
+);
+
+CREATE INDEX idx_reports_status        ON reports(status);
+CREATE INDEX idx_reports_entity        ON reports(entity_type, entity_id);
+CREATE INDEX idx_reports_content_owner ON reports(content_owner_id);
+CREATE INDEX idx_reports_created_at    ON reports(created_at DESC);
+
+-- User blocking
+CREATE TABLE IF NOT EXISTS user_blocks (
+  id          VARCHAR PRIMARY KEY DEFAULT LOWER(CAST(uuid_generate_v1mc() AS VARCHAR(50))),
+  blocker_id  VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  blocked_id  VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(blocker_id, blocked_id),
+  CHECK (blocker_id != blocked_id)
+);
+
+CREATE INDEX idx_user_blocks_blocker_id ON user_blocks(blocker_id);
+CREATE INDEX idx_user_blocks_blocked_id ON user_blocks(blocked_id);

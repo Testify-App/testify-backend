@@ -235,6 +235,57 @@ class ProfilesController {
             }
             return ResponseBuilder.success(res, 'Circle membership checked', http_status_codes_1.StatusCodes.OK, { is_in_circle: response });
         });
+        this.blockUser = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const payload = new dtos.BlockUserDTO({
+                user_id: (_a = req.user) === null || _a === void 0 ? void 0 : _a.id,
+                blocked_id: req.body.blocked_id,
+            });
+            const response = yield services_1.default.blockUser(payload);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, response.code);
+            }
+            logger_1.default.info('User blocked successfully', 'profiles.controller.ts');
+            return ResponseBuilder.success(res, 'User blocked successfully', http_status_codes_1.StatusCodes.OK, null);
+        });
+        this.unblockUser = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const payload = new dtos.UnblockUserDTO({
+                user_id: (_a = req.user) === null || _a === void 0 ? void 0 : _a.id,
+                blocked_id: req.params.userId,
+            });
+            const response = yield services_1.default.unblockUser(payload);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, response.code);
+            }
+            logger_1.default.info('User unblocked successfully', 'profiles.controller.ts');
+            return ResponseBuilder.success(res, 'User unblocked successfully', http_status_codes_1.StatusCodes.OK, null);
+        });
+        this.getBlockedUsers = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const query = new dtos.GetBlockedUsersQueryDTO(req.query);
+            query.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const response = yield services_1.default.getBlockedUsers(query);
+            if (response instanceof errors_1.InternalServerErrorException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR);
+            }
+            logger_1.default.info('Blocked users retrieved successfully', 'profiles.controller.ts');
+            return ResponseBuilder.success(res, 'Blocked users retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
+        this.isBlocked = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const blockedId = req.params.userId;
+            const response = yield services_1.default.isBlocked(userId, blockedId);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, response.code);
+            }
+            return ResponseBuilder.success(res, 'Block status checked', http_status_codes_1.StatusCodes.OK, { is_blocked: response });
+        });
         this.getGuestProfile = (req, res) => __awaiter(this, void 0, void 0, function* () {
             const payload = new dtos.GetByUsernameDTO({ username: req.params.username });
             const response = yield services_1.default.getByUsername(payload);
