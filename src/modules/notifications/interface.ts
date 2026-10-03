@@ -9,4 +9,6 @@ export interface NotificationsInterface {
   markAsRead(dto: dtos.NotificationIdDTO): Promise<BadException | NotFoundException | entities.NotificationEntity>;
   markAllAsRead(userId: string): Promise<BadException | { message: string }>;
   deleteNotification(dto: dtos.NotificationIdDTO): Promise<BadException | NotFoundException | { message: string }>;
+  getNotificationPreferences(dto: dtos.GetNotificationPreferencesDTO): Promise<BadException | entities.NotificationPreferencesEntity>;
+  updateNotificationPreferences(dto: dtos.UpdateNotificationPreferencesDTO): Promise<BadException | entities.NotificationPreferencesEntity>;
 }

@@ -35,6 +35,18 @@ export class NotificationsServiceImpl implements NotificationsInterface {
   ): Promise<BadException | NotFoundException | { message: string }> {
     return NotificationsRepository.deleteNotification(dto);
   }
+
+  public async getNotificationPreferences(
+    dto: dtos.GetNotificationPreferencesDTO
+  ): Promise<BadException | entities.NotificationPreferencesEntity> {
+    return NotificationsRepository.getNotificationPreferences(dto);
+  }
+
+  public async updateNotificationPreferences(
+    dto: dtos.UpdateNotificationPreferencesDTO
+  ): Promise<BadException | entities.NotificationPreferencesEntity> {
+    return NotificationsRepository.updateNotificationPreferences(dto);
+  }
 }
 
 const NotificationsService = new NotificationsServiceImpl();

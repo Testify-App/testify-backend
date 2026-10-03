@@ -320,6 +320,15 @@ export default {
     SELECT COUNT(*) as total FROM post_likes WHERE post_id = $1;
   `,
 
+  getFirstLikers: `
+    SELECT u.id, u.username, u.display_name, u.avatar
+    FROM post_likes pl
+    JOIN users u ON pl.user_id = u.id
+    WHERE pl.post_id = $1
+    ORDER BY pl.created_at ASC
+    LIMIT 3;
+  `,
+
   likeComment: `
     INSERT INTO comment_likes (comment_id, user_id)
     VALUES ($1, $2)

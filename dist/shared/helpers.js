@@ -62,10 +62,27 @@ exports.calcPages = calcPages;
 class FetchPaginatedResponse extends base_entity_1.BaseEntity {
 }
 exports.FetchPaginatedResponse = FetchPaginatedResponse;
+const NOTIFICATION_TYPE_TO_PREFERENCE_COLUMN = {
+    post_like: 'likes',
+    comment_like: 'likes',
+    post_comment: 'comments_replies',
+    comment_reply: 'comments_replies',
+    mention: 'mentions',
+    follow: 'new_followers',
+    repost: 'reposts',
+    circle_accepted: 'circle_activity',
+    circle_removed: 'circle_activity',
+};
 const createNotification = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     if (payload.user_id === payload.actor_id)
         return;
+    const preferenceColumn = NOTIFICATION_TYPE_TO_PREFERENCE_COLUMN[payload.type];
+    if (preferenceColumn) {
+        const preference = yield database_1.db.oneOrNone(`SELECT ${preferenceColumn} as enabled FROM notification_preferences WHERE user_id = $1`, [payload.user_id]);
+        if (preference && preference.enabled === false)
+            return;
+    }
     yield database_1.db.none(`INSERT INTO notifications (user_id, actor_id, type, entity_type, entity_id, data)
      VALUES ($1, $2, $3, $4, $5, $6)`, [
         payload.user_id,

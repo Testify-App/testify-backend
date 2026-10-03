@@ -21,6 +21,10 @@ const notificationsRouter = Router();
  * /notifications:
  *   get:
  *     summary: Get paginated notifications for the authenticated user
+ *     description: |
+ *       `filter` accepts multiple categories at once: repeat the query param
+ *       (`?filter=likes&filter=comments`), pass a comma-separated list
+ *       (`?filter=likes,comments`), or a single value (`?filter=likes`).
  *     tags: [Notifications]
  *     security:
  *       - bearerAuth: []
@@ -33,9 +37,16 @@ const notificationsRouter = Router();
  *         schema: { type: integer, default: 20, maximum: 100 }
  *       - in: query
  *         name: filter
+ *         style: form
+ *         explode: true
  *         schema:
- *           type: string
- *           enum: [all, mentions, likes, comments, circle_requests, follows, moderation]
+ *           oneOf:
+ *             - type: string
+ *               enum: [all, mentions, likes, comments, circle_requests, follows, moderation]
+ *             - type: array
+ *               items:
+ *                 type: string
+ *                 enum: [all, mentions, likes, comments, circle_requests, follows, moderation]
  *     responses:
  *       200:
  *         description: Notifications retrieved successfully
@@ -133,6 +144,58 @@ notificationsRouter.delete(
   verifyAuth,
   validateDataMiddleware(notificationsValidator.notificationIdParamsValidator, 'params'),
   WatchAsyncController(notificationsController.deleteNotification)
+);
+
+/**
+ * @swagger
+ * /notifications/preferences:
+ *   get:
+ *     summary: Get notification preferences for the authenticated user
+ *     description: Each category defaults to enabled (true) until the user explicitly changes it.
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Notification preferences retrieved successfully
+ */
+notificationsRouter.get(
+  '/preferences',
+  verifyAuth,
+  WatchAsyncController(notificationsController.getNotificationPreferences)
+);
+
+/**
+ * @swagger
+ * /notifications/preferences:
+ *   patch:
+ *     summary: Update notification preferences for the authenticated user
+ *     description: Only the categories included in the body are changed; omitted categories keep their current value.
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               likes: { type: boolean }
+ *               comments_replies: { type: boolean }
+ *               mentions: { type: boolean }
+ *               new_followers: { type: boolean }
+ *               reposts: { type: boolean }
+ *               circle_activity: { type: boolean }
+ *     responses:
+ *       200:
+ *         description: Notification preferences updated successfully
+ */
+notificationsRouter.patch(
+  '/preferences',
+  verifyAuth,
+  validateDataMiddleware(notificationsValidator.updateNotificationPreferencesValidator, 'body'),
+  WatchAsyncController(notificationsController.updateNotificationPreferences)
 );
 
 export default notificationsRouter;

@@ -162,15 +162,16 @@ class PostsRepositoryImpl {
                 });
                 const postsWithEngagement = yield Promise.all(posts.map((post) => __awaiter(this, void 0, void 0, function* () {
                     var _c;
-                    const [isLiked, isReposted, isBookmarked, isFollowing, isInCircle, content_segments] = yield Promise.all([
+                    const [isLiked, isReposted, isBookmarked, isFollowing, isInCircle, content_segments, likers] = yield Promise.all([
                         database_1.db.one(query_1.default.isPostLiked, [post.id, user_id]),
                         database_1.db.one(query_1.default.isReposted, [post.id, user_id]),
                         database_1.db.one(query_1.default.isBookmarked, [post.id, user_id]),
                         database_1.db.one(query_1.default.isFollowingUser, [user_id, post.user_id]),
                         database_1.db.one(query_1.default.isInCircleWith, [user_id, post.user_id]),
                         (0, helpers_1.parseContentSegments)(post.content),
+                        database_1.db.any(query_1.default.getFirstLikers, [post.id]),
                     ]);
-                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
+                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, likers, user: {
                             id: post.user_id,
                             username: post.username,
                             avatar: post.avatar,
@@ -205,7 +206,8 @@ class PostsRepositoryImpl {
                 const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, payload.user_id]);
                 const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, payload.user_id]);
                 const content_segments = yield (0, helpers_1.parseContentSegments)(post.content);
-                return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
+                const likers = yield database_1.db.any(query_1.default.getFirstLikers, [post.id]);
+                return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, likers, user: {
                         id: post.user_id,
                         username: post.username,
                         avatar: post.avatar,
@@ -778,7 +780,8 @@ class PostsRepositoryImpl {
                     const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, userId]);
                     const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, userId]);
                     const content_segments = yield (0, helpers_1.parseContentSegments)(post.content);
-                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
+                    const likers = yield database_1.db.any(query_1.default.getFirstLikers, [post.id]);
+                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, likers, user: {
                             id: post.user_id,
                             username: post.username,
                             avatar: post.avatar,
@@ -814,7 +817,8 @@ class PostsRepositoryImpl {
                     const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, userId]);
                     const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, userId]);
                     const content_segments = yield (0, helpers_1.parseContentSegments)(post.content);
-                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, reposted_at: post.reposted_at, user: {
+                    const likers = yield database_1.db.any(query_1.default.getFirstLikers, [post.id]);
+                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, reposted_at: post.reposted_at, likers, user: {
                             id: post.user_id,
                             username: post.username,
                             avatar: post.avatar,
@@ -848,7 +852,8 @@ class PostsRepositoryImpl {
                     const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, userId]);
                     const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, userId]);
                     const content_segments = yield (0, helpers_1.parseContentSegments)(post.content);
-                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
+                    const likers = yield database_1.db.any(query_1.default.getFirstLikers, [post.id]);
+                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, likers, user: {
                             id: post.user_id,
                             username: post.username,
                             avatar: post.avatar,
@@ -881,7 +886,8 @@ class PostsRepositoryImpl {
                     const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, userId]);
                     const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, userId]);
                     const content_segments = yield (0, helpers_1.parseContentSegments)(post.content);
-                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
+                    const likers = yield database_1.db.any(query_1.default.getFirstLikers, [post.id]);
+                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, likers, user: {
                             id: post.user_id,
                             username: post.username,
                             avatar: post.avatar,
@@ -915,7 +921,8 @@ class PostsRepositoryImpl {
                     const isReposted = yield database_1.db.one(query_1.default.isReposted, [post.id, userId]);
                     const isBookmarked = yield database_1.db.one(query_1.default.isBookmarked, [post.id, userId]);
                     const content_segments = yield (0, helpers_1.parseContentSegments)(post.content);
-                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, user: {
+                    const likers = yield database_1.db.any(query_1.default.getFirstLikers, [post.id]);
+                    return new entities.PostWithUserEntity(Object.assign(Object.assign({}, post), { content_segments, is_liked: isLiked.exists, is_reposted: isReposted.exists, is_bookmarked: isBookmarked.exists, likers, user: {
                             id: post.user_id,
                             username: post.username,
                             avatar: post.avatar,

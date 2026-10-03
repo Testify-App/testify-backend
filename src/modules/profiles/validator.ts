@@ -35,6 +35,12 @@ export const getFollowersValidator = Joi.object({
   limit: Joi.number().integer().min(1).max(100).optional(),
 });
 
+export const getFollowingValidator = Joi.object({
+  search: Joi.string().min(1).max(100).optional(),
+  page: Joi.number().integer().min(1).optional(),
+  limit: Joi.number().integer().min(1).max(100).optional(),
+});
+
 export const unfollowValidator = Joi.object({
   confirm: Joi.boolean().optional().default(false),
 });

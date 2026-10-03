@@ -46,4 +46,24 @@ export default {
   getNotificationById: `
     SELECT * FROM notifications WHERE id = $1 AND user_id = $2;
   `,
+
+  getNotificationPreferences: `
+    SELECT likes, comments_replies, mentions, new_followers, reposts, circle_activity
+    FROM notification_preferences
+    WHERE user_id = $1;
+  `,
+
+  upsertNotificationPreferences: `
+    INSERT INTO notification_preferences (user_id, likes, comments_replies, mentions, new_followers, reposts, circle_activity)
+    VALUES ($1, COALESCE($2, TRUE), COALESCE($3, TRUE), COALESCE($4, TRUE), COALESCE($5, TRUE), COALESCE($6, TRUE), COALESCE($7, TRUE))
+    ON CONFLICT (user_id) DO UPDATE SET
+      likes            = COALESCE($2, notification_preferences.likes),
+      comments_replies = COALESCE($3, notification_preferences.comments_replies),
+      mentions         = COALESCE($4, notification_preferences.mentions),
+      new_followers    = COALESCE($5, notification_preferences.new_followers),
+      reposts          = COALESCE($6, notification_preferences.reposts),
+      circle_activity  = COALESCE($7, notification_preferences.circle_activity),
+      updated_at       = NOW()
+    RETURNING likes, comments_replies, mentions, new_followers, reposts, circle_activity;
+  `,
 };

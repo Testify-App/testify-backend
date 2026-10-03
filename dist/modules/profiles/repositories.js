@@ -228,7 +228,15 @@ class ProfilesRepositoryImpl {
           CASE WHEN EXISTS (
             SELECT 1 FROM user_follows
             WHERE follower_id = $2 AND following_id = u.id
-          ) THEN true ELSE false END as is_following
+          ) THEN true ELSE false END as is_following,
+          EXISTS (
+            SELECT 1 FROM user_blocks
+            WHERE blocker_id = $2 AND blocked_id = u.id
+          ) as viewer_has_blocked_profile,
+          EXISTS (
+            SELECT 1 FROM user_blocks
+            WHERE blocker_id = u.id AND blocked_id = $2
+          ) as profile_has_blocked_viewer
         FROM users u
         LEFT JOIN user_follows uf ON u.id = uf.following_id
         WHERE u.id = $1
@@ -291,6 +299,28 @@ class ProfilesRepositoryImpl {
                     currentPage: page,
                     totalPages: (0, helpers_1.calcPages)(count, limit),
                     followers,
+                };
+            }
+            catch (error) {
+                return new errors_1.InternalServerErrorException(`${error.message}`);
+            }
+        });
+    }
+    getFollowing(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { page = '1', limit = '20', user_id, target_user_id } = payload;
+                const [{ count }, following] = yield (0, helpers_1.fetchResourceByPage)({
+                    page,
+                    limit,
+                    getResources: query_1.default.getFollowing,
+                    params: [target_user_id, payload.search || null, user_id],
+                });
+                return {
+                    total: count,
+                    currentPage: page,
+                    totalPages: (0, helpers_1.calcPages)(count, limit),
+                    following,
                 };
             }
             catch (error) {

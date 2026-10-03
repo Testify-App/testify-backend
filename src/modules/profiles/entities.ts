@@ -48,6 +48,16 @@ export class FollowerEntity extends BaseEntity<FollowerEntity> {
   is_following?: boolean;
 }
 
+export class FollowingEntity extends BaseEntity<FollowingEntity> {
+  id?: string;
+  username?: string;
+  display_name?: string;
+  avatar?: string;
+  bio?: string;
+  followed_at?: Date;
+  is_followed_back?: boolean;
+}
+
 export class UserConnectionEntity extends BaseEntity<UserConnectionEntity> {
   id?: string;
   user_id?: string;

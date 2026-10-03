@@ -40,6 +40,16 @@ class NotificationsServiceImpl {
             return repositories_1.default.deleteNotification(dto);
         });
     }
+    getNotificationPreferences(dto) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return repositories_1.default.getNotificationPreferences(dto);
+        });
+    }
+    updateNotificationPreferences(dto) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return repositories_1.default.updateNotificationPreferences(dto);
+        });
+    }
 }
 exports.NotificationsServiceImpl = NotificationsServiceImpl;
 const NotificationsService = new NotificationsServiceImpl();

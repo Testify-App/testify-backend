@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.NotificationIdDTO = exports.GetNotificationsQueryDTO = void 0;
+exports.UpdateNotificationPreferencesDTO = exports.GetNotificationPreferencesDTO = exports.NotificationIdDTO = exports.GetNotificationsQueryDTO = void 0;
 const base_entity_1 = require("../../shared/utils/base-entity");
 class GetNotificationsQueryDTO extends base_entity_1.BaseEntity {
 }
@@ -8,4 +8,10 @@ exports.GetNotificationsQueryDTO = GetNotificationsQueryDTO;
 class NotificationIdDTO extends base_entity_1.BaseEntity {
 }
 exports.NotificationIdDTO = NotificationIdDTO;
+class GetNotificationPreferencesDTO extends base_entity_1.BaseEntity {
+}
+exports.GetNotificationPreferencesDTO = GetNotificationPreferencesDTO;
+class UpdateNotificationPreferencesDTO extends base_entity_1.BaseEntity {
+}
+exports.UpdateNotificationPreferencesDTO = UpdateNotificationPreferencesDTO;
 //# sourceMappingURL=dto.js.map

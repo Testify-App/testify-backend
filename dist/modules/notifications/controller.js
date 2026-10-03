@@ -104,6 +104,23 @@ class NotificationsController {
             }
             return ResponseBuilder.success(res, 'Notification deleted', http_status_codes_1.StatusCodes.OK, null);
         });
+        this.getNotificationPreferences = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            const dto = new dtos.GetNotificationPreferencesDTO({ user_id: req.user.id });
+            const response = yield services_1.default.getNotificationPreferences(dto);
+            if (response instanceof errors_1.BadException) {
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
+            }
+            return ResponseBuilder.success(res, 'Notification preferences retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
+        this.updateNotificationPreferences = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            const dto = new dtos.UpdateNotificationPreferencesDTO(req.body);
+            dto.user_id = req.user.id;
+            const response = yield services_1.default.updateNotificationPreferences(dto);
+            if (response instanceof errors_1.BadException) {
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
+            }
+            return ResponseBuilder.success(res, 'Notification preferences updated successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
     }
 }
 exports.NotificationsController = NotificationsController;

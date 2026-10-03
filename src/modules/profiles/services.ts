@@ -91,6 +91,12 @@ export class ProfilesServiceImpl implements ProfilesInterface {
     return await ProfilesRepository.getFollowers(payload);
   };
 
+  public getFollowing = async (
+    payload: dtos.GetFollowingQueryDTO
+  ): Promise<InternalServerErrorException | FetchPaginatedResponse> => {
+    return await ProfilesRepository.getFollowing(payload);
+  };
+
   public checkUserExists = async (
     userId: string
   ): Promise<boolean> => {

@@ -106,6 +106,13 @@ export class PostBookmarkEntity extends BaseEntity<PostBookmarkEntity> {
   created_at?: Date;
 }
 
+export interface PostLikerPreview {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar: string;
+}
+
 export class PostWithUserEntity extends BaseEntity<PostWithUserEntity> {
   id?: string;
   user_id?: string;
@@ -129,6 +136,7 @@ export class PostWithUserEntity extends BaseEntity<PostWithUserEntity> {
   is_reposted?: boolean;
   is_bookmarked?: boolean;
   reposted_at?: Date;
+  likers?: PostLikerPreview[];
   user?: {
     id?: string;
     username?: string;

@@ -143,13 +143,14 @@ export class PostsRepositoryImpl implements PostsInterface {
 
       const postsWithEngagement = await Promise.all(
         posts.map(async (post: any) => {
-          const [isLiked, isReposted, isBookmarked, isFollowing, isInCircle, content_segments] = await Promise.all([
+          const [isLiked, isReposted, isBookmarked, isFollowing, isInCircle, content_segments, likers] = await Promise.all([
             db.one(PostsQuery.isPostLiked, [post.id, user_id]),
             db.one(PostsQuery.isReposted, [post.id, user_id]),
             db.one(PostsQuery.isBookmarked, [post.id, user_id]),
             db.one(PostsQuery.isFollowingUser, [user_id, post.user_id]),
             db.one(PostsQuery.isInCircleWith, [user_id, post.user_id]),
             parseContentSegments(post.content),
+            db.any(PostsQuery.getFirstLikers, [post.id]),
           ]);
 
           return new entities.PostWithUserEntity({
@@ -158,6 +159,7 @@ export class PostsRepositoryImpl implements PostsInterface {
             is_liked: isLiked.exists,
             is_reposted: isReposted.exists,
             is_bookmarked: isBookmarked.exists,
+            likers,
             user: {
               id: post.user_id,
               username: post.username,
@@ -196,6 +198,7 @@ export class PostsRepositoryImpl implements PostsInterface {
       const isReposted = await db.one(PostsQuery.isReposted, [post.id, payload.user_id]);
       const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, payload.user_id]);
       const content_segments = await parseContentSegments(post.content);
+      const likers = await db.any(PostsQuery.getFirstLikers, [post.id]);
 
       return new entities.PostWithUserEntity({
         ...post,
@@ -203,6 +206,7 @@ export class PostsRepositoryImpl implements PostsInterface {
         is_liked: isLiked.exists,
         is_reposted: isReposted.exists,
         is_bookmarked: isBookmarked.exists,
+        likers,
         user: {
           id: post.user_id,
           username: post.username,
@@ -914,6 +918,7 @@ export class PostsRepositoryImpl implements PostsInterface {
           const isReposted = await db.one(PostsQuery.isReposted, [post.id, userId]);
           const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
           const content_segments = await parseContentSegments(post.content);
+          const likers = await db.any(PostsQuery.getFirstLikers, [post.id]);
 
           return new entities.PostWithUserEntity({
             ...post,
@@ -921,6 +926,7 @@ export class PostsRepositoryImpl implements PostsInterface {
             is_liked: isLiked.exists,
             is_reposted: isReposted.exists,
             is_bookmarked: isBookmarked.exists,
+            likers,
             user: {
               id: post.user_id,
               username: post.username,
@@ -964,6 +970,7 @@ export class PostsRepositoryImpl implements PostsInterface {
           const isReposted = await db.one(PostsQuery.isReposted, [post.id, userId]);
           const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
           const content_segments = await parseContentSegments(post.content);
+          const likers = await db.any(PostsQuery.getFirstLikers, [post.id]);
 
           return new entities.PostWithUserEntity({
             ...post,
@@ -972,6 +979,7 @@ export class PostsRepositoryImpl implements PostsInterface {
             is_reposted: isReposted.exists,
             is_bookmarked: isBookmarked.exists,
             reposted_at: post.reposted_at,
+            likers,
             user: {
               id: post.user_id,
               username: post.username,
@@ -1013,6 +1021,7 @@ export class PostsRepositoryImpl implements PostsInterface {
           const isReposted = await db.one(PostsQuery.isReposted, [post.id, userId]);
           const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
           const content_segments = await parseContentSegments(post.content);
+          const likers = await db.any(PostsQuery.getFirstLikers, [post.id]);
 
           return new entities.PostWithUserEntity({
             ...post,
@@ -1020,6 +1029,7 @@ export class PostsRepositoryImpl implements PostsInterface {
             is_liked: isLiked.exists,
             is_reposted: isReposted.exists,
             is_bookmarked: isBookmarked.exists,
+            likers,
             user: {
               id: post.user_id,
               username: post.username,
@@ -1058,6 +1068,7 @@ export class PostsRepositoryImpl implements PostsInterface {
           const isReposted = await db.one(PostsQuery.isReposted, [post.id, userId]);
           const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
           const content_segments = await parseContentSegments(post.content);
+          const likers = await db.any(PostsQuery.getFirstLikers, [post.id]);
 
           return new entities.PostWithUserEntity({
             ...post,
@@ -1065,6 +1076,7 @@ export class PostsRepositoryImpl implements PostsInterface {
             is_liked: isLiked.exists,
             is_reposted: isReposted.exists,
             is_bookmarked: isBookmarked.exists,
+            likers,
             user: {
               id: post.user_id,
               username: post.username,
@@ -1105,6 +1117,7 @@ export class PostsRepositoryImpl implements PostsInterface {
           const isReposted = await db.one(PostsQuery.isReposted, [post.id, userId]);
           const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
           const content_segments = await parseContentSegments(post.content);
+          const likers = await db.any(PostsQuery.getFirstLikers, [post.id]);
 
           return new entities.PostWithUserEntity({
             ...post,
@@ -1112,6 +1125,7 @@ export class PostsRepositoryImpl implements PostsInterface {
             is_liked: isLiked.exists,
             is_reposted: isReposted.exists,
             is_bookmarked: isBookmarked.exists,
+            likers,
             user: {
               id: post.user_id,
               username: post.username,

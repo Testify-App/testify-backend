@@ -176,6 +176,32 @@ class ProfilesController {
             logger_1.default.info('Followers retrieved successfully', 'profiles.controller.ts');
             return ResponseBuilder.success(res, 'Followers retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
         });
+        this.getMyFollowing = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
+            const query = new dtos.GetFollowingQueryDTO(req.query);
+            query.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            query.target_user_id = (_b = req.user) === null || _b === void 0 ? void 0 : _b.id;
+            const response = yield services_1.default.getFollowing(query);
+            if (response instanceof errors_1.InternalServerErrorException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR);
+            }
+            logger_1.default.info('Following retrieved successfully', 'profiles.controller.ts');
+            return ResponseBuilder.success(res, 'Following retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
+        this.getFollowingByUserId = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const query = new dtos.GetFollowingQueryDTO(req.query);
+            query.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            query.target_user_id = req.params.userId;
+            const response = yield services_1.default.getFollowing(query);
+            if (response instanceof errors_1.InternalServerErrorException) {
+                logger_1.default.error(response.message, 'profiles.controller.ts');
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR);
+            }
+            logger_1.default.info('Following retrieved successfully', 'profiles.controller.ts');
+            return ResponseBuilder.success(res, 'Following retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
         this.addToCircle = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
             const payload = new dtos.AddToCircleDTO();
