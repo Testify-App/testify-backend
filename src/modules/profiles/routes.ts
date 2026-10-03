@@ -514,6 +514,83 @@ profilesRouter.get(
   WatchAsyncController(profilesController.getFollowersByUserId)
 );
 
+/**
+ * @swagger
+ * /profiles/following:
+ *   get:
+ *     summary: Get profiles the authenticated user is following
+ *     description: Each entry includes profile details and whether that user follows the authenticated user back.
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: search
+ *         in: query
+ *         schema:
+ *           type: string
+ *         description: Filter by username or display name
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 1
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Following retrieved successfully
+ */
+profilesRouter.get(
+  '/following',
+  verifyAuth,
+  validateDataMiddleware(profilesValidator.getFollowingValidator, 'query'),
+  WatchAsyncController(profilesController.getMyFollowing)
+);
+
+/**
+ * @swagger
+ * /profiles/{userId}/following:
+ *   get:
+ *     summary: Get profiles a specific user is following
+ *     description: Each entry includes profile details and whether that user follows the authenticated user back.
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: search
+ *         in: query
+ *         schema:
+ *           type: string
+ *         description: Filter by username or display name
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 1
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Following retrieved successfully
+ */
+profilesRouter.get(
+  '/:userId/following',
+  verifyAuth,
+  validateDataMiddleware(profilesValidator.getFollowingValidator, 'query'),
+  WatchAsyncController(profilesController.getFollowingByUserId)
+);
+
 // Circle routes
 
 /**

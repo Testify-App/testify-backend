@@ -83,8 +83,34 @@ export interface CreateNotificationPayload {
   data?: Record<string, any>;
 }
 
+// Maps a raw notification `type` to its user-facing preference category.
+// A type with no entry here (e.g. `story_posted`) is always sent — there is
+// no toggle for it.
+const NOTIFICATION_TYPE_TO_PREFERENCE_COLUMN: Record<string, string> = {
+  post_like: 'likes',
+  comment_like: 'likes',
+  post_comment: 'comments_replies',
+  comment_reply: 'comments_replies',
+  mention: 'mentions',
+  follow: 'new_followers',
+  repost: 'reposts',
+  circle_accepted: 'circle_activity',
+  circle_removed: 'circle_activity',
+};
+
 export const createNotification = async (payload: CreateNotificationPayload): Promise<void> => {
   if (payload.user_id === payload.actor_id) return;
+
+  const preferenceColumn = NOTIFICATION_TYPE_TO_PREFERENCE_COLUMN[payload.type];
+  if (preferenceColumn) {
+    const preference = await db.oneOrNone(
+      `SELECT ${preferenceColumn} as enabled FROM notification_preferences WHERE user_id = $1`,
+      [payload.user_id]
+    );
+    // No row yet means the user never touched their settings — defaults are all-enabled.
+    if (preference && preference.enabled === false) return;
+  }
+
   await db.none(
     `INSERT INTO notifications (user_id, actor_id, type, entity_type, entity_id, data)
      VALUES ($1, $2, $3, $4, $5, $6)`,

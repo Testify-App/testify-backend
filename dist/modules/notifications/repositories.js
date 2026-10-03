@@ -64,9 +64,20 @@ class NotificationsRepositoryImpl {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const { page = '1', limit = '20', user_id, filter } = dto;
+                const filterKeys = Array.isArray(filter)
+                    ? filter
+                    : typeof filter === 'string'
+                        ? filter.split(',').map((f) => f.trim())
+                        : [];
                 let typeFilter = null;
-                if (filter && filter !== 'all' && FILTER_TYPE_MAP[filter]) {
-                    typeFilter = FILTER_TYPE_MAP[filter].join(',');
+                if (filterKeys.length > 0 && !filterKeys.includes('all')) {
+                    const types = new Set();
+                    for (const key of filterKeys) {
+                        (FILTER_TYPE_MAP[key] || []).forEach((t) => types.add(t));
+                    }
+                    if (types.size > 0) {
+                        typeFilter = Array.from(types).join(',');
+                    }
                 }
                 const [{ count }, rows] = yield (0, helpers_1.fetchResourceByPage)({
                     page,
@@ -154,6 +165,44 @@ class NotificationsRepositoryImpl {
                 }
                 yield database_1.db.none(query_1.default.deleteNotification, [dto.notification_id, dto.user_id]);
                 return { message: 'Notification deleted' };
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    getNotificationPreferences(dto) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const row = yield database_1.db.oneOrNone(query_1.default.getNotificationPreferences, [dto.user_id]);
+                return new entities.NotificationPreferencesEntity(row || {
+                    likes: true,
+                    comments_replies: true,
+                    mentions: true,
+                    new_followers: true,
+                    reposts: true,
+                    circle_activity: true,
+                });
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    updateNotificationPreferences(dto) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c, _d, _e, _f;
+            try {
+                const row = yield database_1.db.one(query_1.default.upsertNotificationPreferences, [
+                    dto.user_id,
+                    (_a = dto.likes) !== null && _a !== void 0 ? _a : null,
+                    (_b = dto.comments_replies) !== null && _b !== void 0 ? _b : null,
+                    (_c = dto.mentions) !== null && _c !== void 0 ? _c : null,
+                    (_d = dto.new_followers) !== null && _d !== void 0 ? _d : null,
+                    (_e = dto.reposts) !== null && _e !== void 0 ? _e : null,
+                    (_f = dto.circle_activity) !== null && _f !== void 0 ? _f : null,
+                ]);
+                return new entities.NotificationPreferencesEntity(row);
             }
             catch (error) {
                 return new errors_1.BadException(`${error.message}`);

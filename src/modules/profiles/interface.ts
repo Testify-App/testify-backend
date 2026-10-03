@@ -21,6 +21,7 @@ export interface ProfilesInterface {
   isInTribe(userId: string, followingId: string): Promise<BadException | boolean>;
   getFollowerCount(userId: string): Promise<BadException | number>;
   getFollowers(query: dtos.GetFollowersQueryDTO): Promise<InternalServerErrorException | FetchPaginatedResponse>;
+  getFollowing(query: dtos.GetFollowingQueryDTO): Promise<InternalServerErrorException | FetchPaginatedResponse>;
   checkUserExists(userId: string): Promise<boolean>;
 
   addToCircle(payload: dtos.AddToCircleDTO): Promise<BadException | entities.UserConnectionEntity>;
