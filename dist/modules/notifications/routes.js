@@ -49,5 +49,7 @@ notificationsRouter.get('/unread-count', verifyAuth, (0, watch_async_controller_
 notificationsRouter.patch('/read-all', verifyAuth, (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.markAllAsRead));
 notificationsRouter.patch('/:notificationId/read', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(notificationsValidator.notificationIdParamsValidator, 'params'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.markAsRead));
 notificationsRouter.delete('/:notificationId', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(notificationsValidator.notificationIdParamsValidator, 'params'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.deleteNotification));
+notificationsRouter.get('/preferences', verifyAuth, (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.getNotificationPreferences));
+notificationsRouter.patch('/preferences', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(notificationsValidator.updateNotificationPreferencesValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.updateNotificationPreferences));
 exports.default = notificationsRouter;
 //# sourceMappingURL=routes.js.map

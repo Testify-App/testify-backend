@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BlockedUserEntity = exports.UserConnectionEntity = exports.FollowerEntity = exports.TribeMemberEntity = exports.UserFollowEntity = exports.ProfileEntity = void 0;
+exports.BlockedUserEntity = exports.UserConnectionEntity = exports.FollowingEntity = exports.FollowerEntity = exports.TribeMemberEntity = exports.UserFollowEntity = exports.ProfileEntity = void 0;
 const base_entity_1 = require("../../shared/utils/base-entity");
 class ProfileEntity extends base_entity_1.BaseEntity {
 }
@@ -14,6 +14,9 @@ exports.TribeMemberEntity = TribeMemberEntity;
 class FollowerEntity extends base_entity_1.BaseEntity {
 }
 exports.FollowerEntity = FollowerEntity;
+class FollowingEntity extends base_entity_1.BaseEntity {
+}
+exports.FollowingEntity = FollowingEntity;
 class UserConnectionEntity extends base_entity_1.BaseEntity {
 }
 exports.UserConnectionEntity = UserConnectionEntity;

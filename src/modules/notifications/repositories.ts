@@ -23,9 +23,21 @@ export class NotificationsRepositoryImpl implements NotificationsInterface {
     try {
       const { page = '1', limit = '20', user_id, filter } = dto as any;
 
+      const filterKeys: string[] = Array.isArray(filter)
+        ? filter
+        : typeof filter === 'string'
+          ? filter.split(',').map((f: string) => f.trim())
+          : [];
+
       let typeFilter: string | null = null;
-      if (filter && filter !== 'all' && FILTER_TYPE_MAP[filter]) {
-        typeFilter = FILTER_TYPE_MAP[filter].join(',');
+      if (filterKeys.length > 0 && !filterKeys.includes('all')) {
+        const types = new Set<string>();
+        for (const key of filterKeys) {
+          (FILTER_TYPE_MAP[key] || []).forEach((t) => types.add(t));
+        }
+        if (types.size > 0) {
+          typeFilter = Array.from(types).join(',');
+        }
       }
 
       const [{ count }, rows] = await fetchResourceByPage({
@@ -119,6 +131,46 @@ export class NotificationsRepositoryImpl implements NotificationsInterface {
       }
       await db.none(NotificationsQuery.deleteNotification, [dto.notification_id, dto.user_id]);
       return { message: 'Notification deleted' };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async getNotificationPreferences(
+    dto: dtos.GetNotificationPreferencesDTO
+  ): Promise<BadException | entities.NotificationPreferencesEntity> {
+    try {
+      const row = await db.oneOrNone(NotificationsQuery.getNotificationPreferences, [dto.user_id]);
+      // No row yet means the user never touched their settings — defaults are all-enabled.
+      return new entities.NotificationPreferencesEntity(
+        row || {
+          likes: true,
+          comments_replies: true,
+          mentions: true,
+          new_followers: true,
+          reposts: true,
+          circle_activity: true,
+        }
+      );
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async updateNotificationPreferences(
+    dto: dtos.UpdateNotificationPreferencesDTO
+  ): Promise<BadException | entities.NotificationPreferencesEntity> {
+    try {
+      const row = await db.one(NotificationsQuery.upsertNotificationPreferences, [
+        dto.user_id,
+        dto.likes ?? null,
+        dto.comments_replies ?? null,
+        dto.mentions ?? null,
+        dto.new_followers ?? null,
+        dto.reposts ?? null,
+        dto.circle_activity ?? null,
+      ]);
+      return new entities.NotificationPreferencesEntity(row);
     } catch (error) {
       return new BadException(`${error.message}`);
     }

@@ -199,7 +199,15 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
           CASE WHEN EXISTS (
             SELECT 1 FROM user_follows
             WHERE follower_id = $2 AND following_id = u.id
-          ) THEN true ELSE false END as is_following
+          ) THEN true ELSE false END as is_following,
+          EXISTS (
+            SELECT 1 FROM user_blocks
+            WHERE blocker_id = $2 AND blocked_id = u.id
+          ) as viewer_has_blocked_profile,
+          EXISTS (
+            SELECT 1 FROM user_blocks
+            WHERE blocker_id = u.id AND blocked_id = $2
+          ) as profile_has_blocked_viewer
         FROM users u
         LEFT JOIN user_follows uf ON u.id = uf.following_id
         WHERE u.id = $1
@@ -271,6 +279,35 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
         currentPage: page,
         totalPages: calcPages(count, limit),
         followers,
+      };
+    } catch (error) {
+      return new InternalServerErrorException(`${error.message}`);
+    }
+  }
+
+  public async getFollowing(
+    payload: dtos.GetFollowingQueryDTO
+  ): Promise<InternalServerErrorException | FetchPaginatedResponse> {
+    try {
+      const { page = '1', limit = '20', user_id, target_user_id } = payload as {
+        page?: string;
+        limit?: string;
+        user_id: string;
+        target_user_id: string;
+      };
+
+      const [{ count }, following] = await fetchResourceByPage({
+        page,
+        limit,
+        getResources: ProfilesQuery.getFollowing,
+        params: [target_user_id, payload.search || null, user_id],
+      });
+
+      return {
+        total: count,
+        currentPage: page,
+        totalPages: calcPages(count, limit),
+        following,
       };
     } catch (error) {
       return new InternalServerErrorException(`${error.message}`);

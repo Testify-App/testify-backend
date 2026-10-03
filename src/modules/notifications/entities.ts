@@ -39,6 +39,15 @@ export class NotificationEntity extends BaseEntity<NotificationEntity> {
   created_at?: Date;
 }
 
+export class NotificationPreferencesEntity extends BaseEntity<NotificationPreferencesEntity> {
+  likes?: boolean;
+  comments_replies?: boolean;
+  mentions?: boolean;
+  new_followers?: boolean;
+  reposts?: boolean;
+  circle_activity?: boolean;
+}
+
 export class NotificationWithActorEntity extends BaseEntity<NotificationWithActorEntity> {
   id?: string;
   user_id?: string;

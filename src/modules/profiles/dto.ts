@@ -44,6 +44,14 @@ export class GetFollowersQueryDTO extends BaseEntity<GetFollowersQueryDTO> {
   limit?: number;
 }
 
+export class GetFollowingQueryDTO extends BaseEntity<GetFollowingQueryDTO> {
+  user_id: string;
+  target_user_id: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
 export class SearchProfilesByUsernameQueryDTO extends BaseEntity<SearchProfilesByUsernameQueryDTO> {
   user_id: string;
   search: string;

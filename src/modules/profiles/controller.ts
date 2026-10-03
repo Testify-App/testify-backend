@@ -143,6 +143,34 @@ export class ProfilesController {
     return ResponseBuilder.success(res, 'Followers retrieved successfully', StatusCodes.OK, response);
   };
 
+  public getMyFollowing: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const query = new dtos.GetFollowingQueryDTO(req.query);
+    query.user_id = req.user?.id as string;
+    query.target_user_id = req.user?.id as string;
+
+    const response = await ProfilesService.getFollowing(query);
+    if (response instanceof InternalServerErrorException) {
+      logger.error(response.message, 'profiles.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.INTERNAL_SERVER_ERROR);
+    }
+    logger.info('Following retrieved successfully', 'profiles.controller.ts');
+    return ResponseBuilder.success(res, 'Following retrieved successfully', StatusCodes.OK, response);
+  };
+
+  public getFollowingByUserId: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const query = new dtos.GetFollowingQueryDTO(req.query);
+    query.user_id = req.user?.id as string;
+    query.target_user_id = req.params.userId;
+
+    const response = await ProfilesService.getFollowing(query);
+    if (response instanceof InternalServerErrorException) {
+      logger.error(response.message, 'profiles.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.INTERNAL_SERVER_ERROR);
+    }
+    logger.info('Following retrieved successfully', 'profiles.controller.ts');
+    return ResponseBuilder.success(res, 'Following retrieved successfully', StatusCodes.OK, response);
+  };
+
   public addToCircle: fnRequest = async (req: AuthenticatedRequest, res) => {
     const payload = new dtos.AddToCircleDTO();
     payload.user_id = req.user?.id as string;
