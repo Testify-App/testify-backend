@@ -12,7 +12,6 @@ export class UserEntity extends BaseEntity<UserEntity> {
   phone_number?: string;
   created_at?: Date;
   device_id?: string;
-  otp?: string;
   token?: string;
   kyc_state?: number;
   session_id?: string

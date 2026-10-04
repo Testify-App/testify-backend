@@ -1,19 +1,21 @@
-import nodemailer from 'nodemailer';
+import { BrevoClient } from '@getbrevo/brevo';
 import Env from '../../utils/env';
 import logger from '../../services/logger';
 import { BadException } from '../../lib/errors';
 import registerTOTPEmailTemplate from './templates/register.TOTP';
 import forgotPasswordEmailTemplate from './templates/forgot.password';
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  auth: {
-    user: `${Env.get<string>('MAIL_USER')}`,
-    pass: `${Env.get<string>('MAIL_APP_PASSWORD')}`,
-  },
-});
+const brevoClient = new BrevoClient({ apiKey: Env.get<string>('BREVO_API_KEY') });
+
+// `MAIL_FROM` is accepted as either a bare address ("noreply@testify.app")
+// or a "Name <address>" pair, matching the format previously used with nodemailer.
+const parseSender = (mailFrom: string): { name?: string; email: string } => {
+  const match = mailFrom.match(/^(.*)<(.+)>$/);
+  if (match) {
+    return { name: match[1].trim() || undefined, email: match[2].trim() };
+  }
+  return { email: mailFrom.trim() };
+};
 
 export async function sendEmail(options: {
   to: string;
@@ -23,13 +25,13 @@ export async function sendEmail(options: {
   if (Env.get<string>('NODE_ENV') === 'test') return true;
 
   try {
-    const info = await transporter.sendMail({
-      from: `${Env.get<string>('MAIL_FROM')}`,
-      to: options.to,
+    const response = await brevoClient.transactionalEmails.sendTransacEmail({
+      sender: parseSender(Env.get<string>('MAIL_FROM')),
+      to: [{ email: options.to }],
       subject: options.subject,
-      html: options.html,
+      htmlContent: options.html,
     });
-    return info.messageId;
+    return response.messageId;
   } catch (error) {
     logger.error(`${error}`, 'mailer.ts');
     throw new BadException(`Error occurred while sending email: ${error} | mailer.ts`);

@@ -15,33 +15,32 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendEmail = sendEmail;
 exports.registerTOTP = registerTOTP;
 exports.forgotPassword = forgotPassword;
-const nodemailer_1 = __importDefault(require("nodemailer"));
+const brevo_1 = require("@getbrevo/brevo");
 const env_1 = __importDefault(require("../../utils/env"));
 const logger_1 = __importDefault(require("../../services/logger"));
 const errors_1 = require("../../lib/errors");
 const register_TOTP_1 = __importDefault(require("./templates/register.TOTP"));
 const forgot_password_1 = __importDefault(require("./templates/forgot.password"));
-const transporter = nodemailer_1.default.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    auth: {
-        user: `${env_1.default.get('MAIL_USER')}`,
-        pass: `${env_1.default.get('MAIL_APP_PASSWORD')}`,
-    },
-});
+const brevoClient = new brevo_1.BrevoClient({ apiKey: env_1.default.get('BREVO_API_KEY') });
+const parseSender = (mailFrom) => {
+    const match = mailFrom.match(/^(.*)<(.+)>$/);
+    if (match) {
+        return { name: match[1].trim() || undefined, email: match[2].trim() };
+    }
+    return { email: mailFrom.trim() };
+};
 function sendEmail(options) {
     return __awaiter(this, void 0, void 0, function* () {
         if (env_1.default.get('NODE_ENV') === 'test')
             return true;
         try {
-            const info = yield transporter.sendMail({
-                from: `${env_1.default.get('MAIL_FROM')}`,
-                to: options.to,
+            const response = yield brevoClient.transactionalEmails.sendTransacEmail({
+                sender: parseSender(env_1.default.get('MAIL_FROM')),
+                to: [{ email: options.to }],
                 subject: options.subject,
-                html: options.html,
+                htmlContent: options.html,
             });
-            return info.messageId;
+            return response.messageId;
         }
         catch (error) {
             logger_1.default.error(`${error}`, 'mailer.ts');
