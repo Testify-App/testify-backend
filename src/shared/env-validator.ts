@@ -7,8 +7,8 @@ export interface EnvProps {
   DATABASE_URL: string;
   SWAGGER_ROUTE: string;
   REDIS_SESSION_STORE_URL: string;
-  MAIL_USERNAME: string;
-  MAIL_PASSWORD: string;
+  BREVO_API_KEY: string;
+  MAIL_FROM: string;
   AWS_REGION: string;
   AWS_S3_BUCKET: string;
   AWS_S3_PUBLIC_BASE_URL: string;
@@ -28,9 +28,9 @@ export const envValidatorSchema = Joi.object<EnvProps>({
 
   SWAGGER_ROUTE: Joi.string().default('/api/docs'),
 
-  MAIL_USERNAME: Joi.string(),
+  BREVO_API_KEY: Joi.string().required(),
 
-  MAIL_PASSWORD: Joi.string(),
+  MAIL_FROM: Joi.string().required(),
 
   AWS_REGION: Joi.string().required(),
 
