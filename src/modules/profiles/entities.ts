@@ -56,6 +56,7 @@ export class FollowingEntity extends BaseEntity<FollowingEntity> {
   bio?: string;
   followed_at?: Date;
   is_followed_back?: boolean;
+  is_following?: boolean;
 }
 
 export class UserConnectionEntity extends BaseEntity<UserConnectionEntity> {

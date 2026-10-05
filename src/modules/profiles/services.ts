@@ -45,6 +45,22 @@ export class ProfilesServiceImpl implements ProfilesInterface {
       return new BadException('User not found');
     }
 
+    const viewerBlockedTarget = await ProfilesRepository.isBlocked(payload.user_id, payload.following_id);
+    if (viewerBlockedTarget instanceof BadException) {
+      return viewerBlockedTarget;
+    }
+    if (viewerBlockedTarget) {
+      return new BadException('You cannot follow a user you have blocked');
+    }
+
+    const targetBlockedViewer = await ProfilesRepository.isBlocked(payload.following_id, payload.user_id);
+    if (targetBlockedViewer instanceof BadException) {
+      return targetBlockedViewer;
+    }
+    if (targetBlockedViewer) {
+      return new BadException('You cannot follow this user');
+    }
+
     return await ProfilesRepository.addToTribe(payload);
   };
 
