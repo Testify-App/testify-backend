@@ -15,7 +15,7 @@ exports.envValidatorSchema = joi_1.default.object({
     DATABASE_URL: joi_1.default.string().required(),
     REDIS_SESSION_STORE_URL: joi_1.default.string(),
     SWAGGER_ROUTE: joi_1.default.string().default('/api/docs'),
-    BREVO_API_KEY: joi_1.default.string().required(),
+    BREVO_API_KEY: joi_1.default.string(),
     MAIL_FROM: joi_1.default.string().required(),
     AWS_REGION: joi_1.default.string().required(),
     AWS_S3_BUCKET: joi_1.default.string().required(),

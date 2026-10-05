@@ -163,7 +163,7 @@ export async function sendEmail(options: {
 
     // Which provider actually sent it, so a delivery complaint can be traced
     // to the right dashboard without guessing.
-    logger.log(
+    logger.info(
       `mail sent via ${via} to ${options.to} (messageId ${messageId})`,
       'email/index.ts',
     );
