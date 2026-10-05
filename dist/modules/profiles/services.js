@@ -34,6 +34,20 @@ class ProfilesServiceImpl {
             if (!userExists) {
                 return new errors_1.BadException('User not found');
             }
+            const viewerBlockedTarget = yield repositories_1.default.isBlocked(payload.user_id, payload.following_id);
+            if (viewerBlockedTarget instanceof errors_1.BadException) {
+                return viewerBlockedTarget;
+            }
+            if (viewerBlockedTarget) {
+                return new errors_1.BadException('You cannot follow a user you have blocked');
+            }
+            const targetBlockedViewer = yield repositories_1.default.isBlocked(payload.following_id, payload.user_id);
+            if (targetBlockedViewer instanceof errors_1.BadException) {
+                return targetBlockedViewer;
+            }
+            if (targetBlockedViewer) {
+                return new errors_1.BadException('You cannot follow this user');
+            }
             return yield repositories_1.default.addToTribe(payload);
         });
         this.removeFromTribe = (payload) => __awaiter(this, void 0, void 0, function* () {
