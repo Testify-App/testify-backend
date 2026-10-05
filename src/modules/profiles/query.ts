@@ -200,7 +200,11 @@ export default {
       EXISTS(
         SELECT 1 FROM user_follows
         WHERE follower_id = u.id AND following_id = $5
-      ) AS is_followed_back
+      ) AS is_followed_back,
+      EXISTS(
+        SELECT 1 FROM user_follows
+        WHERE follower_id = $5 AND following_id = u.id
+      ) AS is_following
     FROM user_follows uf
     JOIN users u ON uf.following_id = u.id
     WHERE uf.follower_id = $3

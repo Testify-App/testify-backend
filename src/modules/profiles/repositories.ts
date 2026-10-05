@@ -196,6 +196,7 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
           u.display_name,
           COUNT(DISTINCT uf.follower_id) as tribe_members_count,
           COUNT(DISTINCT uf.follower_id) as followers_count,
+          COUNT(DISTINCT uf_following.following_id) as following_count,
           CASE WHEN EXISTS (
             SELECT 1 FROM user_follows
             WHERE follower_id = $2 AND following_id = u.id
@@ -210,6 +211,7 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
           ) as profile_has_blocked_viewer
         FROM users u
         LEFT JOIN user_follows uf ON u.id = uf.following_id
+        LEFT JOIN user_follows uf_following ON u.id = uf_following.follower_id
         WHERE u.id = $1
         GROUP BY u.id
       `, [payload.following_id, payload.user_id]);
