@@ -113,7 +113,7 @@ exports.default = {
     SELECT id, password FROM users WHERE id = $1 AND deleted_at IS NULL;
   `,
     getUserByEmailForActivation: `
-    SELECT id, activated_at FROM users WHERE email = $1 AND deleted_at IS NULL;
+    SELECT id, username, activated_at FROM users WHERE email = $1 AND deleted_at IS NULL;
   `,
     changePassword: `
     UPDATE users

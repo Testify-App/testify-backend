@@ -36,9 +36,8 @@ export class AuthenticationRepositoryImpl implements AuthenticationInterface {
              * Awaiting would (a) hold a pooled database connection open for the
              * duration of a network round trip to SES, and (b) roll the whole
              * transaction back if delivery failed — so a transient mail problem
-             * would destroy an otherwise valid account. SES is also still in
-             * sandbox, where any unverified recipient is rejected outright, so
-             * awaiting here would make registration fail for most addresses.
+             * would destroy an otherwise valid account. Both hold whichever
+             * provider MAIL_TRANSPORT selects.
              *
              * Failures are logged. The user can re-request a code via
              * /auth/register/resend-activation.
@@ -47,7 +46,6 @@ export class AuthenticationRepositoryImpl implements AuthenticationInterface {
               .catch((err) => logger.error(`activation mail failed: ${err}`, 'authentication.repositories.ts'));
             const data: entities.UserEntity = new entities.UserEntity({
               id: existingUser.id,
-              otp,
             });
             return data;
           }
@@ -64,7 +62,6 @@ export class AuthenticationRepositoryImpl implements AuthenticationInterface {
         const otp = await otpGenerate.generateTOTP({ id: user.id, expiresIn: 5 }, 'user', t);
         const data: entities.UserEntity = new entities.UserEntity({
           id: user.id,
-          otp,
         });
         /**
          * Deliberately NOT awaited inside this transaction.
@@ -148,9 +145,8 @@ export class AuthenticationRepositoryImpl implements AuthenticationInterface {
         const otp = await otpGenerate.generateTOTP({ id: user.id, expiresIn: 5 }, 'user', t);
         const data: entities.UserEntity = new entities.UserEntity({
           id: user.id,
-          otp: otp,
         });
-        // await MailService.forgotPassword(payload.email, otp, user.username, 5);
+        await MailService.forgotPassword(payload.email, otp, user.username, 5);
         return data;
       });
       return response;
@@ -328,11 +324,10 @@ export class AuthenticationRepositoryImpl implements AuthenticationInterface {
          * Deliberately NOT awaited inside this transaction.
          *
          * Awaiting would (a) hold a pooled database connection open for the
-         * duration of a network round trip to SES, and (b) roll the whole
-         * transaction back if delivery failed — so a transient mail problem
-         * would destroy an otherwise valid account. SES is also still in
-         * sandbox, where any unverified recipient is rejected outright, so
-         * awaiting here would make registration fail for most addresses.
+         * duration of a network round trip to the mail provider, and (b) roll
+         * the whole transaction back if delivery failed — so a transient mail
+         * problem would destroy an otherwise valid account. Both hold whichever
+         * provider MAIL_TRANSPORT selects.
          *
          * Failures are logged. The user can re-request a code via
          * /auth/register/resend-activation.
@@ -341,7 +336,6 @@ export class AuthenticationRepositoryImpl implements AuthenticationInterface {
           .catch((err) => logger.error(`resend activation mail failed: ${err}`, 'authentication.repositories.ts'));
         const data: entities.UserEntity = new entities.UserEntity({
           id: user.id,
-          otp,
         });
         return data;
       });

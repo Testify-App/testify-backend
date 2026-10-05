@@ -1,152 +1,178 @@
-import nodemailer, { Transporter } from 'nodemailer';
-import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
-import Env from '../../utils/env';
+import { BrevoClient } from '@getbrevo/brevo';
+import {
+  SESv2Client,
+  SendEmailCommand,
+} from '@aws-sdk/client-sesv2';
 import logger from '../../services/logger';
 import { BadException } from '../../lib/errors';
 import registerTOTPEmailTemplate from './templates/register.TOTP';
 import forgotPasswordEmailTemplate from './templates/forgot.password';
 
 /**
- * Mail goes out through Amazon SES on AWS, and Gmail SMTP locally.
+ * Transactional mail, with two interchangeable providers.
  *
- * SES is used for two reasons beyond cost. It authenticates with the EC2
- * instance role, so there is no SMTP username and password to store, rotate or
- * leak — the SES SMTP interface would have required exactly that, since its
- * credentials are derived from a long-lived IAM access key. And the domain's
- * DKIM is already signed by SES (`testifyhub.co`, DKIM SUCCESS, custom MAIL
- * FROM `email.testifyhub.co`), which is what keeps verification mail out of
- * spam folders.
+ * MAIL_TRANSPORT selects which one is used at run time:
  *
- * Local development keeps the previous Gmail SMTP path, because a developer's
- * laptop has no instance role and SES in sandbox cannot mail arbitrary
- * addresses anyway.
+ *   brevo  (default)  — Brevo's transactional API
+ *   ses               — Amazon SES v2 from the instance role
  *
- * `MAIL_TRANSPORT` selects: `ses` (default) or `smtp`.
+ * Switching providers is a Parameter Store change plus a redeploy. No code
+ * change, no rebuild. Both paths return the provider's message id, so call
+ * sites and the functions below are identical either way.
+ *
+ * WHY BOTH ARE KEPT. SES is verified for testifyhub.co with DKIM and a custom
+ * MAIL FROM, but its production access request was declined, so in sandbox it
+ * only delivers to verified addresses and the SES simulator. Brevo has no such
+ * restriction, which is why it is the default. If SES production access is
+ * later granted, flipping MAIL_TRANSPORT back to `ses` costs nothing and
+ * removes a third-party dependency — so the SES path is kept working rather
+ * than deleted.
+ *
+ * ENVIRONMENT IS READ FROM process.env DIRECTLY, not through Env.get. Env.get
+ * only exposes keys declared in src/config/env/<environment>.ts, so a value
+ * present in Parameter Store but not declared there silently reads as
+ * undefined. That cost an afternoon once already.
  */
+
+export type MailTransport = 'brevo' | 'ses';
+
+const transport = (): MailTransport =>
+  (process.env.MAIL_TRANSPORT || 'brevo').trim().toLowerCase() as MailTransport;
+
+const mailFrom = (): string =>
+  process.env.MAIL_FROM || process.env.TESTIFY_MAIL_FROM || '';
 
 /**
- * These read process.env directly rather than through the Env helper.
- *
- * Env.get only exposes keys declared in src/config/env/*.ts, so an undeclared
- * variable silently returns undefined and falls back to its default — which is
- * exactly what happened here first time round: MAIL_CONFIGURATION_SET was set
- * in Parameter Store, read through Env.get, came back undefined, and every send
- * quietly went out with no configuration set at all. Nothing failed; the
- * suppression and metrics simply did not apply.
- *
- * Declaring each one in all four env files would work too, but these are
- * deployment concerns rather than application config, and src/modules/uploads
- * already reads process.env directly for the same reason.
+ * `MAIL_FROM` is accepted as either a bare address ("noreply@testifyhub.co")
+ * or a "Name <address>" pair. SES wants the combined string; Brevo wants the
+ * two parts separately, so both forms are derived from one value.
  */
-const transportKind = (): 'ses' | 'smtp' =>
-  (process.env.MAIL_TRANSPORT ?? 'ses').toLowerCase() === 'smtp'
-    ? 'smtp'
-    : 'ses';
-
-let cached: Transporter | undefined;
-
-const buildTransport = (): Transporter => {
-  if (transportKind() === 'smtp') {
-    return nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: `${Env.get<string>('MAIL_USER')}`,
-        pass: `${Env.get<string>('MAIL_APP_PASSWORD')}`,
-      },
-    });
+const parseSender = (value: string): { name?: string; email: string } => {
+  const match = value.match(/^(.*)<(.+)>$/);
+  if (match) {
+    return { name: match[1].trim() || undefined, email: match[2].trim() };
   }
-
-  /**
-   * No credentials are configured. On EC2 the SDK reads the instance role from
-   * instance metadata; locally it reads the developer's own `~/.aws`. Adding an
-   * accessKeyId here would defeat the point.
-   *
-   * nodemailer builds an SESv2 request (`Content.Raw`, `FromEmailAddress`), so
-   * this must be the v2 client and the v2 command — the v1 `@aws-sdk/client-ses`
-   * pair will not work.
-   */
-  const sesClient = new SESv2Client({
-    region:
-      process.env.AWS_SES_REGION ??
-      process.env.AWS_S3_REGION ??
-      process.env.AWS_REGION ??
-      'us-east-1',
-  });
-
-  /**
-   * Cast because nodemailer's bundled types do not describe the SES option on
-   * this overload, even though the transport supports it (see
-   * node_modules/nodemailer/lib/ses-transport). The shape is checked against
-   * that implementation rather than the types.
-   */
-  return nodemailer.createTransport({
-    SES: { sesClient, SendEmailCommand },
-  } as never);
+  return { email: value.trim() };
 };
 
-/** Built on first use so an unconfigured transport cannot break start-up. */
-const transport = (): Transporter => (cached ??= buildTransport());
+// ---------------------------------------------------------------------------
+// Brevo
+// ---------------------------------------------------------------------------
+
+let brevo: BrevoClient | undefined;
 
 /**
- * Naming the configuration set is what makes SES's bounce/complaint
- * suppression and event publishing apply TO THIS MESSAGE. Omit it and the
- * configuration set exists but does nothing: bounces are not suppressed, no
- * metrics are published, and a dead address keeps being mailed until AWS pauses
- * the account.
- *
- * There is no way to set it as an identity default from Terraform, so it has to
- * travel with every send.
+ * Built on first use, not at import. The constructor needs BREVO_API_KEY, and
+ * building it eagerly would make the whole module throw at import time when
+ * the transport is `ses` and no Brevo key is configured at all.
  */
-const configurationSet = (): string | undefined =>
-  process.env.MAIL_CONFIGURATION_SET || undefined;
+const brevoClient = (): BrevoClient => {
+  if (brevo) return brevo;
+
+  const apiKey = process.env.BREVO_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      'BREVO_API_KEY is not set, but MAIL_TRANSPORT is "brevo". Set it at ' +
+        '/testifyhub/prod/app/BREVO_API_KEY, or set MAIL_TRANSPORT to "ses".',
+    );
+  }
+
+  brevo = new BrevoClient({ apiKey });
+  return brevo;
+};
+
+const sendViaBrevo = async (to: string, subject: string, html: string) => {
+  const response = await brevoClient().transactionalEmails.sendTransacEmail({
+    sender: parseSender(mailFrom()),
+    to: [{ email: to }],
+    subject,
+    htmlContent: html,
+  });
+  return response.messageId;
+};
+
+// ---------------------------------------------------------------------------
+// SES
+// ---------------------------------------------------------------------------
+
+let ses: SESv2Client | undefined;
+
+/**
+ * NO CREDENTIALS ARE CONFIGURED, deliberately. On EC2 the SDK reads the
+ * instance role from instance metadata; locally it reads the developer's own
+ * ~/.aws profile. There is no access key to leak, rotate or commit.
+ */
+const sesClient = (): SESv2Client => {
+  if (ses) return ses;
+  ses = new SESv2Client({
+    region: process.env.AWS_SES_REGION || process.env.AWS_REGION || 'us-east-1',
+  });
+  return ses;
+};
+
+const sendViaSes = async (to: string, subject: string, html: string) => {
+  const result = await sesClient().send(
+    new SendEmailCommand({
+      FromEmailAddress: mailFrom(),
+      Destination: { ToAddresses: [to] },
+      /**
+       * Naming the configuration set is load-bearing, not decoration. Without
+       * it the send succeeds but bounce suppression and event publishing do not
+       * apply to the message, so a hard bounce is never recorded and never
+       * stops a future send to the same dead address.
+       */
+      ConfigurationSetName: process.env.MAIL_CONFIGURATION_SET,
+      Content: {
+        Simple: {
+          Subject: { Data: subject, Charset: 'UTF-8' },
+          Body: { Html: { Data: html, Charset: 'UTF-8' } },
+        },
+      },
+    }),
+  );
+  return result.MessageId;
+};
+
+// ---------------------------------------------------------------------------
+// Dispatch
+// ---------------------------------------------------------------------------
 
 export async function sendEmail(options: {
   to: string;
   subject: string;
   html: string;
-  /** Populates the email_type CloudWatch dimension, so bounce rates can be read per mail type. */
-  emailType?: string;
 }) {
-  if (Env.get<string>('NODE_ENV') === 'test') return true;
+  if (process.env.NODE_ENV === 'test' || process.env.TESTIFY_NODE_ENV === 'test') {
+    return true;
+  }
 
-  const set = configurationSet();
+  const via = transport();
+
+  if (!mailFrom()) {
+    throw new BadException(
+      'MAIL_FROM is not set. It is supplied from Parameter Store at ' +
+        '/testifyhub/prod/app/TESTIFY_MAIL_FROM.',
+    );
+  }
 
   try {
-    const info = await transport().sendMail({
-      from: `${Env.get<string>('MAIL_FROM')}`,
-      to: options.to,
-      subject: options.subject,
-      html: options.html,
-      /**
-       * nodemailer copies the keys of `ses` straight into the SESv2 request,
-       * so this is how per-message SES options are passed. Only set when a
-       * configuration set is configured, so the SMTP transport is unaffected.
-       */
-      ...(set
-        ? {
-            ses: {
-              ConfigurationSetName: set,
-              EmailTags: [
-                {
-                  Name: 'email_type',
-                  Value: options.emailType ?? 'transactional',
-                },
-              ],
-            },
-          }
-        : {}),
-    } as never);
-    logger.info(
-      `mail sent via ${transportKind()}${set ? ` [${set}]` : ''} to ${options.to}: ${info.messageId}`,
-      'mailer.ts',
+    const messageId =
+      via === 'ses'
+        ? await sendViaSes(options.to, options.subject, options.html)
+        : await sendViaBrevo(options.to, options.subject, options.html);
+
+    // Which provider actually sent it, so a delivery complaint can be traced
+    // to the right dashboard without guessing.
+    logger.log(
+      `mail sent via ${via} to ${options.to} (messageId ${messageId})`,
+      'email/index.ts',
     );
-    return info.messageId;
+
+    return messageId;
   } catch (error) {
-    logger.error(`${error}`, 'mailer.ts');
+    logger.error(`mail send failed via ${via}: ${error}`, 'email/index.ts');
     throw new BadException(
-      `Error occurred while sending email: ${error} | mailer.ts`,
+      `Error occurred while sending email via ${via}: ${error}`,
     );
   }
 }
@@ -157,19 +183,14 @@ export async function registerTOTP(
   username: string,
   expiresIn: number,
 ) {
-  const html = registerTOTPEmailTemplate({
-    otp,
-    username,
-    expiresIn,
-  });
+  const html = registerTOTPEmailTemplate({ otp, username, expiresIn });
 
   return sendEmail({
     to: email,
     subject: 'Activate Your Account.',
     html,
-    emailType: 'verification',
   });
-};
+}
 
 export async function forgotPassword(
   email: string,
@@ -177,16 +198,11 @@ export async function forgotPassword(
   first_name: string,
   expiresIn: number,
 ) {
-  const html = forgotPasswordEmailTemplate({
-    otp,
-    first_name,
-    expiresIn,
-  });
+  const html = forgotPasswordEmailTemplate({ otp, first_name, expiresIn });
 
   return sendEmail({
     to: email,
     subject: 'Reset Your Password.',
     html,
-    emailType: 'password-reset',
   });
-};
+}
