@@ -3,7 +3,7 @@ import Env from '../../shared/utils/env';
 
 const swaggerURL = Env.get<string>('NODE_ENV') === 'development'
   ? 'http://localhost:8081/api/v1'
-  : 'https://testify-backend-5k67.onrender.com/api/v1';
+  : 'https://api.testifyhub.co/api/v1';
   
 
 const options = {
