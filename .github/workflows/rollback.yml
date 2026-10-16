@@ -1,0 +1,119 @@
+# Roll back to an image tag already in ECR.
+#
+# Deploys without building, so it takes about a minute. Run this rather than
+# reverting a commit and waiting for a fresh build when production is broken.
+#
+# WHAT THIS DOES NOT DO: roll back migrations. Deploying an older image against
+# a newer schema is only safe if the migrations in between were additive. A
+# migration that dropped or renamed a column is not recoverable this way — in
+# that case restore the database (see RUNBOOK.md in the infrastructure repo).
+
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag to deploy (a commit SHA already pushed to ECR)"
+        required: true
+        type: string
+
+concurrency:
+  group: production-deploy # shared with Deploy, so the two cannot race
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY_NAME: testifyhub
+  SSM_DOCUMENT: testifyhub-prod-deploy
+  DEPLOY_TAG: testifyhub-prod
+  HEALTH_URL: https://api.testifyhub.co/api/v1/healthcheck/ping
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest # no build, so no need for an arm64 runner
+    timeout-minutes: 20
+
+    steps:
+      - name: Assume the deploy role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Fail early with a useful message rather than letting the deploy script
+      # report "image not available" after it has already stopped the container.
+      - name: Confirm the tag exists in ECR
+        run: |
+          set -euo pipefail
+          aws ecr describe-images --repository-name "$ECR_REPOSITORY_NAME" \
+            --image-ids "imageTag=${{ inputs.tag }}" >/dev/null 2>&1 || {
+              echo "Tag '${{ inputs.tag }}' is not in ECR. Available, newest last:"
+              aws ecr describe-images --repository-name "$ECR_REPOSITORY_NAME" \
+                --query 'sort_by(imageDetails,&imagePushedAt)[-15:].imageTags' --output text
+              exit 1
+            }
+          echo "Tag ${{ inputs.tag }} found."
+
+      - name: Find the instance
+        id: instance
+        run: |
+          set -euo pipefail
+          id=$(aws ec2 describe-instances \
+            --filters "Name=tag:Deploy,Values=${DEPLOY_TAG}" \
+                      "Name=instance-state-name,Values=running" \
+            --query 'Reservations[].Instances[0].InstanceId' --output text)
+          [ -n "$id" ] && [ "$id" != "None" ] || { echo "no running instance"; exit 1; }
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy the rollback
+        env:
+          INSTANCE: ${{ steps.instance.outputs.id }}
+        run: |
+          set -euo pipefail
+          cmd=$(aws ssm send-command \
+            --instance-ids "$INSTANCE" \
+            --document-name "$SSM_DOCUMENT" \
+            --parameters "ImageTag=${{ inputs.tag }}" \
+            --query Command.CommandId --output text)
+
+          for _ in $(seq 1 60); do
+            status=$(aws ssm get-command-invocation --command-id "$cmd" \
+              --instance-id "$INSTANCE" --query Status --output text 2>/dev/null || echo Pending)
+            case "$status" in
+              InProgress|Pending|Delayed) sleep 10 ;;
+              *) break ;;
+            esac
+          done
+
+          aws ssm get-command-invocation --command-id "$cmd" --instance-id "$INSTANCE" \
+            --query StandardOutputContent --output text \
+            | { grep -vE '^npm notice|^$' || true; }
+
+          [ "$status" = "Success" ] || { echo "rollback status: $status"; exit 1; }
+
+      - name: Verify
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 12); do
+            code=$(curl -sS -o /dev/null -m 10 -w '%{http_code}' "$HEALTH_URL" || echo 000)
+            echo "attempt $i: http=$code"
+            [ "$code" = "200" ] && { curl -sS -m 10 "$HEALTH_URL"; echo; exit 0; }
+            sleep 10
+          done
+          exit 1
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Rolled back to \`${{ inputs.tag }}\`"
+            echo ""
+            echo "- result: ${{ job.status }}"
+            echo ""
+            echo "Migrations were **not** rolled back."
+          } >> "$GITHUB_STEP_SUMMARY"

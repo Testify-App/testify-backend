@@ -1,0 +1,177 @@
+# Deploy to production on merge to main.
+#
+# No AWS access keys anywhere. GitHub exchanges a short-lived OIDC token for an
+# IAM role whose trust policy is pinned to this repository and this branch, so a
+# fork or another branch cannot assume it. The role can do exactly two things:
+# push to this one ECR repository, and run one SSM document against instances
+# tagged Deploy=testifyhub-prod. It cannot read Parameter Store, reach the
+# database, or change infrastructure.
+#
+# Migrations run inside the SSM document, in a throwaway container, BEFORE the
+# application container is swapped. A failed migration aborts the deploy and
+# leaves the previous version serving.
+#
+# REQUIRED REPOSITORY SECRETS (Settings -> Secrets and variables -> Actions):
+#
+#   AWS_DEPLOY_ROLE_ARN   arn:aws:iam::<account>:role/testifyhub-prod-github-deploy
+#   ECR_REPOSITORY        <account>.dkr.ecr.us-east-1.amazonaws.com/testifyhub
+#
+# Both come from `terraform output pipeline` in the infrastructure repository.
+# They are held as secrets rather than written here because THIS REPOSITORY IS
+# PUBLIC: committing them would publish the account ID, and secrets are also
+# masked in Actions logs, which are public too. Neither value grants access on
+# its own — the role can only be assumed by a token this repository and branch
+# produce — but there is no reason to publish them.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+# There is exactly ONE instance. Two deploys at once would fight over the same
+# container, so queue them instead. cancel-in-progress is deliberately false:
+# cancelling mid-deploy could leave no container running at all.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+permissions:
+  id-token: write # required to request the OIDC token
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+  SSM_DOCUMENT: testifyhub-prod-deploy
+  DEPLOY_TAG: testifyhub-prod
+  HEALTH_URL: https://api.testifyhub.co/api/v1/healthcheck/ping
+
+jobs:
+  deploy:
+    # arm64 runner, NOT ubuntu-latest. The image must be arm64, and this project
+    # compiles native modules (bcrypt), so cross-building under QEMU takes tens
+    # of minutes. If this label is unavailable on the plan, the job fails
+    # immediately with "no runner matching labels" — in that case switch to
+    # ubuntu-latest and add docker/setup-qemu-action, and accept a slow build.
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve the image tag
+        id: tag
+        run: echo "tag=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Compile here so a type error fails in 30 seconds rather than after a
+      # full container build.
+      - name: Compile
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+
+      - name: Assume the deploy role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          # Braces on every tag. In some shells "$VAR:latest" is a parameter
+          # modifier, not a tag, and silently creates a bogus repository.
+          docker build --platform linux/arm64 \
+            -t "${ECR_REPOSITORY}:${TAG}" \
+            -t "${ECR_REPOSITORY}:latest" .
+
+          arch=$(docker image inspect "${ECR_REPOSITORY}:${TAG}" --format '{{.Os}}/{{.Architecture}}')
+          [ "$arch" = "linux/arm64" ] || { echo "built $arch, need linux/arm64"; exit 1; }
+
+          docker push "${ECR_REPOSITORY}:${TAG}"
+          docker push "${ECR_REPOSITORY}:latest"
+
+      - name: Find the instance
+        id: instance
+        run: |
+          set -euo pipefail
+          # By tag, never by ID — the ID changes every time the ASG replaces the
+          # instance, and the IAM policy authorises targets by this tag.
+          id=$(aws ec2 describe-instances \
+            --filters "Name=tag:Deploy,Values=${DEPLOY_TAG}" \
+                      "Name=instance-state-name,Values=running" \
+            --query 'Reservations[].Instances[0].InstanceId' --output text)
+          [ -n "$id" ] && [ "$id" != "None" ] || { echo "no running instance tagged Deploy=${DEPLOY_TAG}"; exit 1; }
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          echo "Deploying to $id"
+
+      - name: Deploy
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          INSTANCE: ${{ steps.instance.outputs.id }}
+        run: |
+          set -euo pipefail
+          cmd=$(aws ssm send-command \
+            --instance-ids "$INSTANCE" \
+            --document-name "$SSM_DOCUMENT" \
+            --parameters "ImageTag=${TAG}" \
+            --query Command.CommandId --output text)
+
+          echo "command $cmd"
+          for _ in $(seq 1 60); do
+            status=$(aws ssm get-command-invocation --command-id "$cmd" \
+              --instance-id "$INSTANCE" --query Status --output text 2>/dev/null || echo Pending)
+            case "$status" in
+              InProgress|Pending|Delayed) sleep 10 ;;
+              *) break ;;
+            esac
+          done
+
+          echo "--- deploy output ---"
+          # `|| true` because a filter that matches nothing exits 1, and pipefail
+          # would fail the job over a cosmetic grep.
+          aws ssm get-command-invocation --command-id "$cmd" --instance-id "$INSTANCE" \
+            --query StandardOutputContent --output text \
+            | { grep -vE '^npm notice|^$' || true; }
+
+          err=$(aws ssm get-command-invocation --command-id "$cmd" --instance-id "$INSTANCE" \
+            --query StandardErrorContent --output text)
+          [ -z "$err" ] || { echo "--- stderr ---"; echo "$err" | tail -20; }
+
+          [ "$status" = "Success" ] || { echo "deploy status: $status"; exit 1; }
+
+      - name: Verify through CloudFront
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 12); do
+            code=$(curl -sS -o /dev/null -m 10 -w '%{http_code}' "$HEALTH_URL" || echo 000)
+            echo "attempt $i: http=$code"
+            [ "$code" = "200" ] && { curl -sS -m 10 "$HEALTH_URL"; echo; exit 0; }
+            sleep 10
+          done
+          echo "health never returned 200 — roll back with the Rollback workflow"
+          exit 1
+
+      - name: Summary
+        if: always()
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          {
+            echo "### Deploy \`${TAG}\`"
+            echo ""
+            echo "- instance: \`${{ steps.instance.outputs.id }}\`"
+            echo "- result: ${{ job.status }}"
+            echo ""
+            echo "To roll back, run the **Rollback** workflow with the previous tag."
+          } >> "$GITHUB_STEP_SUMMARY"
