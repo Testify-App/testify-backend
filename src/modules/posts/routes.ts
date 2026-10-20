@@ -1051,4 +1051,60 @@ postsRouter.get(
   WatchAsyncController(postsController.getUserReposts)
 );
 
+/**
+ * @swagger
+ * /posts/impressions:
+ *   post:
+ *     summary: Record a batch of feed impressions
+ *     description: |
+ *       Client-side analytics ingest: report posts that were surfaced to the user,
+ *       with how long they were viewed (dwell_ms) and whether the user skipped them.
+ *       Feeds the Home feed's behavioral ranking signals — not used for anything
+ *       visible in the response.
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - impressions
+ *             properties:
+ *               impressions:
+ *                 type: array
+ *                 maxItems: 100
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - post_id
+ *                     - source
+ *                   properties:
+ *                     post_id:
+ *                       type: string
+ *                       format: uuid
+ *                     source:
+ *                       type: string
+ *                       enum: [feed, profile, community, search]
+ *                     dwell_ms:
+ *                       type: integer
+ *                       description: Milliseconds the post was visible on screen
+ *                     skipped:
+ *                       type: boolean
+ *                       description: True if the user scrolled past with no engagement
+ *     responses:
+ *       200:
+ *         description: Impressions recorded successfully
+ *       400:
+ *         description: Invalid batch (empty, over 100 items, or a malformed entry)
+ */
+postsRouter.post(
+  '/impressions',
+  verifyAuth,
+  validateDataMiddleware(postsValidator.createImpressionsValidator, 'body'),
+  WatchAsyncController(postsController.recordImpressions)
+);
+
 export default postsRouter;

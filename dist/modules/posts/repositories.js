@@ -63,6 +63,7 @@ const database_1 = require("../../config/database");
 const errors_1 = require("../../shared/lib/errors");
 const helpers_1 = require("../../shared/helpers");
 const notification_1 = __importDefault(require("../../shared/services/notification"));
+const feed_ranking_constants_1 = require("./feed-ranking.constants");
 class PostsRepositoryImpl {
     createPost(payload) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -149,17 +150,109 @@ class PostsRepositoryImpl {
         });
     }
     ;
+    interleaveAndDiversify(personalized, discovery, trending, targetCount) {
+        const ratio = feed_ranking_constants_1.FEED_INTERLEAVE_RATIO;
+        const cycleLength = ratio.personalized + ratio.discovery + ratio.trending;
+        const seenIds = new Set();
+        const queues = {
+            personalized: [...personalized],
+            discovery: [...discovery],
+            trending: [...trending],
+        };
+        const sourceNames = ['personalized', 'discovery', 'trending'];
+        const wouldViolate = (candidate, result) => {
+            if (result.length < feed_ranking_constants_1.MAX_CONSECUTIVE_SAME_SOURCE)
+                return false;
+            const prev = result.slice(result.length - feed_ranking_constants_1.MAX_CONSECUTIVE_SAME_SOURCE);
+            const violatesAuthor = prev.every((p) => p.user_id === candidate.user_id);
+            const violatesCommunity = candidate.community_id && prev.every((p) => p.community_id === candidate.community_id);
+            return violatesAuthor || violatesCommunity;
+        };
+        const takeBestFrom = (queueName, result) => {
+            const queue = queues[queueName];
+            const deferred = [];
+            let picked = null;
+            while (queue.length > 0) {
+                const candidate = queue.shift();
+                if (seenIds.has(candidate.id))
+                    continue;
+                if (!picked && !wouldViolate(candidate, result)) {
+                    picked = candidate;
+                    break;
+                }
+                deferred.push(candidate);
+            }
+            queue.unshift(...deferred);
+            return picked;
+        };
+        const interleaved = [];
+        let cyclePosition = 0;
+        const totalAvailable = personalized.length + discovery.length + trending.length;
+        while (interleaved.length < targetCount && interleaved.length < totalAvailable) {
+            const slot = cyclePosition % cycleLength;
+            const preferredSource = slot < ratio.personalized ? 'personalized'
+                : slot < ratio.personalized + ratio.discovery ? 'discovery'
+                    : 'trending';
+            cyclePosition++;
+            let candidate = takeBestFrom(preferredSource, interleaved);
+            if (!candidate) {
+                for (const fallback of sourceNames) {
+                    if (fallback === preferredSource)
+                        continue;
+                    candidate = takeBestFrom(fallback, interleaved);
+                    if (candidate)
+                        break;
+                }
+            }
+            if (!candidate) {
+                for (const src of sourceNames) {
+                    while (queues[src].length > 0) {
+                        const next = queues[src].shift();
+                        if (!seenIds.has(next.id)) {
+                            candidate = next;
+                            break;
+                        }
+                    }
+                    if (candidate)
+                        break;
+                }
+            }
+            if (!candidate)
+                break;
+            seenIds.add(candidate.id);
+            interleaved.push(candidate);
+        }
+        return interleaved;
+    }
     getPosts(payload) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                console.log('getPosts');
                 const { page = '1', limit = '20', user_id } = payload;
-                const [{ count }, posts] = yield (0, helpers_1.fetchResourceByPage)({
-                    page,
-                    limit,
-                    getResources: query_1.default.getPostsFeed,
-                    params: [user_id],
-                });
+                const pageNum = parseInt(String(page), 10) || 1;
+                const limitNum = parseInt(String(limit), 10) || 20;
+                const interactionRow = yield database_1.db.one(query_1.default.getUserInteractionCount, [user_id]);
+                const interactionCount = parseInt(interactionRow.total || '0', 10);
+                let posts;
+                let count;
+                if (interactionCount < feed_ranking_constants_1.COLD_START_INTERACTION_THRESHOLD) {
+                    const offset = (pageNum - 1) * limitNum;
+                    const rows = yield database_1.db.any(query_1.default.getColdStartFeed, [user_id, limitNum, offset]);
+                    posts = rows;
+                    count = rows.length > 0 ? parseInt(rows[0].count, 10) : 0;
+                }
+                else {
+                    const poolSize = limitNum * feed_ranking_constants_1.CANDIDATE_POOL_MULTIPLIER;
+                    const [personalized, discovery, trending, totalRow] = yield Promise.all([
+                        database_1.db.any(query_1.default.getRankedFeedCandidates, [user_id, poolSize]),
+                        database_1.db.any(query_1.default.getDiscoveryFeedCandidates, [user_id, poolSize]),
+                        database_1.db.any(query_1.default.getTrendingFeedCandidates, [user_id, poolSize]),
+                        database_1.db.one(query_1.default.getPostsCount, [user_id]),
+                    ]);
+                    const interleaved = this.interleaveAndDiversify(personalized, discovery, trending, limitNum * pageNum);
+                    const offset = (pageNum - 1) * limitNum;
+                    posts = interleaved.slice(offset, offset + limitNum);
+                    count = parseInt(totalRow.total || '0', 10);
+                }
                 const postsWithEngagement = yield Promise.all(posts.map((post) => __awaiter(this, void 0, void 0, function* () {
                     var _c;
                     const [isLiked, isReposted, isBookmarked, isFollowing, isInCircle, content_segments, likers] = yield Promise.all([
@@ -182,7 +275,7 @@ class PostsRepositoryImpl {
                             : null }));
                 })));
                 return {
-                    total: count,
+                    total: String(count),
                     currentPage: page,
                     totalPages: (0, helpers_1.calcPages)(count, limit),
                     posts: postsWithEngagement,
@@ -991,6 +1084,22 @@ class PostsRepositoryImpl {
                     posts: archivedPosts,
                     pagination: { page: String(page), limit: String(limit), total: count, totalPages: (0, helpers_1.calcPages)(count, limit) },
                 };
+            }
+            catch (error) {
+                return new errors_1.BadException(`${error.message}`);
+            }
+        });
+    }
+    recordImpressions(payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const postIds = payload.impressions.map((i) => i.post_id);
+                const userIds = payload.impressions.map(() => payload.user_id);
+                const sources = payload.impressions.map((i) => i.source);
+                const dwellMs = payload.impressions.map((i) => { var _c; return (_c = i.dwell_ms) !== null && _c !== void 0 ? _c : null; });
+                const skipped = payload.impressions.map((i) => { var _c; return (_c = i.skipped) !== null && _c !== void 0 ? _c : false; });
+                yield database_1.db.none(query_1.default.insertImpressions, [postIds, userIds, sources, dwellMs, skipped]);
+                return { message: 'Impressions recorded successfully' };
             }
             catch (error) {
                 return new errors_1.BadException(`${error.message}`);

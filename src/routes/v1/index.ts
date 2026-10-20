@@ -14,6 +14,7 @@ import notificationsRouter from '../../modules/notifications/routes';
 import storiesRouter from '../../modules/stories/routes';
 import reportsRouter from '../../modules/reports/routes';
 import uploadsRouter from '../../modules/uploads/routes';
+import messagingRouter from '../../modules/messaging/routes';
 
 const appRouter = express.Router();
 
@@ -93,5 +94,7 @@ appRouter.use("/stories", storiesRouter);
 appRouter.use("/reports", reportsRouter);
 
 appRouter.use("/uploads", uploadsRouter);
+
+appRouter.use("/", messagingRouter);
 
 export const Router = appRouter;

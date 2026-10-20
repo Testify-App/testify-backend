@@ -72,5 +72,6 @@ postsRouter.post('/comments/:id/like', verifyAuth, (0, request_validator_middlew
 postsRouter.delete('/comments/:id/like', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(postsValidator.commentIdValidator, 'params'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.unlikeComment));
 postsRouter.get('/user/:userId', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(postsValidator.userIdValidator, 'params'), (0, request_validator_middleware_1.validateDataMiddleware)(postsValidator.getPostsQueryValidator, 'query'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.getPostsByUserId));
 postsRouter.get('/user/:userId/reposts', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(postsValidator.userIdValidator, 'params'), (0, request_validator_middleware_1.validateDataMiddleware)(postsValidator.getPostsQueryValidator, 'query'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.getUserReposts));
+postsRouter.post('/impressions', verifyAuth, (0, request_validator_middleware_1.validateDataMiddleware)(postsValidator.createImpressionsValidator, 'body'), (0, watch_async_controller_1.WatchAsyncController)(controller_1.default.recordImpressions));
 exports.default = postsRouter;
 //# sourceMappingURL=routes.js.map

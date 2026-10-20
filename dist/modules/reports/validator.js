@@ -6,14 +6,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.reportIdValidator = exports.reviewReportValidator = exports.getReportsQueryValidator = exports.createReportValidator = void 0;
 const joi_1 = __importDefault(require("joi"));
 exports.createReportValidator = joi_1.default.object({
-    entity_type: joi_1.default.string().valid('post', 'comment').required(),
+    entity_type: joi_1.default.string().valid('post', 'comment', 'message').required(),
     entity_id: joi_1.default.string().required(),
     reason: joi_1.default.string().max(200).required(),
     details: joi_1.default.string().max(1000).optional().allow(''),
 });
 exports.getReportsQueryValidator = joi_1.default.object({
     status: joi_1.default.string().valid('pending', 'under_review', 'resolved').optional(),
-    entity_type: joi_1.default.string().valid('post', 'comment').optional(),
+    entity_type: joi_1.default.string().valid('post', 'comment', 'message').optional(),
     page: joi_1.default.number().integer().min(1).optional(),
     limit: joi_1.default.number().integer().min(1).max(100).optional(),
 });

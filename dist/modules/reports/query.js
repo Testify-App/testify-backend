@@ -7,6 +7,9 @@ exports.default = {
     getCommentOwner: `
     SELECT user_id FROM comments WHERE id = $1 AND deleted_at IS NULL;
   `,
+    getMessageOwner: `
+    SELECT sender_id AS user_id FROM messages WHERE id = $1 AND is_unsent = FALSE;
+  `,
     createReport: `
     INSERT INTO reports (entity_type, entity_id, content_owner_id, reporter_id, reason, details)
     VALUES ($1, $2, $3, $4, $5, $6)
@@ -27,12 +30,17 @@ exports.default = {
       comment.id              AS comment_id,
       comment.content         AS comment_content,
       comment.media_attachments AS comment_media_attachments,
-      comment.created_at      AS comment_created_at
+      comment.created_at      AS comment_created_at,
+      message.id              AS message_id,
+      message.content         AS message_content,
+      message.media_url       AS message_media_url,
+      message.created_at      AS message_created_at
     FROM reports r
     JOIN users reporter ON r.reporter_id = reporter.id
     JOIN users owner ON r.content_owner_id = owner.id
     LEFT JOIN posts post ON r.entity_type = 'post' AND post.id = r.entity_id
     LEFT JOIN comments comment ON r.entity_type = 'comment' AND comment.id = r.entity_id
+    LEFT JOIN messages message ON r.entity_type = 'message' AND message.id = r.entity_id
     WHERE ($3::report_status IS NULL OR r.status = $3)
       AND ($4::report_entity_type IS NULL OR r.entity_type = $4)
     ORDER BY r.created_at DESC

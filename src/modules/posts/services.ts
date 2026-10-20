@@ -200,6 +200,12 @@ export class PostsServiceImpl implements PostsInterface {
   ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> => {
     return await PostsRepository.getFollowingFeed(userId, query);
   };
+
+  public recordImpressions = async (
+    payload: dtos.CreateImpressionsDTO
+  ): Promise<BadException | { message: string }> => {
+    return await PostsRepository.recordImpressions(payload);
+  };
 }
 
 const PostsService = new PostsServiceImpl();

@@ -416,6 +416,17 @@ export class PostsController {
     logger.info('User bookmarks retrieved successfully', 'posts.controller.ts');
     return ResponseBuilder.success(res, 'User bookmarks retrieved successfully', StatusCodes.OK, response);
   };
+
+  public recordImpressions: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const payload = new dtos.CreateImpressionsDTO(req.body);
+    payload.user_id = req.user?.id as string;
+    const response = await PostsService.recordImpressions(payload);
+    if (response instanceof BadException) {
+      logger.error(`${response.message}`, 'posts.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    return ResponseBuilder.success(res, 'Impressions recorded successfully', StatusCodes.OK, response);
+  };
 }
 
 const postsController = new PostsController();

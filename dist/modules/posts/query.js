@@ -1,5 +1,56 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const feed_ranking_constants_1 = require("./feed-ranking.constants");
+const FEED_POST_COLUMNS = `
+  p.id,
+  p.user_id,
+  p.community_id,
+  p.content,
+  p.post_type,
+  p.visibility,
+  p.media_attachments,
+  p.parent_post_id,
+  p.quote_text,
+  p.is_pinned,
+  p.likes_count,
+  p.comments_count,
+  p.reposts_count,
+  p.quotes_count,
+  p.report_count,
+  p.status,
+  p.created_at,
+  p.updated_at,
+  u.username,
+  u.avatar,
+  u.display_name,
+  c.name        AS community_name,
+  c.avatar      AS community_avatar,
+  (c.owner_id = $1) AS is_community_owner
+`;
+const FEED_POST_COLUMNS_PLAIN = `
+  id, user_id, community_id, content, post_type, visibility, media_attachments,
+  parent_post_id, quote_text, is_pinned, likes_count, comments_count, reposts_count,
+  quotes_count, report_count, status, created_at, updated_at,
+  username, avatar, display_name, community_name, community_avatar, is_community_owner
+`;
+const FEED_VISIBILITY_AND_BLOCK_FILTER = `
+  p.deleted_at IS NULL
+  AND p.status != 'archived'
+  AND p.parent_post_id IS NULL
+  AND (
+    (p.visibility = 'public')
+    OR (p.user_id = $1)
+    OR (p.visibility = 'circle_only' AND EXISTS (
+      SELECT 1 FROM user_connections
+      WHERE user_id = $1 AND connected_user_id = p.user_id AND status = 'accepted'
+    ))
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM user_blocks
+    WHERE (blocker_id = $1 AND blocked_id = p.user_id)
+       OR (blocker_id = p.user_id AND blocked_id = $1)
+  )
+`;
 exports.default = {
     createPost: `
     INSERT INTO posts (
@@ -46,37 +97,136 @@ exports.default = {
            OR (blocker_id = p.user_id AND blocked_id = $2)
       );
   `,
-    getPostsFeed: `
-    SELECT COUNT(*) OVER () as count,
-      p.*,
-      u.id as user_id,
-      u.username,
-      u.avatar,
-      u.display_name,
-      c.id          AS community_id,
-      c.name        AS community_name,
-      c.avatar      AS community_avatar,
-      (c.owner_id = $3) AS is_community_owner
-    FROM posts p
-    JOIN users u ON p.user_id = u.id
-    LEFT JOIN communities c ON p.community_id = c.id
-    WHERE p.deleted_at IS NULL
-      AND p.status != 'archived'
-      AND p.parent_post_id IS NULL
-      AND (
-        (p.visibility = 'public')
-        OR (p.user_id = $3)
-        OR (p.visibility = 'circle_only' AND EXISTS (
-          SELECT 1 FROM user_connections
-          WHERE user_id = $3 AND connected_user_id = p.user_id AND status = 'accepted'
-        ))
-      )
-      AND NOT EXISTS (
-        SELECT 1 FROM user_blocks
-        WHERE (blocker_id = $3 AND blocked_id = p.user_id)
-           OR (blocker_id = p.user_id AND blocked_id = $3)
-      )
-    ORDER BY p.created_at DESC;
+    getRankedFeedCandidates: `
+    SELECT * FROM (
+      SELECT
+        ${FEED_POST_COLUMNS},
+        COALESCE(ta.topic_score, 0) AS topic_affinity_score,
+        COALESCE(ca.score, 0) AS creator_affinity_score,
+        EXISTS(SELECT 1 FROM user_follows WHERE follower_id = $1 AND following_id = p.user_id) AS is_followed_author,
+        EXISTS(SELECT 1 FROM community_members WHERE user_id = $1 AND community_id = p.community_id AND status = 'accepted') AS is_member_community,
+        ROUND((
+          ${feed_ranking_constants_1.RELEVANCE_WEIGHTS.TOPIC_AFFINITY}::numeric * COALESCE(ta.topic_score, 0)
+          + ${feed_ranking_constants_1.RELEVANCE_WEIGHTS.CREATOR_AFFINITY}::numeric * COALESCE(ca.score, 0)
+          + (${feed_ranking_constants_1.ENGAGEMENT_WEIGHTS.LIKE} * p.likes_count + ${feed_ranking_constants_1.ENGAGEMENT_WEIGHTS.REPOST} * p.reposts_count + ${feed_ranking_constants_1.ENGAGEMENT_WEIGHTS.COMMENT} * p.comments_count)
+          + CASE WHEN EXISTS(SELECT 1 FROM community_members WHERE user_id = $1 AND community_id = p.community_id AND status = 'accepted')
+                 THEN ${feed_ranking_constants_1.RELEVANCE_WEIGHTS.COMMUNITY_MEMBER_BONUS} ELSE 0 END
+          - ${feed_ranking_constants_1.RELEVANCE_WEIGHTS.RECENCY_DECAY_PER_HOUR}::numeric * (EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 3600)
+        )::numeric, ${feed_ranking_constants_1.RELEVANCE_SCORE_PRECISION}) AS relevance_score
+      FROM posts p
+      JOIN users u ON p.user_id = u.id
+      LEFT JOIN communities c ON p.community_id = c.id
+      LEFT JOIN (
+        SELECT ph.post_id, SUM(uta.score) AS topic_score
+        FROM post_hashtags ph
+        JOIN user_topic_affinity uta ON uta.hashtag_id = ph.hashtag_id AND uta.user_id = $1
+        GROUP BY ph.post_id
+      ) ta ON ta.post_id = p.id
+      LEFT JOIN user_creator_affinity ca ON ca.user_id = $1 AND ca.creator_id = p.user_id
+      WHERE ${FEED_VISIBILITY_AND_BLOCK_FILTER}
+    ) ranked
+    ORDER BY relevance_score DESC, created_at DESC, id DESC
+    LIMIT $2;
+  `,
+    getDiscoveryFeedCandidates: `
+    SELECT * FROM (
+      SELECT
+        ${FEED_POST_COLUMNS}
+      FROM posts p
+      JOIN users u ON p.user_id = u.id
+      LEFT JOIN communities c ON p.community_id = c.id
+      WHERE ${FEED_VISIBILITY_AND_BLOCK_FILTER}
+        AND p.user_id != $1
+        AND NOT EXISTS (SELECT 1 FROM user_follows WHERE follower_id = $1 AND following_id = p.user_id)
+        AND (
+          p.community_id IS NULL
+          OR NOT EXISTS (SELECT 1 FROM community_members WHERE user_id = $1 AND community_id = p.community_id AND status = 'accepted')
+        )
+        AND p.likes_count + p.reposts_count + p.comments_count > 0
+    ) discovery
+    ORDER BY created_at DESC
+    LIMIT $2;
+  `,
+    getTrendingFeedCandidates: `
+    SELECT * FROM (
+      SELECT
+        ${FEED_POST_COLUMNS},
+        (p.likes_count + p.reposts_count + p.comments_count)
+          / GREATEST(EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 3600, ${feed_ranking_constants_1.VELOCITY_MIN_AGE_HOURS}) AS velocity
+      FROM posts p
+      JOIN users u ON p.user_id = u.id
+      LEFT JOIN communities c ON p.community_id = c.id
+      WHERE ${FEED_VISIBILITY_AND_BLOCK_FILTER}
+        AND p.created_at >= NOW() - INTERVAL '${feed_ranking_constants_1.TRENDING_WINDOW_HOURS} hours'
+    ) trending
+    ORDER BY velocity DESC
+    LIMIT $2;
+  `,
+    getUserInteractionCount: `
+    SELECT (
+      (SELECT COUNT(*) FROM post_likes WHERE user_id = $1)
+      + (SELECT COUNT(*) FROM comments WHERE user_id = $1 AND deleted_at IS NULL)
+      + (SELECT COUNT(*) FROM reposts WHERE user_id = $1)
+      + (SELECT COUNT(*) FROM post_bookmarks WHERE user_id = $1)
+    ) AS total;
+  `,
+    getColdStartFeed: `
+    WITH recent AS (
+      SELECT ${FEED_POST_COLUMNS}, 'recent' AS slot
+      FROM posts p
+      JOIN users u ON p.user_id = u.id
+      LEFT JOIN communities c ON p.community_id = c.id
+      WHERE ${FEED_VISIBILITY_AND_BLOCK_FILTER} AND p.visibility = 'public'
+      ORDER BY p.created_at DESC
+      LIMIT $2
+    ),
+    trending_ranked AS (
+      SELECT
+        ${FEED_POST_COLUMNS}, 'trending' AS slot,
+        (p.likes_count + p.reposts_count + p.comments_count)
+          / GREATEST(EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 3600, ${feed_ranking_constants_1.VELOCITY_MIN_AGE_HOURS}) AS velocity,
+        ROW_NUMBER() OVER (PARTITION BY p.user_id ORDER BY
+          (p.likes_count + p.reposts_count + p.comments_count)
+            / GREATEST(EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 3600, ${feed_ranking_constants_1.VELOCITY_MIN_AGE_HOURS}) DESC
+        ) AS author_rank
+      FROM posts p
+      JOIN users u ON p.user_id = u.id
+      LEFT JOIN communities c ON p.community_id = c.id
+      WHERE ${FEED_VISIBILITY_AND_BLOCK_FILTER}
+        AND p.visibility = 'public'
+        AND p.created_at >= NOW() - INTERVAL '${feed_ranking_constants_1.COLD_START_TRENDING_WINDOW_HOURS} hours'
+    ),
+    trending AS (
+      SELECT ${FEED_POST_COLUMNS_PLAIN}, slot
+      FROM trending_ranked
+      WHERE author_rank <= ${feed_ranking_constants_1.COLD_START_MAX_PER_AUTHOR}
+      ORDER BY velocity DESC
+      LIMIT $2
+    ),
+    variety_ranked AS (
+      SELECT DISTINCT ON (COALESCE(p.community_id, ph.hashtag_id, p.id))
+        ${FEED_POST_COLUMNS}, 'variety' AS slot
+      FROM posts p
+      JOIN users u ON p.user_id = u.id
+      LEFT JOIN communities c ON p.community_id = c.id
+      LEFT JOIN post_hashtags ph ON ph.post_id = p.id
+      WHERE ${FEED_VISIBILITY_AND_BLOCK_FILTER} AND p.visibility = 'public'
+      ORDER BY COALESCE(p.community_id, ph.hashtag_id, p.id), p.created_at DESC
+    ),
+    variety AS (
+      SELECT ${FEED_POST_COLUMNS_PLAIN}, slot FROM variety_ranked
+      LIMIT $2
+    ),
+    merged AS (
+      SELECT ${FEED_POST_COLUMNS_PLAIN}, slot FROM recent
+      UNION
+      SELECT ${FEED_POST_COLUMNS_PLAIN}, slot FROM trending
+      UNION
+      SELECT ${FEED_POST_COLUMNS_PLAIN}, slot FROM variety
+    )
+    SELECT COUNT(*) OVER () AS count, * FROM merged
+    ORDER BY created_at DESC
+    LIMIT $2 OFFSET $3;
   `,
     getPostsCount: `
     SELECT COUNT(*) as total FROM posts p
@@ -541,6 +691,133 @@ exports.default = {
     JOIN hashtags h ON ph.hashtag_id = h.id
     WHERE ph.post_id = $1
     ORDER BY h.tag;
+  `,
+    insertImpressions: `
+    INSERT INTO post_impressions (post_id, user_id, source, dwell_ms, skipped)
+    SELECT * FROM UNNEST(
+      $1::text[],
+      $2::text[],
+      $3::post_impression_source[],
+      $4::int[],
+      $5::boolean[]
+    );
+  `,
+    refreshUserTopicAffinity: `
+    INSERT INTO user_topic_affinity (user_id, hashtag_id, score, updated_at)
+    SELECT user_id, hashtag_id, SUM(weighted_score), NOW()
+    FROM (
+      SELECT pl.user_id, ph.hashtag_id,
+        $3::numeric * EXP(-EXTRACT(EPOCH FROM (NOW() - pl.created_at)) / 86400 / $2::numeric) AS weighted_score
+      FROM post_likes pl
+      JOIN post_hashtags ph ON ph.post_id = pl.post_id
+      WHERE pl.created_at >= $1
+
+      UNION ALL
+
+      SELECT c.user_id, ph.hashtag_id,
+        $4::numeric * EXP(-EXTRACT(EPOCH FROM (NOW() - c.created_at)) / 86400 / $2::numeric) AS weighted_score
+      FROM comments c
+      JOIN post_hashtags ph ON ph.post_id = c.post_id
+      WHERE c.created_at >= $1 AND c.deleted_at IS NULL
+
+      UNION ALL
+
+      SELECT r.user_id, ph.hashtag_id,
+        $5::numeric * EXP(-EXTRACT(EPOCH FROM (NOW() - r.created_at)) / 86400 / $2::numeric) AS weighted_score
+      FROM reposts r
+      JOIN post_hashtags ph ON ph.post_id = r.post_id
+      WHERE r.created_at >= $1
+
+      UNION ALL
+
+      SELECT pb.user_id, ph.hashtag_id,
+        $6::numeric * EXP(-EXTRACT(EPOCH FROM (NOW() - pb.created_at)) / 86400 / $2::numeric) AS weighted_score
+      FROM post_bookmarks pb
+      JOIN post_hashtags ph ON ph.post_id = pb.post_id
+      WHERE pb.created_at >= $1
+
+      UNION ALL
+
+      SELECT pi.user_id, ph.hashtag_id,
+        $7::numeric * EXP(-EXTRACT(EPOCH FROM (NOW() - pi.created_at)) / 86400 / $2::numeric) AS weighted_score
+      FROM post_impressions pi
+      JOIN post_hashtags ph ON ph.post_id = pi.post_id
+      WHERE pi.created_at >= $1 AND pi.dwell_ms IS NOT NULL AND pi.dwell_ms >= $9::int
+
+      UNION ALL
+
+      SELECT pi.user_id, ph.hashtag_id,
+        $8::numeric * EXP(-EXTRACT(EPOCH FROM (NOW() - pi.created_at)) / 86400 / $2::numeric) AS weighted_score
+      FROM post_impressions pi
+      JOIN post_hashtags ph ON ph.post_id = pi.post_id
+      WHERE pi.created_at >= $1 AND pi.skipped = TRUE
+    ) events
+    GROUP BY user_id, hashtag_id
+    ON CONFLICT (user_id, hashtag_id) DO UPDATE SET
+      score = EXCLUDED.score,
+      updated_at = NOW();
+  `,
+    refreshUserCreatorAffinity: `
+    INSERT INTO user_creator_affinity (user_id, creator_id, score, updated_at)
+    SELECT user_id, creator_id, SUM(weighted_score), NOW()
+    FROM (
+      SELECT pl.user_id, p.user_id AS creator_id,
+        $3::numeric * EXP(-EXTRACT(EPOCH FROM (NOW() - pl.created_at)) / 86400 / $2::numeric) AS weighted_score
+      FROM post_likes pl
+      JOIN posts p ON p.id = pl.post_id
+      WHERE pl.created_at >= $1
+
+      UNION ALL
+
+      SELECT c.user_id, p.user_id AS creator_id,
+        $4::numeric * EXP(-EXTRACT(EPOCH FROM (NOW() - c.created_at)) / 86400 / $2::numeric) AS weighted_score
+      FROM comments c
+      JOIN posts p ON p.id = c.post_id
+      WHERE c.created_at >= $1 AND c.deleted_at IS NULL
+
+      UNION ALL
+
+      SELECT r.user_id, p.user_id AS creator_id,
+        $5::numeric * EXP(-EXTRACT(EPOCH FROM (NOW() - r.created_at)) / 86400 / $2::numeric) AS weighted_score
+      FROM reposts r
+      JOIN posts p ON p.id = r.post_id
+      WHERE r.created_at >= $1
+
+      UNION ALL
+
+      SELECT pb.user_id, p.user_id AS creator_id,
+        $6::numeric * EXP(-EXTRACT(EPOCH FROM (NOW() - pb.created_at)) / 86400 / $2::numeric) AS weighted_score
+      FROM post_bookmarks pb
+      JOIN posts p ON p.id = pb.post_id
+      WHERE pb.created_at >= $1
+
+      UNION ALL
+
+      SELECT pi.user_id, p.user_id AS creator_id,
+        $7::numeric * EXP(-EXTRACT(EPOCH FROM (NOW() - pi.created_at)) / 86400 / $2::numeric) AS weighted_score
+      FROM post_impressions pi
+      JOIN posts p ON p.id = pi.post_id
+      WHERE pi.created_at >= $1 AND pi.dwell_ms IS NOT NULL AND pi.dwell_ms >= $9::int
+
+      UNION ALL
+
+      SELECT pi.user_id, p.user_id AS creator_id,
+        $8::numeric * EXP(-EXTRACT(EPOCH FROM (NOW() - pi.created_at)) / 86400 / $2::numeric) AS weighted_score
+      FROM post_impressions pi
+      JOIN posts p ON p.id = pi.post_id
+      WHERE pi.created_at >= $1 AND pi.skipped = TRUE
+    ) events
+    WHERE user_id != creator_id
+    GROUP BY user_id, creator_id
+    ON CONFLICT (user_id, creator_id) DO UPDATE SET
+      score = EXCLUDED.score,
+      updated_at = NOW();
+  `,
+    pruneStaleTopicAffinity: `
+    DELETE FROM user_topic_affinity WHERE updated_at < $1;
+  `,
+    pruneStaleCreatorAffinity: `
+    DELETE FROM user_creator_affinity WHERE updated_at < $1;
   `,
     getMentionedUserIds: `
     SELECT id, username FROM users WHERE username = ANY($1::text[]);

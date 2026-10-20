@@ -1,6 +1,6 @@
 import { BaseEntity } from '../../shared/utils/base-entity';
 
-export type ReportEntityType = 'post' | 'comment';
+export type ReportEntityType = 'post' | 'comment' | 'message';
 export type ReportStatus = 'pending' | 'under_review' | 'resolved';
 export type ReportModeratorAction = 'no_action' | 'content_removed' | 'user_action_taken';
 

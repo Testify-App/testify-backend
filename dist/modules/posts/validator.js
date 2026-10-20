@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.userIdValidator = exports.commentReplyParamValidator = exports.commentIdValidator = exports.idValidator = exports.postIdValidator = exports.getRepostsQueryValidator = exports.getLikesQueryValidator = exports.getCommentsQueryValidator = exports.getPostsQueryValidator = exports.getMyPostsQueryValidator = exports.createCommentValidator = exports.updatePostValidator = exports.createPostValidator = void 0;
+exports.createImpressionsValidator = exports.userIdValidator = exports.commentReplyParamValidator = exports.commentIdValidator = exports.idValidator = exports.postIdValidator = exports.getRepostsQueryValidator = exports.getLikesQueryValidator = exports.getCommentsQueryValidator = exports.getPostsQueryValidator = exports.getMyPostsQueryValidator = exports.createCommentValidator = exports.updatePostValidator = exports.createPostValidator = void 0;
 const joi_1 = __importDefault(require("joi"));
 const hashtagContentRule = joi_1.default.string().min(1).max(5000).custom((value, helpers) => {
     var _a;
@@ -103,5 +103,15 @@ exports.commentReplyParamValidator = joi_1.default.object({
 });
 exports.userIdValidator = joi_1.default.object({
     userId: joi_1.default.string().uuid().required(),
+});
+const MAX_IMPRESSIONS_PER_BATCH = 100;
+const MAX_IMPRESSION_DWELL_MS = 60 * 60 * 1000;
+exports.createImpressionsValidator = joi_1.default.object({
+    impressions: joi_1.default.array().min(1).max(MAX_IMPRESSIONS_PER_BATCH).items(joi_1.default.object({
+        post_id: joi_1.default.string().uuid().required(),
+        source: joi_1.default.string().valid('feed', 'profile', 'community', 'search').required(),
+        dwell_ms: joi_1.default.number().integer().min(0).max(MAX_IMPRESSION_DWELL_MS).optional(),
+        skipped: joi_1.default.boolean().optional(),
+    })).required(),
 });
 //# sourceMappingURL=validator.js.map

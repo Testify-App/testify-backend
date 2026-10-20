@@ -72,6 +72,7 @@ const NOTIFICATION_TYPE_TO_PREFERENCE_COLUMN = {
     repost: 'reposts',
     circle_accepted: 'circle_activity',
     circle_removed: 'circle_activity',
+    message: 'messages',
 };
 const createNotification = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;

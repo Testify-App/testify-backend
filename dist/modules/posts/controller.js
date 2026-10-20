@@ -448,6 +448,17 @@ class PostsController {
             logger_1.default.info('User bookmarks retrieved successfully', 'posts.controller.ts');
             return ResponseBuilder.success(res, 'User bookmarks retrieved successfully', http_status_codes_1.StatusCodes.OK, response);
         });
+        this.recordImpressions = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const payload = new dtos.CreateImpressionsDTO(req.body);
+            payload.user_id = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+            const response = yield services_1.default.recordImpressions(payload);
+            if (response instanceof errors_1.BadException) {
+                logger_1.default.error(`${response.message}`, 'posts.controller.ts');
+                return ResponseBuilder.error(res, response, http_status_codes_1.StatusCodes.BAD_REQUEST);
+            }
+            return ResponseBuilder.success(res, 'Impressions recorded successfully', http_status_codes_1.StatusCodes.OK, response);
+        });
     }
 }
 exports.PostsController = PostsController;

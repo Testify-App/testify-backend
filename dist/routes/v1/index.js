@@ -63,6 +63,7 @@ const routes_8 = __importDefault(require("../../modules/notifications/routes"));
 const routes_9 = __importDefault(require("../../modules/stories/routes"));
 const routes_10 = __importDefault(require("../../modules/reports/routes"));
 const routes_11 = __importDefault(require("../../modules/uploads/routes"));
+const routes_12 = __importDefault(require("../../modules/messaging/routes"));
 const appRouter = express_1.default.Router();
 appRouter.get('/', (_req, res) => Response.success(res, 'Welcome to Testify API.', http_status_codes_1.StatusCodes.OK));
 const HEALTHCHECK_TIMEOUT_MS = Number((_a = process.env.HEALTHCHECK_TIMEOUT_MS) !== null && _a !== void 0 ? _a : 2000);
@@ -94,5 +95,6 @@ appRouter.use("/notifications", routes_8.default);
 appRouter.use("/stories", routes_9.default);
 appRouter.use("/reports", routes_10.default);
 appRouter.use("/uploads", routes_11.default);
+appRouter.use("/", routes_12.default);
 exports.Router = appRouter;
 //# sourceMappingURL=index.js.map

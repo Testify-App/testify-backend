@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GetRepostsQueryDTO = exports.GetLikesQueryDTO = exports.GetCommentsQueryDTO = exports.DeletePostDTO = exports.GetPostQueryDTO = exports.GetPostsQueryDTO = exports.CreateCommentDTO = exports.UpdatePostDTO = exports.CreatePostDTO = void 0;
+exports.CreateImpressionsDTO = exports.GetRepostsQueryDTO = exports.GetLikesQueryDTO = exports.GetCommentsQueryDTO = exports.DeletePostDTO = exports.GetPostQueryDTO = exports.GetPostsQueryDTO = exports.CreateCommentDTO = exports.UpdatePostDTO = exports.CreatePostDTO = void 0;
 const base_entity_1 = require("../../shared/utils/base-entity");
 class CreatePostDTO extends base_entity_1.BaseEntity {
 }
@@ -29,4 +29,7 @@ exports.GetLikesQueryDTO = GetLikesQueryDTO;
 class GetRepostsQueryDTO extends base_entity_1.BaseEntity {
 }
 exports.GetRepostsQueryDTO = GetRepostsQueryDTO;
+class CreateImpressionsDTO extends base_entity_1.BaseEntity {
+}
+exports.CreateImpressionsDTO = CreateImpressionsDTO;
 //# sourceMappingURL=dto.js.map

@@ -100,6 +100,9 @@ class PostsServiceImpl {
         this.getFollowingFeed = (userId, query) => __awaiter(this, void 0, void 0, function* () {
             return yield repositories_1.default.getFollowingFeed(userId, query);
         });
+        this.recordImpressions = (payload) => __awaiter(this, void 0, void 0, function* () {
+            return yield repositories_1.default.recordImpressions(payload);
+        });
     }
 }
 exports.PostsServiceImpl = PostsServiceImpl;
