@@ -107,10 +107,21 @@ jobs:
           set -euo pipefail
           # By tag, never by ID — the ID changes every time the ASG replaces the
           # instance, and the IAM policy authorises targets by this tag.
-          id=$(aws ec2 describe-instances \
-            --filters "Name=tag:Deploy,Values=${DEPLOY_TAG}" \
-                      "Name=instance-state-name,Values=running" \
-            --query 'Reservations[].Instances[0].InstanceId' --output text)
+          # ssm:DescribeInstanceInformation, NOT ec2:DescribeInstances.
+          #
+          # The deploy role is not granted ec2:DescribeInstances, and granting
+          # it would mean `*` — that action has no resource-level support, so
+          # the role could enumerate every instance in the account. SSM already
+          # filters by EC2 tag and the role already holds this permission.
+          #
+          # It is also the better check: PingStatus==Online confirms the SSM
+          # agent is reachable, which SendCommand needs anyway. An instance that
+          # is `running` but whose agent is down would pass an EC2 check and
+          # then fail the deploy.
+          id=$(aws ssm describe-instance-information \
+            --filters "Key=tag:Deploy,Values=${DEPLOY_TAG}" \
+            --query 'InstanceInformationList[?PingStatus==`Online`].InstanceId | [0]' \
+            --output text)
           [ -n "$id" ] && [ "$id" != "None" ] || { echo "no running instance tagged Deploy=${DEPLOY_TAG}"; exit 1; }
           echo "id=$id" >> "$GITHUB_OUTPUT"
           echo "Deploying to $id"
