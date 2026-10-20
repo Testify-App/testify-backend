@@ -7,6 +7,8 @@ import { db } from './config/database';
 import { AppEnv } from './shared/enums';
 import { envValidatorSchema } from './shared/env-validator';
 import { startStoryCleanupJob } from './shared/jobs/story-cleanup.job';
+import { startFeedAffinityJob } from './shared/jobs/feed-affinity.job';
+import { initMessagingGateway, getMessagingIO } from './shared/sockets/messaging.gateway';
 
 async function main(app: Express): Promise<void> {
   const logger = new Logger(app.name);
@@ -28,8 +30,11 @@ async function main(app: Express): Promise<void> {
   startupProbe.done();
 
   startStoryCleanupJob();
+  startFeedAffinityJob();
 
   const server = http.createServer(app);
+
+  initMessagingGateway(server);
 
   const PORT = Env.get<number>('PORT') || 8080;
   const NODE_ENV = Env.get<string>('NODE_ENV');
@@ -94,6 +99,37 @@ function installShutdownHandlers(
     forceExit.unref();
 
     try {
+      /**
+       * Close Socket.IO FIRST, before server.close().
+       *
+       * `server.close()` does not resolve until every connection is gone, and a
+       * WebSocket connection never ends on its own — a connected client holds
+       * it open indefinitely. With the messaging gateway attached, the drain
+       * below could therefore never complete, so every deploy would hit the
+       * FORCE_EXIT_MS backstop and be killed instead of draining. With
+       * `docker stop -t 30` against a 25s backstop, that left five seconds of
+       * margin on every deploy.
+       *
+       * `io.close()` disconnects every client and stops the engine. Clients see
+       * a clean close and reconnect to the new container, rather than an abrupt
+       * transport error.
+       *
+       * Resolved defensively: the gateway is optional, and shutdown must work
+       * whether or not messaging is initialised.
+       */
+      const io = getMessagingIO();
+      if (io) {
+        await new Promise<void>((resolve) => {
+          const give_up = setTimeout(resolve, 5_000);
+          give_up.unref();
+          io.close(() => {
+            clearTimeout(give_up);
+            resolve();
+          });
+        });
+        logger.log('socket.io closed', 'shutdown');
+      }
+
       // Stop accepting new connections; in-flight requests continue.
       const closed = new Promise<void>((resolve) =>
         server.close(() => resolve()),

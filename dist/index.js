@@ -20,6 +20,8 @@ const database_1 = require("./config/database");
 const enums_1 = require("./shared/enums");
 const env_validator_1 = require("./shared/env-validator");
 const story_cleanup_job_1 = require("./shared/jobs/story-cleanup.job");
+const feed_affinity_job_1 = require("./shared/jobs/feed-affinity.job");
+const messaging_gateway_1 = require("./shared/sockets/messaging.gateway");
 function main(app) {
     return __awaiter(this, void 0, void 0, function* () {
         const logger = new logger_1.default(app.name);
@@ -27,7 +29,9 @@ function main(app) {
         const startupProbe = yield database_1.db.connect();
         startupProbe.done();
         (0, story_cleanup_job_1.startStoryCleanupJob)();
+        (0, feed_affinity_job_1.startFeedAffinityJob)();
         const server = http_1.default.createServer(app);
+        (0, messaging_gateway_1.initMessagingGateway)(server);
         const PORT = env_1.default.get('PORT') || 8080;
         const NODE_ENV = env_1.default.get('NODE_ENV');
         NODE_ENV !== enums_1.AppEnv.PRODUCTION &&
@@ -54,6 +58,18 @@ function installShutdownHandlers(server, logger) {
         }, FORCE_EXIT_MS);
         forceExit.unref();
         try {
+            const io = (0, messaging_gateway_1.getMessagingIO)();
+            if (io) {
+                yield new Promise((resolve) => {
+                    const give_up = setTimeout(resolve, 5000);
+                    give_up.unref();
+                    io.close(() => {
+                        clearTimeout(give_up);
+                        resolve();
+                    });
+                });
+                logger.log('socket.io closed', 'shutdown');
+            }
             const closed = new Promise((resolve) => server.close(() => resolve()));
             const sweepIdle = setInterval(() => { var _a; return (_a = server.closeIdleConnections) === null || _a === void 0 ? void 0 : _a.call(server); }, 250);
             sweepIdle.unref();
