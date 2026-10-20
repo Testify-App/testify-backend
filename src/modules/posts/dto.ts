@@ -86,3 +86,15 @@ export class GetRepostsQueryDTO extends BaseEntity<GetRepostsQueryDTO> {
   page?: number;
   limit?: number;
 }
+
+export interface ImpressionInput {
+  post_id: string;
+  source: 'feed' | 'profile' | 'community' | 'search';
+  dwell_ms?: number;
+  skipped?: boolean;
+}
+
+export class CreateImpressionsDTO extends BaseEntity<CreateImpressionsDTO> {
+  user_id: string;
+  impressions: ImpressionInput[];
+}

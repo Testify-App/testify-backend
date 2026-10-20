@@ -96,6 +96,7 @@ const NOTIFICATION_TYPE_TO_PREFERENCE_COLUMN: Record<string, string> = {
   repost: 'reposts',
   circle_accepted: 'circle_activity',
   circle_removed: 'circle_activity',
+  message: 'messages',
 };
 
 export const createNotification = async (payload: CreateNotificationPayload): Promise<void> => {

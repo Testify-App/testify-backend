@@ -113,4 +113,6 @@ export interface PostsInterface {
     userId: string,
     query: dtos.GetPostsQueryDTO
   ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }>;
+
+  recordImpressions(payload: dtos.CreateImpressionsDTO): Promise<BadException | { message: string }>;
 }

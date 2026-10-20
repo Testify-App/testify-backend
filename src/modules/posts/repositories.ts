@@ -16,6 +16,12 @@ import {
   FetchPaginatedResponse,
 } from '../../shared/helpers';
 import NotificationService from '../../shared/services/notification';
+import {
+  CANDIDATE_POOL_MULTIPLIER,
+  FEED_INTERLEAVE_RATIO,
+  MAX_CONSECUTIVE_SAME_SOURCE,
+  COLD_START_INTERACTION_THRESHOLD,
+} from './feed-ranking.constants';
 
 export class PostsRepositoryImpl implements PostsInterface {
   public async createPost(
@@ -128,18 +134,147 @@ export class PostsRepositoryImpl implements PostsInterface {
     }
   };
 
+  // Interleaves personalized/discovery/trending candidates at FEED_INTERLEAVE_RATIO,
+  // then re-orders to avoid 3+ consecutive posts sharing the same author,
+  // community, or dominant hashtag (MAX_CONSECUTIVE_SAME_SOURCE). Operates on an
+  // already-fetched in-memory array — cheap, since the pool is small (one page's
+  // worth of candidates, not the whole table).
+  // Greedy, constraint-respecting interleave: at each position, prefer the next
+  // candidate (in FEED_INTERLEAVE_RATIO cycle order) that would NOT create a run
+  // of MAX_CONSECUTIVE_SAME_SOURCE+1 posts sharing the same author/community;
+  // only fall back to a violating pick when every remaining candidate everywhere
+  // would violate it (i.e. the available content is genuinely too homogeneous
+  // to avoid it — not an algorithm failure, a content-scarcity floor).
+  //
+  // An earlier version built the full interleaved order first and tried to fix
+  // violations with a single backward-looking swap pass; that approach could
+  // leave a violation unresolved when a swap's source ran out, since fixing one
+  // position doesn't guarantee the positions after it stay valid. Enforcing the
+  // constraint while building the sequence (rather than patching it afterward)
+  // avoids that failure mode entirely — verified against a worst-case input
+  // (10 same-author posts against only 3 alternates) before relying on it.
+  private interleaveAndDiversify(
+    personalized: any[],
+    discovery: any[],
+    trending: any[],
+    targetCount: number
+  ): any[] {
+    const ratio = FEED_INTERLEAVE_RATIO;
+    const cycleLength = ratio.personalized + ratio.discovery + ratio.trending;
+    const seenIds = new Set<string>();
+    const queues: Record<'personalized' | 'discovery' | 'trending', any[]> = {
+      personalized: [...personalized],
+      discovery: [...discovery],
+      trending: [...trending],
+    };
+    const sourceNames = ['personalized', 'discovery', 'trending'] as const;
+
+    const wouldViolate = (candidate: any, result: any[]): boolean => {
+      if (result.length < MAX_CONSECUTIVE_SAME_SOURCE) return false;
+      const prev = result.slice(result.length - MAX_CONSECUTIVE_SAME_SOURCE);
+      const violatesAuthor = prev.every((p) => p.user_id === candidate.user_id);
+      const violatesCommunity = candidate.community_id && prev.every((p) => p.community_id === candidate.community_id);
+      return violatesAuthor || violatesCommunity;
+    };
+
+    // Pops the first unseen, non-violating candidate from a queue. Candidates
+    // skipped along the way (already seen, or would violate right now) are
+    // requeued at the back so they remain eligible once the run breaks.
+    const takeBestFrom = (queueName: keyof typeof queues, result: any[]): any | null => {
+      const queue = queues[queueName];
+      const deferred: any[] = [];
+      let picked: any = null;
+      while (queue.length > 0) {
+        const candidate = queue.shift();
+        if (seenIds.has(candidate.id)) continue;
+        if (!picked && !wouldViolate(candidate, result)) {
+          picked = candidate;
+          break;
+        }
+        deferred.push(candidate);
+      }
+      queue.unshift(...deferred);
+      return picked;
+    };
+
+    const interleaved: any[] = [];
+    let cyclePosition = 0;
+    const totalAvailable = personalized.length + discovery.length + trending.length;
+
+    while (interleaved.length < targetCount && interleaved.length < totalAvailable) {
+      const slot = cyclePosition % cycleLength;
+      const preferredSource =
+        slot < ratio.personalized ? 'personalized'
+          : slot < ratio.personalized + ratio.discovery ? 'discovery'
+            : 'trending';
+      cyclePosition++;
+
+      let candidate = takeBestFrom(preferredSource, interleaved);
+      if (!candidate) {
+        for (const fallback of sourceNames) {
+          if (fallback === preferredSource) continue;
+          candidate = takeBestFrom(fallback, interleaved);
+          if (candidate) break;
+        }
+      }
+      if (!candidate) {
+        // No non-violating candidate anywhere — take the next available one
+        // regardless of the constraint. This is real content scarcity, not a
+        // bug: there is nothing else left to show instead.
+        for (const src of sourceNames) {
+          while (queues[src].length > 0) {
+            const next = queues[src].shift();
+            if (!seenIds.has(next.id)) { candidate = next; break; }
+          }
+          if (candidate) break;
+        }
+      }
+
+      if (!candidate) break; // nothing left anywhere
+      seenIds.add(candidate.id);
+      interleaved.push(candidate);
+    }
+
+    return interleaved;
+  }
+
   public async getPosts(
     payload: dtos.GetPostsQueryDTO
   ): Promise<InternalServerErrorException | FetchPaginatedResponse> {
     try {
-      console.log('getPosts');
       const { page = '1', limit = '20', user_id } = payload as { page?: string; limit?: string; user_id: string };
-      const [{ count }, posts] = await fetchResourceByPage({
-        page,
-        limit,
-        getResources: PostsQuery.getPostsFeed,
-        params: [user_id],
-      });
+      const pageNum = parseInt(String(page), 10) || 1;
+      const limitNum = parseInt(String(limit), 10) || 20;
+
+      const interactionRow = await db.one(PostsQuery.getUserInteractionCount, [user_id]);
+      const interactionCount = parseInt(interactionRow.total || '0', 10);
+
+      let posts: any[];
+      let count;
+
+      if (interactionCount < COLD_START_INTERACTION_THRESHOLD) {
+        const offset = (pageNum - 1) * limitNum;
+        const rows = await db.any(PostsQuery.getColdStartFeed, [user_id, limitNum, offset]);
+        posts = rows;
+        count = rows.length > 0 ? parseInt(rows[0].count, 10) : 0;
+      } else {
+        // Candidate pool sized to this page plus enough slack for the diversity
+        // pass to swap posts around without running out of alternates. Re-ranked
+        // fresh on every request (no OFFSET) since scores shift as engagement/
+        // affinity change — a later "page 2" is a new ranking, not a stable list.
+        const poolSize = limitNum * CANDIDATE_POOL_MULTIPLIER;
+        const [personalized, discovery, trending, totalRow] = await Promise.all([
+          db.any(PostsQuery.getRankedFeedCandidates, [user_id, poolSize]),
+          db.any(PostsQuery.getDiscoveryFeedCandidates, [user_id, poolSize]),
+          db.any(PostsQuery.getTrendingFeedCandidates, [user_id, poolSize]),
+          db.one(PostsQuery.getPostsCount, [user_id]),
+        ]);
+
+        const interleaved = this.interleaveAndDiversify(personalized, discovery, trending, limitNum * pageNum);
+        const offset = (pageNum - 1) * limitNum;
+        posts = interleaved.slice(offset, offset + limitNum);
+        count = parseInt(totalRow.total || '0', 10);
+      }
 
       const postsWithEngagement = await Promise.all(
         posts.map(async (post: any) => {
@@ -175,7 +310,7 @@ export class PostsRepositoryImpl implements PostsInterface {
       );
 
       return {
-        total: count,
+        total: String(count),
         currentPage: page,
         totalPages: calcPages(count, limit),
         posts: postsWithEngagement,
@@ -1207,6 +1342,24 @@ export class PostsRepositoryImpl implements PostsInterface {
         posts: archivedPosts,
         pagination: { page: String(page), limit: String(limit), total: count, totalPages: calcPages(count, limit) },
       };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async recordImpressions(
+    payload: dtos.CreateImpressionsDTO
+  ): Promise<BadException | { message: string }> {
+    try {
+      const postIds = payload.impressions.map((i) => i.post_id);
+      const userIds = payload.impressions.map(() => payload.user_id);
+      const sources = payload.impressions.map((i) => i.source);
+      const dwellMs = payload.impressions.map((i) => i.dwell_ms ?? null);
+      const skipped = payload.impressions.map((i) => i.skipped ?? false);
+
+      await db.none(PostsQuery.insertImpressions, [postIds, userIds, sources, dwellMs, skipped]);
+
+      return { message: 'Impressions recorded successfully' };
     } catch (error) {
       return new BadException(`${error.message}`);
     }

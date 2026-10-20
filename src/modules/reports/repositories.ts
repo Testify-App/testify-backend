@@ -7,7 +7,6 @@ import { BadException, NotFoundException } from '../../shared/lib/errors';
 import { calcPages, fetchResourceByPage, FetchPaginatedResponse } from '../../shared/helpers';
 
 function mapToEntity(row: any): entities.ReportEntity {
-  const isPost = row.entity_type === 'post';
   return new entities.ReportEntity({
     id: row.id,
     entity_type: row.entity_type,
@@ -27,19 +26,27 @@ function mapToEntity(row: any): entities.ReportEntity {
       username: row.content_owner_username,
       avatar: row.content_owner_avatar,
     },
-    content: isPost
-      ? (row.post_id ? {
-          id: row.post_id,
-          content: row.post_content,
-          media_attachments: row.post_media_attachments,
-          created_at: row.post_created_at,
-        } : null)
-      : (row.comment_id ? {
-          id: row.comment_id,
-          content: row.comment_content,
-          media_attachments: row.comment_media_attachments,
-          created_at: row.comment_created_at,
-        } : null),
+    content:
+      row.entity_type === 'post'
+        ? (row.post_id ? {
+            id: row.post_id,
+            content: row.post_content,
+            media_attachments: row.post_media_attachments,
+            created_at: row.post_created_at,
+          } : null)
+        : row.entity_type === 'comment'
+          ? (row.comment_id ? {
+              id: row.comment_id,
+              content: row.comment_content,
+              media_attachments: row.comment_media_attachments,
+              created_at: row.comment_created_at,
+            } : null)
+          : (row.message_id ? {
+              id: row.message_id,
+              content: row.message_content,
+              media_attachments: row.message_media_url,
+              created_at: row.message_created_at,
+            } : null),
   });
 }
 
@@ -48,12 +55,14 @@ export class ReportsRepositoryImpl implements ReportsInterface {
     payload: dtos.CreateReportDTO
   ): Promise<BadException | NotFoundException | entities.ReportEntity> {
     try {
-      const ownerRow = await db.oneOrNone(
-        payload.entity_type === 'post' ? ReportsQuery.getPostOwner : ReportsQuery.getCommentOwner,
-        [payload.entity_id]
-      );
+      const ownerQueryByEntityType: Record<string, string> = {
+        post: ReportsQuery.getPostOwner,
+        comment: ReportsQuery.getCommentOwner,
+        message: ReportsQuery.getMessageOwner,
+      };
+      const ownerRow = await db.oneOrNone(ownerQueryByEntityType[payload.entity_type], [payload.entity_id]);
       if (!ownerRow) {
-        return new NotFoundException(`${payload.entity_type === 'post' ? 'Post' : 'Comment'} not found`);
+        return new NotFoundException(`${payload.entity_type.charAt(0).toUpperCase()}${payload.entity_type.slice(1)} not found`);
       }
       if (ownerRow.user_id === payload.reporter_id) {
         return new BadException('You cannot report your own content');
