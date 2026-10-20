@@ -117,3 +117,17 @@ export const commentReplyParamValidator = Joi.object({
 export const userIdValidator = Joi.object({
   userId: Joi.string().uuid().required(),
 });
+
+const MAX_IMPRESSIONS_PER_BATCH = 100;
+const MAX_IMPRESSION_DWELL_MS = 60 * 60 * 1000; // 1 hour — a sanity ceiling, not a real viewing duration
+
+export const createImpressionsValidator = Joi.object({
+  impressions: Joi.array().min(1).max(MAX_IMPRESSIONS_PER_BATCH).items(
+    Joi.object({
+      post_id: Joi.string().uuid().required(),
+      source: Joi.string().valid('feed', 'profile', 'community', 'search').required(),
+      dwell_ms: Joi.number().integer().min(0).max(MAX_IMPRESSION_DWELL_MS).optional(),
+      skipped: Joi.boolean().optional(),
+    })
+  ).required(),
+});

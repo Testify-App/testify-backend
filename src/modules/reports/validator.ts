@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 export const createReportValidator = Joi.object({
-  entity_type: Joi.string().valid('post', 'comment').required(),
+  entity_type: Joi.string().valid('post', 'comment', 'message').required(),
   entity_id: Joi.string().required(),
   reason: Joi.string().max(200).required(),
   details: Joi.string().max(1000).optional().allow(''),
@@ -9,7 +9,7 @@ export const createReportValidator = Joi.object({
 
 export const getReportsQueryValidator = Joi.object({
   status: Joi.string().valid('pending', 'under_review', 'resolved').optional(),
-  entity_type: Joi.string().valid('post', 'comment').optional(),
+  entity_type: Joi.string().valid('post', 'comment', 'message').optional(),
   page: Joi.number().integer().min(1).optional(),
   limit: Joi.number().integer().min(1).max(100).optional(),
 });

@@ -7,6 +7,8 @@ import { db } from './config/database';
 import { AppEnv } from './shared/enums';
 import { envValidatorSchema } from './shared/env-validator';
 import { startStoryCleanupJob } from './shared/jobs/story-cleanup.job';
+import { startFeedAffinityJob } from './shared/jobs/feed-affinity.job';
+import { initMessagingGateway } from './shared/sockets/messaging.gateway';
 
 async function main(app: Express): Promise<void> {
   const logger = new Logger(app.name);
@@ -16,8 +18,11 @@ async function main(app: Express): Promise<void> {
   await db.connect();
 
   startStoryCleanupJob();
+  startFeedAffinityJob();
 
   const server = http.createServer(app);
+
+  initMessagingGateway(server);
 
   const PORT = Env.get<number>('PORT') || 8080;
   const NODE_ENV = Env.get<string>('NODE_ENV');
