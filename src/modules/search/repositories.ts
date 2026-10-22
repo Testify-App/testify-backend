@@ -36,10 +36,19 @@ export class SearchRepositoryImpl {
       const communityCount = communityRows.length > 0 ? parseInt(communityRows[0].count, 10) : 0;
 
       const posts = await Promise.all(
-        postRows.map(async ({ count: _c, rank: _r, ...row }) => ({
-          ...row,
-          content_segments: await parseContentSegments(row.content),
-        }))
+        postRows.map(async ({ count: _c, rank: _r, ...row }) => {
+          const [isFollowing, isInCircle, content_segments] = await Promise.all([
+            db.one(PostsQuery.isFollowingUser, [userId, row.user_id]),
+            db.one(PostsQuery.isInCircleWith, [userId, row.user_id]),
+            parseContentSegments(row.content),
+          ]);
+          return {
+            ...row,
+            content_segments,
+            is_following: isFollowing.exists,
+            is_in_circle: isInCircle.exists,
+          };
+        })
       );
 
       const profiles = await Promise.all(

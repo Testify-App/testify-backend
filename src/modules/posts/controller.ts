@@ -405,6 +405,18 @@ export class PostsController {
     return ResponseBuilder.success(res, 'Following feed retrieved successfully', StatusCodes.OK, response);
   };
 
+  public getRecommendedPosts: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const userId = req.user?.id as string;
+    const query = new dtos.GetPostsQueryDTO(req.query);
+    const response = await PostsService.getRecommendedPosts(userId, query);
+    if (response instanceof BadException) {
+      logger.error(`${response.message}`, 'posts.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    logger.info('Recommended testimonies retrieved successfully', 'posts.controller.ts');
+    return ResponseBuilder.success(res, 'Recommended testimonies retrieved successfully', StatusCodes.OK, response);
+  };
+
   public getUserBookmarks: fnRequest = async (req: AuthenticatedRequest, res) => {
     const query = new dtos.GetPostsQueryDTO(req.query);
     const userId = req.user?.id as string;

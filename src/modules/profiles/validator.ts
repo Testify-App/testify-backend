@@ -29,6 +29,11 @@ export const getTribeMembersValidator = Joi.object({
   limit: Joi.number().integer().min(1).max(100).optional(),
 });
 
+export const getRecommendedUsersValidator = Joi.object({
+  page: Joi.number().integer().min(1).optional(),
+  limit: Joi.number().integer().min(1).max(100).optional(),
+});
+
 export const getFollowersValidator = Joi.object({
   search: Joi.string().min(1).max(100).optional(),
   page: Joi.number().integer().min(1).optional(),

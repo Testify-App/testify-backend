@@ -36,6 +36,12 @@ export class GetTribeMembersQueryDTO extends BaseEntity<GetTribeMembersQueryDTO>
   limit?: number;
 }
 
+export class GetRecommendedUsersQueryDTO extends BaseEntity<GetRecommendedUsersQueryDTO> {
+  user_id: string;
+  page?: number;
+  limit?: number;
+}
+
 export class GetFollowersQueryDTO extends BaseEntity<GetFollowersQueryDTO> {
   user_id: string;
   target_user_id: string;

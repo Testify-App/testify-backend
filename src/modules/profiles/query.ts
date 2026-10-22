@@ -117,6 +117,47 @@ export default {
     ORDER BY uf.created_at DESC
   `,
 
+  // "People you may know" — users followed by people the viewer already
+  // follows (2nd-degree), ranked by how many mutual connections suggest
+  // them, falling back to Circle overlap for users with no 2nd-degree
+  // follow signal yet (e.g. a very new account). Excludes the viewer
+  // themself, anyone already followed, and any blocked relationship in
+  // either direction.
+  getRecommendedUsers: `
+    SELECT COUNT(*) OVER () as count,
+      u.id,
+      u.username,
+      u.display_name,
+      u.avatar,
+      u.bio,
+      COALESCE(mutuals.mutual_count, 0) AS mutual_follow_count,
+      EXISTS(
+        SELECT 1 FROM user_connections
+        WHERE user_id = $3 AND connected_user_id = u.id AND status = 'accepted'
+      ) AS is_in_circle
+    FROM users u
+    LEFT JOIN (
+      SELECT uf2.following_id AS candidate_id, COUNT(*) AS mutual_count
+      FROM user_follows uf1
+      JOIN user_follows uf2 ON uf2.follower_id = uf1.following_id
+      WHERE uf1.follower_id = $3
+      GROUP BY uf2.following_id
+    ) mutuals ON mutuals.candidate_id = u.id
+    WHERE u.id != $3
+      AND NOT EXISTS (SELECT 1 FROM user_follows WHERE follower_id = $3 AND following_id = u.id)
+      AND NOT EXISTS (
+        SELECT 1 FROM user_blocks
+        WHERE (blocker_id = $3 AND blocked_id = u.id)
+           OR (blocker_id = u.id AND blocked_id = $3)
+      )
+      AND (
+        mutuals.candidate_id IS NOT NULL
+        OR EXISTS (SELECT 1 FROM user_connections WHERE user_id = $3 AND connected_user_id = u.id AND status = 'accepted')
+      )
+    ORDER BY mutual_follow_count DESC, u.created_at DESC
+    LIMIT $2 OFFSET $1;
+  `,
+
   searchProfilesByUsername: `
     SELECT COUNT(*) OVER () as count,
       u.id,

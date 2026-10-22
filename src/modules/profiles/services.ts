@@ -76,6 +76,12 @@ export class ProfilesServiceImpl implements ProfilesInterface {
     return await ProfilesRepository.getTribeMembers(payload);
   };
 
+  public getRecommendedUsers = async (
+    payload: dtos.GetRecommendedUsersQueryDTO
+  ): Promise<InternalServerErrorException | FetchPaginatedResponse> => {
+    return await ProfilesRepository.getRecommendedUsers(payload);
+  };
+
   public searchProfilesByUsername = async (
     payload: dtos.SearchProfilesByUsernameQueryDTO
   ): Promise<InternalServerErrorException | FetchPaginatedResponse> => {

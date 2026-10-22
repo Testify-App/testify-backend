@@ -236,6 +236,37 @@ profilesRouter.get(
 
 /**
  * @swagger
+ * /profiles/recommended:
+ *   get:
+ *     summary: Get recommended users to follow for the authenticated user
+ *     description: >
+ *       "People you may know" — ranked by mutual-follow count (users followed by
+ *       people you follow), falling back to Circle overlap when there's no
+ *       2nd-degree follow signal yet. Excludes users you already follow and any
+ *       blocked relationship in either direction.
+ *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         schema: { type: number, default: 1 }
+ *       - name: limit
+ *         in: query
+ *         schema: { type: number, default: 20 }
+ *     responses:
+ *       200:
+ *         description: Recommended users retrieved successfully
+ */
+profilesRouter.get(
+  '/recommended',
+  verifyAuth,
+  validateDataMiddleware(profilesValidator.getRecommendedUsersValidator, 'query'),
+  WatchAsyncController(profilesController.getRecommendedUsers)
+);
+
+/**
+ * @swagger
  * /profiles/search:
  *   get:
  *     summary: Search profiles by username

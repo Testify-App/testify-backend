@@ -53,6 +53,36 @@ export class MessagingServiceImpl implements MessagingInterface {
   ): Promise<BadException | NotFoundException | { message: string }> => {
     return await MessagingRepository.removeReaction(payload);
   };
+
+  public getUnreadCount = async (
+    payload: dtos.GetUnreadCountDTO
+  ): Promise<BadException | { unread_count: number }> => {
+    return await MessagingRepository.getUnreadCount(payload);
+  };
+
+  public getReactors = async (
+    query: dtos.GetReactorsQueryDTO
+  ): Promise<BadException | NotFoundException | FetchPaginatedResponse> => {
+    return await MessagingRepository.getReactors(query);
+  };
+
+  public editMessage = async (
+    payload: dtos.EditMessageDTO
+  ): Promise<BadException | NotFoundException | entities.MessageEntity> => {
+    return await MessagingRepository.editMessage(payload);
+  };
+
+  public deleteConversation = async (
+    payload: dtos.DeleteConversationDTO
+  ): Promise<BadException | NotFoundException | { message: string }> => {
+    return await MessagingRepository.deleteConversation(payload);
+  };
+
+  public deleteMessage = async (
+    payload: dtos.DeleteMessageDTO
+  ): Promise<BadException | NotFoundException | { message: string }> => {
+    return await MessagingRepository.deleteMessage(payload);
+  };
 }
 
 const MessagingService = new MessagingServiceImpl();

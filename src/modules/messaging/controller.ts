@@ -117,6 +117,73 @@ export class MessagingController {
     }
     return ResponseBuilder.success(res, response.message, StatusCodes.OK, null);
   };
+
+  public getUnreadCount: fnRequest = async (req: AuthenticatedRequest, res: Response) => {
+    const dto = new dtos.GetUnreadCountDTO({ user_id: req.user!.id });
+    const response = await MessagingService.getUnreadCount(dto);
+    if (response instanceof BadException) {
+      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    return ResponseBuilder.success(res, 'Unread count retrieved successfully', StatusCodes.OK, response);
+  };
+
+  public getReactors: fnRequest = async (req: AuthenticatedRequest, res: Response) => {
+    const dto = new dtos.GetReactorsQueryDTO(req.query as any);
+    dto.user_id = req.user!.id;
+    dto.message_id = req.params.messageId;
+    const response = await MessagingService.getReactors(dto);
+    if (response instanceof NotFoundException) {
+      return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
+    }
+    if (response instanceof BadException) {
+      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    return ResponseBuilder.success(res, 'Reactors retrieved successfully', StatusCodes.OK, response);
+  };
+
+  public editMessage: fnRequest = async (req: AuthenticatedRequest, res: Response) => {
+    const dto = new dtos.EditMessageDTO(req.body);
+    dto.user_id = req.user!.id;
+    dto.message_id = req.params.messageId;
+    const response = await MessagingService.editMessage(dto);
+    if (response instanceof NotFoundException) {
+      return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
+    }
+    if (response instanceof BadException) {
+      return ResponseBuilder.error(res, response, response.code || StatusCodes.BAD_REQUEST);
+    }
+    return ResponseBuilder.success(res, 'Message edited successfully', StatusCodes.OK, response);
+  };
+
+  public deleteConversation: fnRequest = async (req: AuthenticatedRequest, res: Response) => {
+    const dto = new dtos.DeleteConversationDTO({
+      user_id: req.user!.id,
+      conversation_id: req.params.conversationId,
+    });
+    const response = await MessagingService.deleteConversation(dto);
+    if (response instanceof NotFoundException) {
+      return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
+    }
+    if (response instanceof BadException) {
+      return ResponseBuilder.error(res, response, response.code || StatusCodes.BAD_REQUEST);
+    }
+    return ResponseBuilder.success(res, response.message, StatusCodes.OK, null);
+  };
+
+  public deleteMessage: fnRequest = async (req: AuthenticatedRequest, res: Response) => {
+    const dto = new dtos.DeleteMessageDTO({
+      user_id: req.user!.id,
+      message_id: req.params.messageId,
+    });
+    const response = await MessagingService.deleteMessage(dto);
+    if (response instanceof NotFoundException) {
+      return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
+    }
+    if (response instanceof BadException) {
+      return ResponseBuilder.error(res, response, response.code || StatusCodes.BAD_REQUEST);
+    }
+    return ResponseBuilder.success(res, response.message, StatusCodes.OK, null);
+  };
 }
 
 const messagingController = new MessagingController();
