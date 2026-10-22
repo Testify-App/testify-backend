@@ -304,6 +304,38 @@ postsRouter.get(
 
 /**
  * @swagger
+ * /posts/recommended:
+ *   get:
+ *     summary: Get recommended testimonies for the authenticated user
+ *     description: >
+ *       A discovery surface distinct from the Home feed and Following feed — only
+ *       surfaces public posts from authors the viewer does not already follow or
+ *       have in their Circle, ranked by the same relevance scoring as Home
+ *       (topic/creator affinity + engagement, decayed by recency), and excluding
+ *       anything already shown to the viewer.
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20 }
+ *     responses:
+ *       200:
+ *         description: Recommended testimonies retrieved successfully
+ */
+postsRouter.get(
+  '/recommended',
+  verifyAuth,
+  validateDataMiddleware(postsValidator.getPostsQueryValidator, 'query'),
+  WatchAsyncController(postsController.getRecommendedPosts)
+);
+
+/**
+ * @swagger
  * /posts/{id}:
  *   get:
  *     summary: Get a single post
@@ -362,6 +394,9 @@ postsRouter.get(
  *                 type: array
  *                 items:
  *                   $ref: '#/components/schemas/MediaAttachment'
+ *               sensitive_content:
+ *                 type: boolean
+ *                 description: Set to re-run moderation on the (possibly edited) content and refresh content_flags.
  *     responses:
  *       200:
  *         description: Post updated successfully

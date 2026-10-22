@@ -3,6 +3,7 @@ import Joi from 'joi';
 export const getConversationsQueryValidator = Joi.object({
   page: Joi.number().integer().min(1).optional(),
   limit: Joi.number().integer().min(1).max(100).optional(),
+  search: Joi.string().trim().min(1).max(100).optional(),
 });
 
 export const getOrCreateConversationValidator = Joi.object({
@@ -35,4 +36,13 @@ export const messageIdParamValidator = Joi.object({
 
 export const reactToMessageValidator = Joi.object({
   emoji: Joi.string().max(16).required(),
+});
+
+export const getReactorsQueryValidator = Joi.object({
+  page: Joi.number().integer().min(1).optional(),
+  limit: Joi.number().integer().min(1).max(100).optional(),
+});
+
+export const editMessageValidator = Joi.object({
+  content: Joi.string().min(1).max(5000).required(),
 });

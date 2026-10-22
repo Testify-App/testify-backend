@@ -5,6 +5,21 @@ export class GetConversationsQueryDTO extends BaseEntity<GetConversationsQueryDT
   user_id: string;
   page?: string;
   limit?: string;
+  search?: string;
+}
+
+export class GetUnreadCountDTO extends BaseEntity<GetUnreadCountDTO> {
+  user_id: string;
+}
+
+export class DeleteConversationDTO extends BaseEntity<DeleteConversationDTO> {
+  user_id: string;
+  conversation_id: string;
+}
+
+export class DeleteMessageDTO extends BaseEntity<DeleteMessageDTO> {
+  user_id: string;
+  message_id: string;
 }
 
 export class GetOrCreateConversationDTO extends BaseEntity<GetOrCreateConversationDTO> {
@@ -48,4 +63,17 @@ export class ReactToMessageDTO extends BaseEntity<ReactToMessageDTO> {
 export class RemoveReactionDTO extends BaseEntity<RemoveReactionDTO> {
   user_id: string;
   message_id: string;
+}
+
+export class GetReactorsQueryDTO extends BaseEntity<GetReactorsQueryDTO> {
+  user_id: string;
+  message_id: string;
+  page?: string;
+  limit?: string;
+}
+
+export class EditMessageDTO extends BaseEntity<EditMessageDTO> {
+  user_id: string;
+  message_id: string;
+  content: string;
 }

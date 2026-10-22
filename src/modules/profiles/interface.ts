@@ -17,6 +17,7 @@ export interface ProfilesInterface {
   removeFromTribe(payload: dtos.RemoveFromTribeDTO): Promise<BadException | void>;
   getTribeMembers(query: dtos.GetTribeMembersQueryDTO): Promise<InternalServerErrorException | FetchPaginatedResponse>;
   searchProfilesByUsername(query: dtos.SearchProfilesByUsernameQueryDTO): Promise<InternalServerErrorException | FetchPaginatedResponse>;
+  getRecommendedUsers(query: dtos.GetRecommendedUsersQueryDTO): Promise<InternalServerErrorException | FetchPaginatedResponse>;
   fetchProfilePostHistoryById(query: dtos.FetchProfilePostHistoryByIdDTO): Promise<NotFoundException | FetchPaginatedResponse>;
   isInTribe(userId: string, followingId: string): Promise<BadException | boolean>;
   getFollowerCount(userId: string): Promise<BadException | number>;

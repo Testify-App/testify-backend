@@ -46,6 +46,7 @@ export const updatePostValidator = Joi.object({
       order_index: Joi.number().optional(),
     })
   ).optional(),
+  sensitive_content: Joi.boolean().optional(),
 });
 
 export const createCommentValidator = Joi.object({

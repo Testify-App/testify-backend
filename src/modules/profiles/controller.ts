@@ -77,6 +77,18 @@ export class ProfilesController {
     return ResponseBuilder.success(res, 'Tribe members retrieved', StatusCodes.OK, response);
   };
 
+  public getRecommendedUsers: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const query = new dtos.GetRecommendedUsersQueryDTO(req.query);
+    query.user_id = req.user?.id as string;
+    const response = await ProfilesService.getRecommendedUsers(query);
+    if (response instanceof InternalServerErrorException) {
+      logger.error(response.message, 'profiles.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.INTERNAL_SERVER_ERROR);
+    }
+    logger.info('Recommended users retrieved successfully', 'profiles.controller.ts');
+    return ResponseBuilder.success(res, 'Recommended users retrieved', StatusCodes.OK, response);
+  };
+
   public searchProfilesByUsername: fnRequest = async (req: AuthenticatedRequest, res) => {
     const query = new dtos.SearchProfilesByUsernameQueryDTO(req.query);
     query.user_id = req.user?.id as string;

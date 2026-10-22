@@ -37,6 +37,16 @@ export function emitToUser(userId: string, event: string, payload: any): void {
   io?.to(userRoom(userId)).emit(event, payload);
 }
 
+// Targets user rooms directly, one per participant, rather than the
+// conversation room — a participant may not have called conversation:join
+// (e.g. they're viewing their inbox, not this thread), but they're always
+// in their own user room once connected.
+export function emitToUsers(userIds: string[], event: string, payload: any): void {
+  for (const userId of userIds) {
+    io?.to(userRoom(userId)).emit(event, payload);
+  }
+}
+
 export async function isUserOnline(userId: string): Promise<boolean> {
   return presenceService.isOnline(userId);
 }
@@ -106,6 +116,46 @@ export function initMessagingGateway(server: http.Server): Server {
         content: data?.content,
         media_url: data?.media_url,
         reply_to_message_id: data?.reply_to_message_id,
+      } as any);
+
+      ack?.(result);
+    });
+
+    socket.on('message:edit', async (data: { message_id: string; content: string }, ack?: (response: any) => void) => {
+      // editMessage() emits `message:edited` to both participants' user rooms
+      // once the DB write succeeds, same pattern as message:send.
+      const result = await MessagingRepository.editMessage({
+        user_id: userId,
+        message_id: data?.message_id,
+        content: data?.content,
+      } as any);
+
+      ack?.(result);
+    });
+
+    socket.on('message:react', async (data: { message_id: string; emoji: string }, ack?: (response: any) => void) => {
+      const result = await MessagingRepository.reactToMessage({
+        user_id: userId,
+        message_id: data?.message_id,
+        emoji: data?.emoji,
+      } as any);
+
+      ack?.(result);
+    });
+
+    socket.on('message:unreact', async (data: { message_id: string }, ack?: (response: any) => void) => {
+      const result = await MessagingRepository.removeReaction({
+        user_id: userId,
+        message_id: data?.message_id,
+      } as any);
+
+      ack?.(result);
+    });
+
+    socket.on('message:unsend', async (data: { message_id: string }, ack?: (response: any) => void) => {
+      const result = await MessagingRepository.unsendMessage({
+        user_id: userId,
+        message_id: data?.message_id,
       } as any);
 
       ack?.(result);

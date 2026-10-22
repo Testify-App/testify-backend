@@ -151,6 +151,29 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
     }
   };
 
+  public async getRecommendedUsers(
+    payload: dtos.GetRecommendedUsersQueryDTO
+  ): Promise<InternalServerErrorException | FetchPaginatedResponse> {
+    try {
+      const { page = '1', limit = '20', user_id } = payload as { page?: string; limit?: string; user_id: string };
+      const [{ count }, users] = await fetchResourceByPage({
+        page,
+        limit,
+        getResources: ProfilesQuery.getRecommendedUsers,
+        params: [user_id],
+      });
+
+      return {
+        total: String(count),
+        currentPage: page,
+        totalPages: calcPages(count, limit),
+        users,
+      };
+    } catch (error) {
+      return new InternalServerErrorException(`${error.message}`);
+    }
+  };
+
   public async searchProfilesByUsername(
     payload: dtos.SearchProfilesByUsernameQueryDTO
   ): Promise<InternalServerErrorException | FetchPaginatedResponse> {

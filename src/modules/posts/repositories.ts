@@ -258,11 +258,14 @@ export class PostsRepositoryImpl implements PostsInterface {
         posts = rows;
         count = rows.length > 0 ? parseInt(rows[0].count, 10) : 0;
       } else {
-        // Candidate pool sized to this page plus enough slack for the diversity
-        // pass to swap posts around without running out of alternates. Re-ranked
-        // fresh on every request (no OFFSET) since scores shift as engagement/
-        // affinity change — a later "page 2" is a new ranking, not a stable list.
-        const poolSize = limitNum * CANDIDATE_POOL_MULTIPLIER;
+        // Candidate pool sized to reach THIS page plus enough slack for the
+        // diversity pass to swap posts around without running out of
+        // alternates. Must scale with pageNum — each source query has no
+        // OFFSET and simply returns its top N by score every time, so a pool
+        // sized only for page 1 would hand page 2 the exact same top
+        // candidates already shown on page 1, duplicating them in the
+        // response instead of advancing past them.
+        const poolSize = limitNum * pageNum * CANDIDATE_POOL_MULTIPLIER;
         const [personalized, discovery, trending, totalRow] = await Promise.all([
           db.any(PostsQuery.getRankedFeedCandidates, [user_id, poolSize]),
           db.any(PostsQuery.getDiscoveryFeedCandidates, [user_id, poolSize]),
@@ -392,6 +395,20 @@ export class PostsRepositoryImpl implements PostsInterface {
 
         return new entities.PostEntity(post);
       });
+
+      // Same trigger as createPost: marking the (possibly edited) content as
+      // sensitive runs it through moderation and refreshes content_flags.
+      if (payload.sensitive_content && payload.content) {
+        const sampleFlags = {
+          is_sensitive: true,
+          flagged_at: new Date().toISOString(),
+          categories: ['sexual', 'violence'],
+          scores: { sexual: 0.912, violence: 0.431, hate: 0.003 },
+          source: 'openai_moderation',
+        };
+        db.none(PostsQuery.updateContentFlags, [response.id, JSON.stringify(sampleFlags)]).catch(() => {});
+      }
+
       return response;
     } catch (error) {
       return new BadException(`${error.message}`);
@@ -771,7 +788,7 @@ export class PostsRepositoryImpl implements PostsInterface {
             type: parentCommentId ? 'comment_reply' : 'post_comment',
             entity_type: 'post',
             entity_id: postId,
-            data: { post_snippet: snippet },
+            data: { post_snippet: snippet, post_id: postId },
           }).catch(() => {});
         }
 
@@ -785,7 +802,7 @@ export class PostsRepositoryImpl implements PostsInterface {
                 type: 'comment_reply',
                 entity_type: 'comment',
                 entity_id: parentCommentId,
-                data: { post_snippet: snippet },
+                data: { post_snippet: snippet, post_id: postId },
               }).catch(() => {});
             }
           }).catch(() => {});
@@ -953,6 +970,10 @@ export class PostsRepositoryImpl implements PostsInterface {
           'UPDATE posts SET comments_count = GREATEST(comments_count - 1, 0) WHERE id = $1',
           [comment.post_id]
         );
+
+        if (comment.parent_comment_id) {
+          await t.none(PostsQuery.decrementCommentRepliesCounter, [comment.parent_comment_id]);
+        }
 
         return { message: 'Comment deleted successfully' };
       });
@@ -1266,6 +1287,60 @@ export class PostsRepositoryImpl implements PostsInterface {
               username: post.username,
               avatar: post.avatar,
               display_name: post.display_name,
+            },
+            community: post.community_id
+              ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar, is_community_owner: post.is_community_owner ?? false }
+              : null,
+          });
+        })
+      );
+
+      return {
+        posts: postsWithEngagement,
+        pagination: { page: String(page), limit: String(limit), total: count, totalPages: calcPages(count, limit) },
+      };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async getRecommendedPosts(
+    userId: string,
+    query: dtos.GetPostsQueryDTO
+  ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> {
+    try {
+      const { page = '1', limit = '20' } = query as { page?: string; limit?: string };
+      const [{ count }, posts] = await fetchResourceByPage({
+        page,
+        limit,
+        getResources: PostsQuery.getRecommendedPosts,
+        params: [userId],
+      });
+
+      const postsWithEngagement = await Promise.all(
+        posts.map(async (post: any) => {
+          const [isLiked, isReposted, isBookmarked, content_segments, likers] = await Promise.all([
+            db.one(PostsQuery.isPostLiked, [post.id, userId]),
+            db.one(PostsQuery.isReposted, [post.id, userId]),
+            db.one(PostsQuery.isBookmarked, [post.id, userId]),
+            parseContentSegments(post.content),
+            db.any(PostsQuery.getFirstLikers, [post.id]),
+          ]);
+
+          return new entities.PostWithUserEntity({
+            ...post,
+            content_segments,
+            is_liked: isLiked.exists,
+            is_reposted: isReposted.exists,
+            is_bookmarked: isBookmarked.exists,
+            likers,
+            user: {
+              id: post.user_id,
+              username: post.username,
+              avatar: post.avatar,
+              display_name: post.display_name,
+              is_following: false,
+              is_in_circle: false,
             },
             community: post.community_id
               ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar, is_community_owner: post.is_community_owner ?? false }

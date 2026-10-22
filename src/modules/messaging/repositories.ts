@@ -5,7 +5,19 @@ import { MessagingInterface } from './interface';
 import { db } from '../../config/database';
 import { BadException, NotFoundException } from '../../shared/lib/errors';
 import { calcPages, fetchResourceByPage, createNotification, FetchPaginatedResponse } from '../../shared/helpers';
-import { isUserOnline, emitToUser } from '../../shared/sockets/messaging.gateway';
+import { isUserOnline, emitToUser, emitToUsers } from '../../shared/sockets/messaging.gateway';
+
+function mapReactorRow(r: any): entities.MessageReactorEntity {
+  return new entities.MessageReactorEntity({
+    user_id: r.user_id,
+    username: r.username,
+    display_name: r.display_name,
+    avatar: r.avatar,
+    emoji: r.emoji,
+    created_at: r.created_at,
+    is_viewer: r.is_viewer,
+  });
+}
 
 function mapMessageRow(m: any, reactions: entities.MessageReactionSummary[]): entities.MessageEntity {
   return new entities.MessageEntity({
@@ -17,6 +29,7 @@ function mapMessageRow(m: any, reactions: entities.MessageReactionSummary[]): en
     content: m.content,
     media_url: m.media_url,
     is_unsent: m.is_unsent,
+    edited_at: m.edited_at,
     created_at: m.created_at,
     reply_to: m.reply_to_id
       ? {
@@ -67,13 +80,15 @@ export class MessagingRepositoryImpl implements MessagingInterface {
     query: dtos.GetConversationsQueryDTO
   ): Promise<BadException | FetchPaginatedResponse> {
     try {
-      const { page = '1', limit = '20', user_id } = query as { page?: string; limit?: string; user_id: string };
+      const { page = '1', limit = '20', user_id, search } = query as {
+        page?: string; limit?: string; user_id: string; search?: string;
+      };
 
       const [{ count }, rows] = await fetchResourceByPage({
         page,
         limit,
         getResources: MessagingQuery.getConversations,
-        params: [user_id],
+        params: [user_id, search || null],
       });
 
       const conversations = rows.map((row: any) => new entities.ConversationEntity({
@@ -119,8 +134,8 @@ export class MessagingRepositoryImpl implements MessagingInterface {
         page?: string; limit?: string; user_id: string; conversation_id: string;
       };
 
-      const participant = await db.one(MessagingQuery.isParticipant, [conversation_id, user_id]);
-      if (!participant.exists) {
+      const participant = await db.oneOrNone(MessagingQuery.getParticipant, [conversation_id, user_id]);
+      if (!participant) {
         return new NotFoundException('Conversation not found');
       }
 
@@ -128,7 +143,7 @@ export class MessagingRepositoryImpl implements MessagingInterface {
         page,
         limit,
         getResources: MessagingQuery.getMessages,
-        params: [conversation_id],
+        params: [conversation_id, participant.deleted_at, user_id],
       });
 
       const messageIds = rows.map((r: any) => r.id);
@@ -149,10 +164,13 @@ export class MessagingRepositoryImpl implements MessagingInterface {
 
       const messages = rows.map((m: any) => mapMessageRow(m, reactionsByMessage.get(m.id) || []));
 
+      const otherRead = await db.oneOrNone(MessagingQuery.getOtherParticipantLastRead, [conversation_id, user_id]);
+
       return {
         total: String(count),
         currentPage: page,
         totalPages: calcPages(count, limit),
+        other_participant_last_read_message_id: otherRead?.last_read_message_id ?? null,
         messages,
       };
     } catch (error) {
@@ -237,7 +255,7 @@ export class MessagingRepositoryImpl implements MessagingInterface {
         return new BadException('Message not found in this conversation');
       }
 
-      await db.none(MessagingQuery.markConversationRead, [payload.conversation_id, payload.user_id, payload.up_to_message_id]);
+      await db.one(MessagingQuery.markConversationRead, [payload.conversation_id, payload.user_id, payload.up_to_message_id]);
       return { message: 'Conversation marked as read' };
     } catch (error) {
       return new BadException(`${error.message}`);
@@ -252,6 +270,13 @@ export class MessagingRepositoryImpl implements MessagingInterface {
       if (!updated) {
         return new NotFoundException('Message not found, already unsent, or you are not the sender');
       }
+
+      const participantIds = await db.any(MessagingQuery.getParticipantIds, [updated.conversation_id]);
+      emitToUsers(participantIds.map((p: any) => p.user_id), 'message:unsent', {
+        conversation_id: updated.conversation_id,
+        message_id: updated.id,
+      });
+
       return { message: 'Message unsent' };
     } catch (error) {
       return new BadException(`${error.message}`);
@@ -271,7 +296,16 @@ export class MessagingRepositoryImpl implements MessagingInterface {
         return new NotFoundException('Message not found');
       }
 
-      await db.none(MessagingQuery.addReaction, [payload.message_id, payload.user_id, payload.emoji]);
+      await db.one(MessagingQuery.addReaction, [payload.message_id, payload.user_id, payload.emoji]);
+
+      const participantIds = await db.any(MessagingQuery.getParticipantIds, [target.conversation_id]);
+      emitToUsers(participantIds.map((p: any) => p.user_id), 'message:reaction:added', {
+        conversation_id: target.conversation_id,
+        message_id: payload.message_id,
+        user_id: payload.user_id,
+        emoji: payload.emoji,
+      });
+
       return { message: 'Reaction added' };
     } catch (error) {
       return new BadException(`${error.message}`);
@@ -286,7 +320,128 @@ export class MessagingRepositoryImpl implements MessagingInterface {
       if (!removed) {
         return new NotFoundException('Reaction not found');
       }
+
+      const target = await db.oneOrNone(MessagingQuery.getMessageById, [payload.message_id]);
+      if (target) {
+        const participantIds = await db.any(MessagingQuery.getParticipantIds, [target.conversation_id]);
+        emitToUsers(participantIds.map((p: any) => p.user_id), 'message:reaction:removed', {
+          conversation_id: target.conversation_id,
+          message_id: payload.message_id,
+          user_id: payload.user_id,
+        });
+      }
+
       return { message: 'Reaction removed' };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async getUnreadCount(
+    payload: dtos.GetUnreadCountDTO
+  ): Promise<BadException | { unread_count: number }> {
+    try {
+      const result = await db.one(MessagingQuery.getTotalUnreadCount, [payload.user_id]);
+      return { unread_count: parseInt(result.total_unread, 10) };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  // Deletes the conversation only from the caller's own view — the other
+  // participant's copy (and the message rows themselves) are untouched, and
+  // the deleter isn't blocked from sending or being messaged going forward.
+  // Setting deleted_at acts as a permanent floor: it hides the conversation
+  // from this user's inbox/search until a newer message arrives, and hides
+  // every message up to that point forever, even after it reappears.
+  public async deleteConversation(
+    payload: dtos.DeleteConversationDTO
+  ): Promise<BadException | NotFoundException | { message: string }> {
+    try {
+      const updated = await db.oneOrNone(MessagingQuery.deleteConversationForUser, [payload.conversation_id, payload.user_id]);
+      if (!updated) {
+        return new NotFoundException('Conversation not found');
+      }
+      return { message: 'Conversation deleted' };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  // Deletes a message from the caller's own conversation view only — sent or
+  // received, no time limit, no notification, no socket broadcast to the
+  // other participant (this never touches their view at all). The message
+  // row itself is untouched, so it's preserved for moderation and remains
+  // fully visible, reactions included, to the other participant.
+  public async deleteMessage(
+    payload: dtos.DeleteMessageDTO
+  ): Promise<BadException | NotFoundException | { message: string }> {
+    try {
+      const target = await db.oneOrNone(MessagingQuery.getMessageById, [payload.message_id]);
+      if (!target) {
+        return new NotFoundException('Message not found');
+      }
+      const participant = await db.one(MessagingQuery.isParticipant, [target.conversation_id, payload.user_id]);
+      if (!participant.exists) {
+        return new NotFoundException('Message not found');
+      }
+
+      await db.oneOrNone(MessagingQuery.deleteMessageForUser, [payload.message_id, payload.user_id]);
+      return { message: 'Message deleted' };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async getReactors(
+    query: dtos.GetReactorsQueryDTO
+  ): Promise<BadException | NotFoundException | FetchPaginatedResponse> {
+    try {
+      const { page = '1', limit = '20', user_id, message_id } = query as {
+        page?: string; limit?: string; user_id: string; message_id: string;
+      };
+
+      const target = await db.oneOrNone(MessagingQuery.getMessageById, [message_id]);
+      if (!target) {
+        return new NotFoundException('Message not found');
+      }
+      const participant = await db.one(MessagingQuery.isParticipant, [target.conversation_id, user_id]);
+      if (!participant.exists) {
+        return new NotFoundException('Message not found');
+      }
+
+      const [{ count }, rows] = await fetchResourceByPage({
+        page,
+        limit,
+        getResources: MessagingQuery.getReactors,
+        params: [user_id, message_id],
+      });
+
+      return {
+        total: String(count),
+        currentPage: page,
+        totalPages: calcPages(count, limit),
+        reactors: rows.map(mapReactorRow),
+      };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async editMessage(
+    payload: dtos.EditMessageDTO
+  ): Promise<BadException | NotFoundException | entities.MessageEntity> {
+    try {
+      const updated = await db.oneOrNone(MessagingQuery.editMessage, [payload.message_id, payload.user_id, payload.content]);
+      if (!updated) {
+        return new NotFoundException('Message not found, not editable, or you are not the sender');
+      }
+
+      const messageEntity = new entities.MessageEntity(updated);
+      const participantIds = await db.any(MessagingQuery.getParticipantIds, [updated.conversation_id]);
+      emitToUsers(participantIds.map((p: any) => p.user_id), 'message:edited', messageEntity);
+
+      return messageEntity;
     } catch (error) {
       return new BadException(`${error.message}`);
     }

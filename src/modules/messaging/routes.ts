@@ -31,6 +31,10 @@ const messagingRouter = Router();
  *       - in: query
  *         name: limit
  *         schema: { type: integer, default: 20, maximum: 100 }
+ *       - in: query
+ *         name: search
+ *         schema: { type: string }
+ *         description: Filters by the other participant's username or display name
  *     responses:
  *       200:
  *         description: Conversations retrieved successfully
@@ -40,6 +44,24 @@ messagingRouter.get(
   verifyAuth,
   validateDataMiddleware(messagingValidator.getConversationsQueryValidator, 'query'),
   WatchAsyncController(messagingController.getConversations)
+);
+
+/**
+ * @swagger
+ * /conversations/unread-count:
+ *   get:
+ *     summary: Get the total unread message count across all of the authenticated user's conversations
+ *     tags: [Messaging]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Unread count retrieved successfully
+ */
+messagingRouter.get(
+  '/conversations/unread-count',
+  verifyAuth,
+  WatchAsyncController(messagingController.getUnreadCount)
 );
 
 /**
@@ -185,6 +207,73 @@ messagingRouter.patch(
 
 /**
  * @swagger
+ * /conversations/{conversationId}:
+ *   delete:
+ *     summary: Delete a conversation from your own inbox
+ *     description: >
+ *       Removes the conversation and its history from your inbox and search results only —
+ *       the other participant's copy is untouched, and they are not blocked from messaging
+ *       you afterward. If a new message arrives later, the conversation reappears in your
+ *       inbox, but the message history from before the delete stays hidden for you.
+ *     tags: [Messaging]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Conversation deleted
+ *       404:
+ *         description: Conversation not found
+ */
+messagingRouter.delete(
+  '/conversations/:conversationId',
+  verifyAuth,
+  validateDataMiddleware(messagingValidator.conversationIdParamValidator, 'params'),
+  WatchAsyncController(messagingController.deleteConversation)
+);
+
+/**
+ * @swagger
+ * /messages/{messageId}:
+ *   patch:
+ *     summary: Edit a text message's content (sender only, text messages only, cannot edit an unsent message)
+ *     tags: [Messaging]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [content]
+ *             properties:
+ *               content: { type: string, maxLength: 5000 }
+ *     responses:
+ *       200:
+ *         description: Message edited successfully
+ *       404:
+ *         description: Message not found, not editable (media message or already unsent), or you are not the sender
+ */
+messagingRouter.patch(
+  '/messages/:messageId',
+  verifyAuth,
+  validateDataMiddleware(messagingValidator.messageIdParamValidator, 'params'),
+  validateDataMiddleware(messagingValidator.editMessageValidator, 'body'),
+  WatchAsyncController(messagingController.editMessage)
+);
+
+/**
+ * @swagger
  * /messages/{messageId}:
  *   delete:
  *     summary: Unsend a message (soft delete — only the sender can unsend)
@@ -207,6 +296,70 @@ messagingRouter.delete(
   verifyAuth,
   validateDataMiddleware(messagingValidator.messageIdParamValidator, 'params'),
   WatchAsyncController(messagingController.unsendMessage)
+);
+
+/**
+ * @swagger
+ * /messages/{messageId}/me:
+ *   delete:
+ *     summary: Delete a message from your own conversation only (sent or received)
+ *     description: >
+ *       Different from Unsend: this only hides the message from the requesting user's
+ *       own view — the other participant still sees the original message and its
+ *       reactions, unchanged. No time limit, no confirmation needed, no notification
+ *       sent, and the message row itself is preserved for moderation purposes.
+ *     tags: [Messaging]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Message deleted from your conversation
+ *       404:
+ *         description: Message not found
+ */
+messagingRouter.delete(
+  '/messages/:messageId/me',
+  verifyAuth,
+  validateDataMiddleware(messagingValidator.messageIdParamValidator, 'params'),
+  WatchAsyncController(messagingController.deleteMessage)
+);
+
+/**
+ * @swagger
+ * /messages/{messageId}/reactions:
+ *   get:
+ *     summary: List who reacted to a message, with each reactor's emoji, profile info, and whether they are the current viewer
+ *     tags: [Messaging]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema: { type: string }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20, maximum: 100 }
+ *     responses:
+ *       200:
+ *         description: Reactors retrieved successfully
+ *       404:
+ *         description: Message not found
+ */
+messagingRouter.get(
+  '/messages/:messageId/reactions',
+  verifyAuth,
+  validateDataMiddleware(messagingValidator.messageIdParamValidator, 'params'),
+  validateDataMiddleware(messagingValidator.getReactorsQueryValidator, 'query'),
+  WatchAsyncController(messagingController.getReactors)
 );
 
 /**

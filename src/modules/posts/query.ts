@@ -196,6 +196,51 @@ export default {
     LIMIT $2;
   `,
 
+  // "Recommended for you" — a discovery surface distinct from the Home feed:
+  // only public posts from authors the viewer does NOT already follow/circle
+  // with (Home already serves those), scored the same way as the ranked Home
+  // feed, and excluding anything the viewer has already been shown (any row
+  // in post_impressions) so recommendations don't repeat what was already
+  // scrolled past.
+  // $1 = offset, $2 = limit (fetchResourceByPage convention), $3 = user_id.
+  getRecommendedPosts: `
+    SELECT COUNT(*) OVER () as count,
+      ${FEED_POST_COLUMNS.replace(/\$1/g, '$3')},
+      COALESCE(ta.topic_score, 0) AS topic_affinity_score,
+      COALESCE(ca.score, 0) AS creator_affinity_score,
+      ROUND((
+        ${RELEVANCE_WEIGHTS.TOPIC_AFFINITY}::numeric * COALESCE(ta.topic_score, 0)
+        + ${RELEVANCE_WEIGHTS.CREATOR_AFFINITY}::numeric * COALESCE(ca.score, 0)
+        + (${ENGAGEMENT_WEIGHTS.LIKE} * p.likes_count + ${ENGAGEMENT_WEIGHTS.REPOST} * p.reposts_count + ${ENGAGEMENT_WEIGHTS.COMMENT} * p.comments_count)
+        - ${RELEVANCE_WEIGHTS.RECENCY_DECAY_PER_HOUR}::numeric * (EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 3600)
+      )::numeric, ${RELEVANCE_SCORE_PRECISION}) AS relevance_score
+    FROM posts p
+    JOIN users u ON p.user_id = u.id
+    LEFT JOIN communities c ON p.community_id = c.id
+    LEFT JOIN (
+      SELECT ph.post_id, SUM(uta.score) AS topic_score
+      FROM post_hashtags ph
+      JOIN user_topic_affinity uta ON uta.hashtag_id = ph.hashtag_id AND uta.user_id = $3
+      GROUP BY ph.post_id
+    ) ta ON ta.post_id = p.id
+    LEFT JOIN user_creator_affinity ca ON ca.user_id = $3 AND ca.creator_id = p.user_id
+    WHERE p.deleted_at IS NULL
+      AND p.status != 'archived'
+      AND p.parent_post_id IS NULL
+      AND p.visibility = 'public'
+      AND p.user_id != $3
+      AND NOT EXISTS (SELECT 1 FROM user_follows WHERE follower_id = $3 AND following_id = p.user_id)
+      AND NOT EXISTS (SELECT 1 FROM user_connections WHERE user_id = $3 AND connected_user_id = p.user_id AND status = 'accepted')
+      AND NOT EXISTS (SELECT 1 FROM post_impressions WHERE user_id = $3 AND post_id = p.id)
+      AND NOT EXISTS (
+        SELECT 1 FROM user_blocks
+        WHERE (blocker_id = $3 AND blocked_id = p.user_id)
+           OR (blocker_id = p.user_id AND blocked_id = $3)
+      )
+    ORDER BY relevance_score DESC, created_at DESC, id DESC
+    LIMIT $2 OFFSET $1;
+  `,
+
   // Lifetime interaction count used to route a user to the cold-start feed
   // (Phase 4) instead of the ranked feed above.
   getUserInteractionCount: `
@@ -399,6 +444,14 @@ export default {
     UPDATE comments
     SET
       replies_count = replies_count + 1,
+      updated_at = NOW()
+    WHERE id = $1;
+  `,
+
+  decrementCommentRepliesCounter: `
+    UPDATE comments
+    SET
+      replies_count = GREATEST(replies_count - 1, 0),
       updated_at = NOW()
     WHERE id = $1;
   `,

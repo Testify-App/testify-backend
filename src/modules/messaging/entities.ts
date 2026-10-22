@@ -31,6 +31,16 @@ export class MessageReactionSummary extends BaseEntity<MessageReactionSummary> {
   reacted_by_viewer?: boolean;
 }
 
+export class MessageReactorEntity extends BaseEntity<MessageReactorEntity> {
+  user_id?: string;
+  username?: string;
+  display_name?: string;
+  avatar?: string;
+  emoji?: string;
+  created_at?: Date;
+  is_viewer?: boolean;
+}
+
 export class MessageEntity extends BaseEntity<MessageEntity> {
   id?: string;
   conversation_id?: string;
@@ -40,6 +50,7 @@ export class MessageEntity extends BaseEntity<MessageEntity> {
   content?: string | null;
   media_url?: string | null;
   is_unsent?: boolean;
+  edited_at?: Date | null;
   created_at?: Date;
   reply_to?: {
     id?: string;

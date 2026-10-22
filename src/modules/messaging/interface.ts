@@ -35,4 +35,24 @@ export interface MessagingInterface {
   removeReaction(
     payload: dtos.RemoveReactionDTO
   ): Promise<BadException | NotFoundException | { message: string }>;
+
+  getUnreadCount(
+    payload: dtos.GetUnreadCountDTO
+  ): Promise<BadException | { unread_count: number }>;
+
+  getReactors(
+    query: dtos.GetReactorsQueryDTO
+  ): Promise<BadException | NotFoundException | FetchPaginatedResponse>;
+
+  editMessage(
+    payload: dtos.EditMessageDTO
+  ): Promise<BadException | NotFoundException | entities.MessageEntity>;
+
+  deleteConversation(
+    payload: dtos.DeleteConversationDTO
+  ): Promise<BadException | NotFoundException | { message: string }>;
+
+  deleteMessage(
+    payload: dtos.DeleteMessageDTO
+  ): Promise<BadException | NotFoundException | { message: string }>;
 }

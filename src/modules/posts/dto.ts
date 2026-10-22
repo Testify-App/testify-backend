@@ -36,6 +36,7 @@ export class UpdatePostDTO extends BaseEntity<UpdatePostDTO> {
     filename?: string;
     order_index?: number;
   }>;
+  sensitive_content?: boolean;
 }
 
 export class CreateCommentDTO extends BaseEntity<CreateCommentDTO> {
