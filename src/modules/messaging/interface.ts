@@ -55,4 +55,20 @@ export interface MessagingInterface {
   deleteMessage(
     payload: dtos.DeleteMessageDTO
   ): Promise<BadException | NotFoundException | { message: string }>;
+
+  getMessagingPrivacySetting(
+    payload: dtos.GetMessagingPrivacySettingDTO
+  ): Promise<BadException | entities.MessagingPrivacySettingEntity>;
+
+  updateMessagingPrivacySetting(
+    payload: dtos.UpdateMessagingPrivacySettingDTO
+  ): Promise<BadException | entities.MessagingPrivacySettingEntity>;
+
+  getStoryReplySetting(
+    payload: dtos.GetStoryReplySettingDTO
+  ): Promise<BadException | entities.StoryReplySettingEntity>;
+
+  updateStoryReplySetting(
+    payload: dtos.UpdateStoryReplySettingDTO
+  ): Promise<BadException | entities.StoryReplySettingEntity>;
 }

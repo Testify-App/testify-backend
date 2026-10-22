@@ -42,6 +42,7 @@ export class StoriesRepositoryImpl implements StoriesInterface {
         payload.text_content || null,
         payload.background_style ? JSON.stringify(payload.background_style) : null,
         payload.duration ?? null,
+        payload.allow_replies ?? null,
       ]);
 
       const full = await db.one(StoriesQuery.getStoryById, [created.id]);

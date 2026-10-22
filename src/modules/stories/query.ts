@@ -1,7 +1,7 @@
 export default {
   createStory: `
-    INSERT INTO stories (user_id, content_type, media_url, thumbnail_url, text_content, background_style, duration)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    INSERT INTO stories (user_id, content_type, media_url, thumbnail_url, text_content, background_style, duration, allow_replies)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     RETURNING *;
   `,
 

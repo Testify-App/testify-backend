@@ -20,6 +20,7 @@ function mapToEntity(row: any): entities.ReportEntity {
     reviewed_by: row.reviewed_by,
     reviewed_at: row.reviewed_at,
     created_at: row.created_at,
+    context_conversation_id: row.context_conversation_id,
     reporter: { username: row.reporter_username, avatar: row.reporter_avatar },
     content_owner: {
       id: row.content_owner_id,
@@ -59,13 +60,25 @@ export class ReportsRepositoryImpl implements ReportsInterface {
         post: ReportsQuery.getPostOwner,
         comment: ReportsQuery.getCommentOwner,
         message: ReportsQuery.getMessageOwner,
+        user: ReportsQuery.getUserOwner,
       };
       const ownerRow = await db.oneOrNone(ownerQueryByEntityType[payload.entity_type], [payload.entity_id]);
       if (!ownerRow) {
-        return new NotFoundException(`${payload.entity_type.charAt(0).toUpperCase()}${payload.entity_type.slice(1)} not found`);
+        return new NotFoundException(
+          payload.entity_type === 'user' ? 'User not found' : `${payload.entity_type.charAt(0).toUpperCase()}${payload.entity_type.slice(1)} not found`
+        );
       }
       if (ownerRow.user_id === payload.reporter_id) {
-        return new BadException('You cannot report your own content');
+        return new BadException(payload.entity_type === 'user' ? 'You cannot report yourself' : 'You cannot report your own content');
+      }
+
+      // The cited conversation must actually involve the reporter — otherwise
+      // someone could attach an unrelated conversation as "context" on a report.
+      if (payload.context_conversation_id) {
+        const isParticipant = await db.one(ReportsQuery.isConversationParticipant, [payload.context_conversation_id, payload.reporter_id]);
+        if (!isParticipant.exists) {
+          return new BadException('You are not a participant in that conversation');
+        }
       }
 
       const created = await db.oneOrNone(ReportsQuery.createReport, [
@@ -75,9 +88,10 @@ export class ReportsRepositoryImpl implements ReportsInterface {
         payload.reporter_id,
         payload.reason,
         payload.details || null,
+        payload.context_conversation_id || null,
       ]);
       if (!created) {
-        return new BadException('You have already reported this content');
+        return new BadException(payload.entity_type === 'user' ? 'You have already reported this user' : 'You have already reported this content');
       }
 
       if (payload.entity_type === 'post') {

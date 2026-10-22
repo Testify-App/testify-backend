@@ -83,6 +83,30 @@ export class MessagingServiceImpl implements MessagingInterface {
   ): Promise<BadException | NotFoundException | { message: string }> => {
     return await MessagingRepository.deleteMessage(payload);
   };
+
+  public getMessagingPrivacySetting = async (
+    payload: dtos.GetMessagingPrivacySettingDTO
+  ): Promise<BadException | entities.MessagingPrivacySettingEntity> => {
+    return await MessagingRepository.getMessagingPrivacySetting(payload);
+  };
+
+  public updateMessagingPrivacySetting = async (
+    payload: dtos.UpdateMessagingPrivacySettingDTO
+  ): Promise<BadException | entities.MessagingPrivacySettingEntity> => {
+    return await MessagingRepository.updateMessagingPrivacySetting(payload);
+  };
+
+  public getStoryReplySetting = async (
+    payload: dtos.GetStoryReplySettingDTO
+  ): Promise<BadException | entities.StoryReplySettingEntity> => {
+    return await MessagingRepository.getStoryReplySetting(payload);
+  };
+
+  public updateStoryReplySetting = async (
+    payload: dtos.UpdateStoryReplySettingDTO
+  ): Promise<BadException | entities.StoryReplySettingEntity> => {
+    return await MessagingRepository.updateStoryReplySetting(payload);
+  };
 }
 
 const MessagingService = new MessagingServiceImpl();

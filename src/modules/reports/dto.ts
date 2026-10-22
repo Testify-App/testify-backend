@@ -7,6 +7,7 @@ export class CreateReportDTO extends BaseEntity<CreateReportDTO> {
   entity_id: string;
   reason: string;
   details?: string;
+  context_conversation_id?: string;
 }
 
 export class GetReportsQueryDTO extends BaseEntity<GetReportsQueryDTO> {

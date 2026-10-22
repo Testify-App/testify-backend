@@ -60,6 +60,25 @@ export class MessagingController {
     return ResponseBuilder.success(res, 'Message sent successfully', StatusCodes.CREATED, response);
   };
 
+  // Same sendMessage path as above — the only difference is there's no
+  // known conversation yet, so this route doesn't nest under
+  // /conversations/:conversationId. sendMessage resolves (and creates, if
+  // needed) the conversation from the story's author when quoted_story_id
+  // is set, exactly like getOrCreateConversation does for a normal DM.
+  public replyToStory: fnRequest = async (req: AuthenticatedRequest, res: Response) => {
+    const dto = new dtos.SendMessageDTO(req.body);
+    dto.user_id = req.user!.id;
+    dto.quoted_story_id = req.params.storyId;
+    const response = await MessagingService.sendMessage(dto);
+    if (response instanceof NotFoundException) {
+      return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
+    }
+    if (response instanceof BadException) {
+      return ResponseBuilder.error(res, response, response.code || StatusCodes.BAD_REQUEST);
+    }
+    return ResponseBuilder.success(res, 'Reply sent successfully', StatusCodes.CREATED, response);
+  };
+
   public markConversationRead: fnRequest = async (req: AuthenticatedRequest, res: Response) => {
     const dto = new dtos.MarkConversationReadDTO(req.body);
     dto.user_id = req.user!.id;
@@ -183,6 +202,44 @@ export class MessagingController {
       return ResponseBuilder.error(res, response, response.code || StatusCodes.BAD_REQUEST);
     }
     return ResponseBuilder.success(res, response.message, StatusCodes.OK, null);
+  };
+
+  public getMessagingPrivacySetting: fnRequest = async (req: AuthenticatedRequest, res: Response) => {
+    const dto = new dtos.GetMessagingPrivacySettingDTO({ user_id: req.user!.id });
+    const response = await MessagingService.getMessagingPrivacySetting(dto);
+    if (response instanceof BadException) {
+      return ResponseBuilder.error(res, response, response.code || StatusCodes.BAD_REQUEST);
+    }
+    return ResponseBuilder.success(res, 'Messaging privacy setting retrieved successfully', StatusCodes.OK, response);
+  };
+
+  public updateMessagingPrivacySetting: fnRequest = async (req: AuthenticatedRequest, res: Response) => {
+    const dto = new dtos.UpdateMessagingPrivacySettingDTO(req.body);
+    dto.user_id = req.user!.id;
+    const response = await MessagingService.updateMessagingPrivacySetting(dto);
+    if (response instanceof BadException) {
+      return ResponseBuilder.error(res, response, response.code || StatusCodes.BAD_REQUEST);
+    }
+    return ResponseBuilder.success(res, 'Messaging privacy setting updated successfully', StatusCodes.OK, response);
+  };
+
+  public getStoryReplySetting: fnRequest = async (req: AuthenticatedRequest, res: Response) => {
+    const dto = new dtos.GetStoryReplySettingDTO({ user_id: req.user!.id });
+    const response = await MessagingService.getStoryReplySetting(dto);
+    if (response instanceof BadException) {
+      return ResponseBuilder.error(res, response, response.code || StatusCodes.BAD_REQUEST);
+    }
+    return ResponseBuilder.success(res, 'Story reply setting retrieved successfully', StatusCodes.OK, response);
+  };
+
+  public updateStoryReplySetting: fnRequest = async (req: AuthenticatedRequest, res: Response) => {
+    const dto = new dtos.UpdateStoryReplySettingDTO(req.body);
+    dto.user_id = req.user!.id;
+    const response = await MessagingService.updateStoryReplySetting(dto);
+    if (response instanceof BadException) {
+      return ResponseBuilder.error(res, response, response.code || StatusCodes.BAD_REQUEST);
+    }
+    return ResponseBuilder.success(res, 'Story reply setting updated successfully', StatusCodes.OK, response);
   };
 }
 

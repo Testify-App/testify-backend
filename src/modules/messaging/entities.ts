@@ -2,6 +2,9 @@ import { BaseEntity } from '../../shared/utils/base-entity';
 
 export type ConversationType = 'direct';
 export type MessageContentType = 'text' | 'image' | 'video' | 'audio';
+export type MessagingPrivacyOption = 'everyone' | 'following' | 'nobody';
+export type StoryReplyOption = 'everyone' | 'circle_only' | 'nobody';
+export type MessageRestrictionReason = 'blocked' | 'recipient_not_accepting_messages' | 'account_unavailable';
 
 export class ConversationEntity extends BaseEntity<ConversationEntity> {
   id?: string;
@@ -10,9 +13,11 @@ export class ConversationEntity extends BaseEntity<ConversationEntity> {
   created_at?: Date;
   other_participant?: {
     id?: string;
-    username?: string;
-    display_name?: string;
-    avatar?: string;
+    username?: string | null;
+    display_name?: string | null;
+    avatar?: string | null;
+    is_account_available?: boolean;
+    is_account_deleted?: boolean;
   };
   last_message?: {
     id?: string;
@@ -23,6 +28,18 @@ export class ConversationEntity extends BaseEntity<ConversationEntity> {
     created_at?: Date;
   } | null;
   unread_count?: number;
+  can_send_message?: boolean;
+  restriction_reason?: MessageRestrictionReason | null;
+}
+
+export class MessagingPrivacySettingEntity extends BaseEntity<MessagingPrivacySettingEntity> {
+  who_can_message?: MessagingPrivacyOption;
+  updated_at?: Date;
+}
+
+export class StoryReplySettingEntity extends BaseEntity<StoryReplySettingEntity> {
+  who_can_reply?: StoryReplyOption;
+  updated_at?: Date;
 }
 
 export class MessageReactionSummary extends BaseEntity<MessageReactionSummary> {
@@ -58,6 +75,18 @@ export class MessageEntity extends BaseEntity<MessageEntity> {
     content_type?: MessageContentType;
     sender_id?: string;
     is_unsent?: boolean;
+  } | null;
+  quoted_story_id?: string | null;
+  quoted_story_snapshot?: {
+    content_type?: string;
+    media_url?: string | null;
+    thumbnail_url?: string | null;
+    text_content?: string | null;
+    background_style?: Record<string, any> | null;
+    author_id?: string;
+    author_username?: string;
+    author_display_name?: string;
+    story_created_at?: Date;
   } | null;
   reactions?: MessageReactionSummary[];
 }

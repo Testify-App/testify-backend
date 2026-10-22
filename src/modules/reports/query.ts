@@ -11,9 +11,24 @@ export default {
     SELECT sender_id AS user_id FROM messages WHERE id = $1 AND is_unsent = FALSE;
   `,
 
+  // For a user report, the "owner" of the reported entity is the reported
+  // user themself — entity_id IS their user id. Confirms the account exists
+  // and isn't already deleted.
+  getUserOwner: `
+    SELECT id AS user_id FROM users WHERE id = $1 AND deleted_at IS NULL;
+  `,
+
+  // Guards against attaching an unrelated conversation as "context" — the
+  // reporter must actually be a participant in the conversation they cite.
+  isConversationParticipant: `
+    SELECT EXISTS(
+      SELECT 1 FROM conversation_participants WHERE conversation_id = $1 AND user_id = $2
+    );
+  `,
+
   createReport: `
-    INSERT INTO reports (entity_type, entity_id, content_owner_id, reporter_id, reason, details)
-    VALUES ($1, $2, $3, $4, $5, $6)
+    INSERT INTO reports (entity_type, entity_id, content_owner_id, reporter_id, reason, details, context_conversation_id)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
     ON CONFLICT (entity_type, entity_id, reporter_id) DO NOTHING
     RETURNING *;
   `,

@@ -18,6 +18,162 @@ const messagingRouter = Router();
 
 /**
  * @swagger
+ * /messaging-settings:
+ *   get:
+ *     summary: Get the authenticated user's "who can message me" privacy setting
+ *     tags: [Messaging]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Messaging privacy setting retrieved successfully
+ */
+messagingRouter.get(
+  '/messaging-settings',
+  verifyAuth,
+  WatchAsyncController(messagingController.getMessagingPrivacySetting)
+);
+
+/**
+ * @swagger
+ * /messaging-settings:
+ *   put:
+ *     summary: Update who can send the authenticated user a Direct Message
+ *     description: >
+ *       Takes effect immediately for every future conversation-start attempt and
+ *       message send, including within existing conversations — previously
+ *       exchanged messages always remain visible regardless of this setting.
+ *       Blocking always overrides this setting in either direction.
+ *     tags: [Messaging]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [who_can_message]
+ *             properties:
+ *               who_can_message:
+ *                 type: string
+ *                 enum: [everyone, following, nobody]
+ *     responses:
+ *       200:
+ *         description: Messaging privacy setting updated successfully
+ */
+messagingRouter.put(
+  '/messaging-settings',
+  verifyAuth,
+  validateDataMiddleware(messagingValidator.updateMessagingPrivacySettingValidator, 'body'),
+  WatchAsyncController(messagingController.updateMessagingPrivacySetting)
+);
+
+/**
+ * @swagger
+ * /story-reply-settings:
+ *   get:
+ *     summary: Get the authenticated user's "who can reply to my Circle stories" default
+ *     tags: [Messaging]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Story reply setting retrieved successfully
+ */
+messagingRouter.get(
+  '/story-reply-settings',
+  verifyAuth,
+  WatchAsyncController(messagingController.getStoryReplySetting)
+);
+
+/**
+ * @swagger
+ * /story-reply-settings:
+ *   put:
+ *     summary: Update the global default for who can reply privately to the authenticated user's stories
+ *     description: >
+ *       Each individual story can still override this via its own allow_replies
+ *       field at creation time. circle_only means the AUTHOR's own Circle —
+ *       someone the author has added — not the replier's Circle. Blocking
+ *       always overrides this setting in either direction.
+ *     tags: [Messaging]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [who_can_reply]
+ *             properties:
+ *               who_can_reply:
+ *                 type: string
+ *                 enum: [everyone, circle_only, nobody]
+ *     responses:
+ *       200:
+ *         description: Story reply setting updated successfully
+ */
+messagingRouter.put(
+  '/story-reply-settings',
+  verifyAuth,
+  validateDataMiddleware(messagingValidator.updateStoryReplySettingValidator, 'body'),
+  WatchAsyncController(messagingController.updateStoryReplySetting)
+);
+
+/**
+ * @swagger
+ * /stories/{storyId}/reply:
+ *   post:
+ *     summary: Reply privately to a Circle story — delivered as a Direct Message
+ *     description: >
+ *       Not a separate messaging system — this calls the exact same send path as
+ *       a normal DM, just without a pre-existing conversation_id. The conversation
+ *       with the story's author is found or created automatically. The quoted
+ *       story's content is frozen into the message at send time, so the quote
+ *       still renders correctly after the story itself expires and is deleted
+ *       (stories hard-delete 24h after posting). Reply text is optional — a
+ *       reply may be quote-only. Permission is governed by the story's own
+ *       allow_replies override if set, else the author's story-reply-settings
+ *       default, and a block in either direction always wins regardless.
+ *     tags: [Messaging]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storyId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [content_type]
+ *             properties:
+ *               content_type: { type: string, enum: [text, image, video, audio] }
+ *               content: { type: string, maxLength: 5000 }
+ *               media_url: { type: string, format: uri }
+ *     responses:
+ *       201:
+ *         description: Reply sent successfully
+ *       404:
+ *         description: Story not found, expired, or deleted
+ *       400:
+ *         description: Not permitted to reply to this story (blocked, or excluded by the author's reply setting), or replying to your own story
+ */
+messagingRouter.post(
+  '/stories/:storyId/reply',
+  verifyAuth,
+  validateDataMiddleware(messagingValidator.storyIdParamValidator, 'params'),
+  validateDataMiddleware(messagingValidator.sendMessageValidator, 'body'),
+  WatchAsyncController(messagingController.replyToStory)
+);
+
+/**
+ * @swagger
  * /conversations:
  *   get:
  *     summary: Get the authenticated user's conversations (inbox)
