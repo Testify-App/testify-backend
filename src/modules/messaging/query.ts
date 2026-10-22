@@ -7,6 +7,68 @@ export default {
     );
   `,
 
+  getMessagingPrivacySetting: `
+    SELECT who_can_message FROM messaging_privacy_settings WHERE user_id = $1;
+  `,
+
+  // Deleted (deleted_at set) or deactivated (status = 'deactivated') both read
+  // as unavailable here — neither can be messaged, regardless of their
+  // messaging-privacy setting, since there's no live account to apply it to.
+  isAccountAvailable: `
+    SELECT (deleted_at IS NULL AND status != 'deactivated') AS available
+    FROM users WHERE id = $1;
+  `,
+
+  upsertMessagingPrivacySetting: `
+    INSERT INTO messaging_privacy_settings (user_id, who_can_message, updated_at)
+    VALUES ($1, $2, NOW())
+    ON CONFLICT (user_id) DO UPDATE SET who_can_message = EXCLUDED.who_can_message, updated_at = NOW()
+    RETURNING *;
+  `,
+
+  getStoryReplySetting: `
+    SELECT who_can_reply FROM story_reply_settings WHERE user_id = $1;
+  `,
+
+  upsertStoryReplySetting: `
+    INSERT INTO story_reply_settings (user_id, who_can_reply, updated_at)
+    VALUES ($1, $2, NOW())
+    ON CONFLICT (user_id) DO UPDATE SET who_can_reply = EXCLUDED.who_can_reply, updated_at = NOW()
+    RETURNING *;
+  `,
+
+  // $1 = story author, $2 = would-be replier. Checks whether the AUTHOR added
+  // the replier to their own Circle — the gate is the author's relationship
+  // list, same direction convention as isFollowedByUser's "following" tier
+  // (the recipient's own list decides, not the sender's).
+  isInAuthorsCircle: `
+    SELECT EXISTS(
+      SELECT 1 FROM user_connections WHERE user_id = $1 AND connected_user_id = $2 AND status = 'accepted'
+    );
+  `,
+
+  // Live, non-expired story plus its author id and per-story allow_replies
+  // override — everything sendMessage needs to resolve reply permission and
+  // build the quote snapshot in one query.
+  getStoryForReply: `
+    SELECT s.id, s.user_id AS author_id, s.content_type, s.media_url, s.thumbnail_url,
+      s.text_content, s.background_style, s.allow_replies, s.created_at,
+      u.username AS author_username, u.display_name AS author_display_name
+    FROM stories s
+    JOIN users u ON u.id = s.user_id
+    WHERE s.id = $1 AND s.deleted_at IS NULL AND s.expires_at > NOW();
+  `,
+
+  // $1 = recipient (whose setting gates access), $2 = sender (the one trying
+  // to message them). "following" means the RECIPIENT already follows the
+  // sender — matches the product rule that Circle members (drawn from people
+  // the owner follows) automatically satisfy this tier.
+  isFollowedByUser: `
+    SELECT EXISTS(
+      SELECT 1 FROM user_follows WHERE follower_id = $1 AND following_id = $2
+    );
+  `,
+
   // Finds an existing 1:1 conversation between exactly these two users, if one
   // exists. Two separate EXISTS checks (not a single join) because a
   // conversation_participants row doesn't distinguish "the other participant" —
@@ -36,6 +98,18 @@ export default {
   // A conversation the caller deleted is hidden unless a message has arrived
   // since (c.last_message_at > cp.deleted_at) — that's what makes it
   // "reappear" on a new message without restoring anything for the deleter.
+  // can_send_message reflects whether the OTHER participant's current
+  // messaging-privacy setting (and block status) still lets the caller send
+  // a NEW message into this conversation — existing history stays visible
+  // regardless, this only gates sending. Computed here so the frontend can
+  // disable the composer without a second round trip per conversation.
+  // is_account_available is false once the other participant is deleted
+  // (deleted_at set) OR deactivated (status = 'deactivated') — either state
+  // forces can_send_message to false regardless of their privacy setting,
+  // since there's no live account to apply that setting to. A plain INNER
+  // JOIN on users (not filtered by deleted_at) is deliberate: a deleted
+  // user's row must still resolve so the conversation can report their
+  // unavailable state, rather than disappearing or erroring.
   getConversations: `
     SELECT COUNT(*) OVER () as count,
       c.id,
@@ -46,6 +120,8 @@ export default {
       other.username      AS other_username,
       other.display_name  AS other_display_name,
       other.avatar        AS other_avatar,
+      (other.deleted_at IS NOT NULL OR other.status = 'deactivated') AS other_account_unavailable,
+      (other.deleted_at IS NOT NULL) AS other_account_deleted,
       lm.id               AS last_message_id,
       lm.content          AS last_message_content,
       lm.content_type     AS last_message_content_type,
@@ -61,12 +137,26 @@ export default {
             OR m.created_at > (SELECT created_at FROM messages WHERE id = cp.last_read_message_id)
           )
           AND (cp.deleted_at IS NULL OR m.created_at > cp.deleted_at)
-      ) AS unread_count
+      ) AS unread_count,
+      (other.deleted_at IS NULL AND other.status != 'deactivated')
+      AND NOT EXISTS (
+        SELECT 1 FROM user_blocks
+        WHERE (blocker_id = $3 AND blocked_id = other.id)
+           OR (blocker_id = other.id AND blocked_id = $3)
+      )
+      AND (
+        COALESCE(mps.who_can_message, 'everyone') = 'everyone'
+        OR (
+          COALESCE(mps.who_can_message, 'everyone') = 'following'
+          AND EXISTS (SELECT 1 FROM user_follows WHERE follower_id = other.id AND following_id = $3)
+        )
+      ) AS can_send_message
     FROM conversation_participants cp
     JOIN conversations c ON c.id = cp.conversation_id
     JOIN conversation_participants other_cp ON other_cp.conversation_id = c.id AND other_cp.user_id != $3
     JOIN users other ON other.id = other_cp.user_id
     LEFT JOIN messages lm ON lm.id = c.last_message_id
+    LEFT JOIN messaging_privacy_settings mps ON mps.user_id = other.id
     WHERE cp.user_id = $3
       AND (cp.deleted_at IS NULL OR c.last_message_at > cp.deleted_at)
       AND ($4::text IS NULL OR other.username ILIKE '%' || $4 || '%' OR other.display_name ILIKE '%' || $4 || '%')
@@ -124,6 +214,8 @@ export default {
       m.is_unsent,
       m.edited_at,
       m.created_at,
+      m.quoted_story_id,
+      m.quoted_story_snapshot,
       reply.id            AS reply_to_id,
       reply.content_type  AS reply_to_content_type,
       reply.sender_id     AS reply_to_sender_id,
@@ -178,8 +270,8 @@ export default {
   `,
 
   createMessage: `
-    INSERT INTO messages (conversation_id, sender_id, reply_to_message_id, content_type, content, media_url)
-    VALUES ($1, $2, $3, $4, $5, $6)
+    INSERT INTO messages (conversation_id, sender_id, reply_to_message_id, content_type, content, media_url, quoted_story_id, quoted_story_snapshot)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     RETURNING *;
   `,
 
@@ -245,5 +337,16 @@ export default {
 
   getParticipantIds: `
     SELECT user_id FROM conversation_participants WHERE conversation_id = $1;
+  `,
+
+  // Every other participant this user has a direct conversation with — used
+  // to notify conversation partners in real time when this user's messaging
+  // privacy setting changes, so an open chat's composer can update without
+  // the other side needing to refresh or re-fetch the inbox.
+  getConversationPartnerIds: `
+    SELECT DISTINCT other_cp.user_id, cp.conversation_id
+    FROM conversation_participants cp
+    JOIN conversation_participants other_cp ON other_cp.conversation_id = cp.conversation_id AND other_cp.user_id != cp.user_id
+    WHERE cp.user_id = $1;
   `,
 };

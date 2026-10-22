@@ -22,7 +22,14 @@ const reportsRouter = Router();
  * @swagger
  * /reports:
  *   post:
- *     summary: Report a post or comment
+ *     summary: Report a post, comment, message, or user
+ *     description: >
+ *       For entity_type "user", entity_id is the reported user's own id. Pass
+ *       context_conversation_id when reporting a user from within a DM conversation
+ *       so moderators can pull the relevant message history — the reporter must
+ *       actually be a participant in that conversation. Reporting never notifies
+ *       the reported user, never blocks them, and never deletes anything; the same
+ *       (entity_type, entity_id, reporter) combination can only be reported once.
  *     tags: [Reports]
  *     security:
  *       - bearerAuth: []
@@ -39,7 +46,7 @@ const reportsRouter = Router();
  *             properties:
  *               entity_type:
  *                 type: string
- *                 enum: [post, comment]
+ *                 enum: [post, comment, message, user]
  *               entity_id:
  *                 type: string
  *               reason:
@@ -48,13 +55,16 @@ const reportsRouter = Router();
  *               details:
  *                 type: string
  *                 maxLength: 1000
+ *               context_conversation_id:
+ *                 type: string
+ *                 description: Only meaningful for entity_type "user" when reporting from a DM conversation.
  *     responses:
  *       201:
- *         description: Content reported successfully
+ *         description: Report submitted. Thank you for helping keep Testify safe.
  *       400:
- *         description: Already reported, or reporting own content
+ *         description: Already reported, reporting your own content/yourself, or not a participant in the cited conversation
  *       404:
- *         description: Post or comment not found
+ *         description: Post, comment, message, or user not found
  */
 reportsRouter.post(
   '/',
@@ -81,7 +91,7 @@ reportsRouter.post(
  *         in: query
  *         schema:
  *           type: string
- *           enum: [post, comment]
+ *           enum: [post, comment, message, user]
  *       - name: page
  *         in: query
  *         schema:

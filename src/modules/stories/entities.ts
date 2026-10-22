@@ -11,6 +11,7 @@ export class StoryEntity extends BaseEntity<StoryEntity> {
   text_content?: string | null;
   background_style?: Record<string, any> | null;
   duration?: number | null;
+  allow_replies?: boolean | null;
   views_count?: number;
   is_viewed?: boolean;
   created_at?: Date;

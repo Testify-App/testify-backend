@@ -21,9 +21,16 @@ export const getMessagesQueryValidator = Joi.object({
 
 export const sendMessageValidator = Joi.object({
   content_type: Joi.string().valid('text', 'image', 'video', 'audio').required(),
-  content: Joi.string().max(5000).when('content_type', { is: 'text', then: Joi.required() }).optional(),
+  // Not required when quoted_story_id is set — a story reply may be
+  // quote-only (just the quote, no typed text), same as reacting to a story
+  // with just an emoji in other apps.
+  content: Joi.string().max(5000).when('content_type', {
+    is: 'text',
+    then: Joi.when('quoted_story_id', { is: Joi.exist(), then: Joi.optional(), otherwise: Joi.required() }),
+  }).optional(),
   media_url: Joi.string().uri().when('content_type', { is: Joi.valid('image', 'video', 'audio'), then: Joi.required() }).optional(),
   reply_to_message_id: Joi.string().optional(),
+  quoted_story_id: Joi.string().optional(),
 });
 
 export const markConversationReadValidator = Joi.object({
@@ -45,4 +52,16 @@ export const getReactorsQueryValidator = Joi.object({
 
 export const editMessageValidator = Joi.object({
   content: Joi.string().min(1).max(5000).required(),
+});
+
+export const updateMessagingPrivacySettingValidator = Joi.object({
+  who_can_message: Joi.string().valid('everyone', 'following', 'nobody').required(),
+});
+
+export const updateStoryReplySettingValidator = Joi.object({
+  who_can_reply: Joi.string().valid('everyone', 'circle_only', 'nobody').required(),
+});
+
+export const storyIdParamValidator = Joi.object({
+  storyId: Joi.string().required(),
 });

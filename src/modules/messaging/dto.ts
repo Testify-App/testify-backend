@@ -22,6 +22,24 @@ export class DeleteMessageDTO extends BaseEntity<DeleteMessageDTO> {
   message_id: string;
 }
 
+export class GetMessagingPrivacySettingDTO extends BaseEntity<GetMessagingPrivacySettingDTO> {
+  user_id: string;
+}
+
+export class UpdateMessagingPrivacySettingDTO extends BaseEntity<UpdateMessagingPrivacySettingDTO> {
+  user_id: string;
+  who_can_message: 'everyone' | 'following' | 'nobody';
+}
+
+export class GetStoryReplySettingDTO extends BaseEntity<GetStoryReplySettingDTO> {
+  user_id: string;
+}
+
+export class UpdateStoryReplySettingDTO extends BaseEntity<UpdateStoryReplySettingDTO> {
+  user_id: string;
+  who_can_reply: 'everyone' | 'circle_only' | 'nobody';
+}
+
 export class GetOrCreateConversationDTO extends BaseEntity<GetOrCreateConversationDTO> {
   user_id: string;
   other_user_id: string;
@@ -36,11 +54,14 @@ export class GetMessagesQueryDTO extends BaseEntity<GetMessagesQueryDTO> {
 
 export class SendMessageDTO extends BaseEntity<SendMessageDTO> {
   user_id: string;
-  conversation_id: string;
+  // Optional only when quoted_story_id is set — the conversation is then
+  // resolved from the story's author instead of a client-supplied id.
+  conversation_id?: string;
   content_type: MessageContentType;
   content?: string;
   media_url?: string;
   reply_to_message_id?: string;
+  quoted_story_id?: string;
 }
 
 export class MarkConversationReadDTO extends BaseEntity<MarkConversationReadDTO> {

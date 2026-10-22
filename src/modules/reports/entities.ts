@@ -1,6 +1,6 @@
 import { BaseEntity } from '../../shared/utils/base-entity';
 
-export type ReportEntityType = 'post' | 'comment' | 'message';
+export type ReportEntityType = 'post' | 'comment' | 'message' | 'user';
 export type ReportStatus = 'pending' | 'under_review' | 'resolved';
 export type ReportModeratorAction = 'no_action' | 'content_removed' | 'user_action_taken';
 
@@ -17,6 +17,7 @@ export class ReportEntity extends BaseEntity<ReportEntity> {
   reviewed_by?: string | null;
   reviewed_at?: Date | null;
   created_at?: Date;
+  context_conversation_id?: string | null;
   reporter?: {
     username?: string;
     avatar?: string;
