@@ -661,12 +661,12 @@ export default {
 
   getPostReposts: `
     SELECT COUNT(*) OVER () as count,
-      r.*, u.username, u.avatar
+      r.*, u.username, u.avatar, u.display_name
     FROM reposts r
     JOIN users u ON r.user_id = u.id
     WHERE r.post_id = $3
     ORDER BY r.created_at DESC
-    LIMIT $1 OFFSET $2;
+    LIMIT $2 OFFSET $1;
   `,
 
   getPostRepostsCount: `
@@ -749,22 +749,38 @@ export default {
     WHERE user_id = $1;
   `,
 
+  // Quote reposts of a specific post. Each quote is returned shaped like any
+  // other post (content, engagement counts, etc.) — the embedded original is
+  // attached separately by the repository via getEmbeddedParentPost, same as
+  // everywhere else a quote repost appears, so this listing can't drift out
+  // of sync with how quotes render anywhere else. Visibility/block IS
+  // checked here (on $3, the viewer) — a quote repost that's itself
+  // circle-only/private, or made by someone the viewer has blocked, must not
+  // leak through this listing just because the ORIGINAL post is public.
   getQuotePosts: `
-    SELECT 
-      p.*,
-      u.id as user_id,
-      u.username,
-      u.avatar,
-      original.content as original_content,
-      original_user.username as original_author
+    SELECT COUNT(*) OVER () as count,
+      ${FEED_POST_COLUMNS.replace(/\$1/g, '$3')}
     FROM posts p
-    JOIN posts original ON p.parent_post_id = original.id
     JOIN users u ON p.user_id = u.id
-    JOIN users original_user ON original.user_id = original_user.id
-    WHERE p.parent_post_id = $1 
+    LEFT JOIN communities c ON p.community_id = c.id
+    WHERE p.parent_post_id = $4
       AND p.deleted_at IS NULL
+      AND p.status != 'archived'
+      AND (
+        (p.visibility = 'public')
+        OR (p.user_id = $3)
+        OR (p.visibility = 'circle_only' AND EXISTS (
+          SELECT 1 FROM user_connections
+          WHERE user_id = $3 AND connected_user_id = p.user_id AND status = 'accepted'
+        ))
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM user_blocks
+        WHERE (blocker_id = $3 AND blocked_id = p.user_id)
+           OR (blocker_id = p.user_id AND blocked_id = $3)
+      )
     ORDER BY p.created_at DESC
-    LIMIT $2 OFFSET $3;
+    LIMIT $2 OFFSET $1;
   `,
 
   updateContentFlags: `

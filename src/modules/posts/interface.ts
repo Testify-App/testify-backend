@@ -38,9 +38,16 @@ export interface PostsInterface {
   
   getPostReposts(
     postId: string,
+    userId: string,
     query: dtos.GetRepostsQueryDTO
   ): Promise<BadException | NotFoundException | { reposts: entities.RepostEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }>;
-  
+
+  getQuotePosts(
+    postId: string,
+    userId: string,
+    query: dtos.GetQuotePostsQueryDTO
+  ): Promise<BadException | NotFoundException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }>;
+
   createComment(
     userId: string,
     postId: string,

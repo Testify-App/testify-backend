@@ -714,10 +714,16 @@ export class PostsRepositoryImpl implements PostsInterface {
 
   public async getPostReposts(
     postId: string,
+    userId: string,
     query: dtos.GetRepostsQueryDTO
   ): Promise<BadException | NotFoundException | { reposts: entities.RepostEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> {
     try {
-      const post = await db.oneOrNone(PostsQuery.getPostById, [postId]);
+      // Visibility/block-aware, not a bare existence check — a post the
+      // requester isn't authorized to see (circle-only they're not in,
+      // blocked either direction) must 404 the same as a post that doesn't
+      // exist, so listing its reposters can't be used to discover a
+      // restricted post's engagement.
+      const post = await db.oneOrNone(PostsQuery.getPostWithEngagement, [postId, userId]);
       if (!post) {
         return new NotFoundException('Post not found');
       }
@@ -731,7 +737,87 @@ export class PostsRepositoryImpl implements PostsInterface {
       });
 
       return {
-        reposts: reposts.map((r: any) => new entities.RepostEntity(r)),
+        reposts: reposts.map((r: any) => new entities.RepostEntity({
+          id: r.id,
+          post_id: r.post_id,
+          user_id: r.user_id,
+          created_at: r.created_at,
+          user: {
+            id: r.user_id,
+            username: r.username,
+            avatar: r.avatar,
+            display_name: r.display_name,
+          },
+        })),
+        pagination: { page: String(page), limit: String(limit), total: count, totalPages: calcPages(count, limit) },
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        return error;
+      }
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async getQuotePosts(
+    postId: string,
+    userId: string,
+    query: dtos.GetQuotePostsQueryDTO
+  ): Promise<BadException | NotFoundException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> {
+    try {
+      // Same visibility-aware gate as getPostReposts — can't list quotes of
+      // a post you aren't authorized to see.
+      const post = await db.oneOrNone(PostsQuery.getPostWithEngagement, [postId, userId]);
+      if (!post) {
+        return new NotFoundException('Post not found');
+      }
+
+      const { page = '1', limit = '20' } = query as { page?: string; limit?: string };
+      const [{ count }, posts] = await fetchResourceByPage({
+        page,
+        limit,
+        getResources: PostsQuery.getQuotePosts,
+        params: [userId, postId],
+      });
+
+      const postsWithEngagement = await Promise.all(
+        posts.map(async (p: any) => {
+          const [isLiked, isReposted, isBookmarked, isFollowing, isInCircle, content_segments, likers, parent_post] = await Promise.all([
+            db.one(PostsQuery.isPostLiked, [p.id, userId]),
+            db.one(PostsQuery.isReposted, [p.id, userId]),
+            db.one(PostsQuery.isBookmarked, [p.id, userId]),
+            db.one(PostsQuery.isFollowingUser, [userId, p.user_id]),
+            db.one(PostsQuery.isInCircleWith, [userId, p.user_id]),
+            parseContentSegments(p.content),
+            db.any(PostsQuery.getFirstLikers, [p.id]),
+            this.getEmbeddedParentPost(p.parent_post_id),
+          ]);
+
+          return new entities.PostWithUserEntity({
+            ...p,
+            content_segments,
+            is_liked: isLiked.exists,
+            is_reposted: isReposted.exists,
+            is_bookmarked: isBookmarked.exists,
+            likers,
+            parent_post,
+            user: {
+              id: p.user_id,
+              username: p.username,
+              avatar: p.avatar,
+              display_name: p.display_name,
+              is_following: isFollowing.exists,
+              is_in_circle: isInCircle.exists,
+            },
+            community: p.community_id
+              ? { id: p.community_id, name: p.community_name, avatar: p.community_avatar, is_community_owner: p.is_community_owner ?? false }
+              : null,
+          });
+        })
+      );
+
+      return {
+        posts: postsWithEngagement,
         pagination: { page: String(page), limit: String(limit), total: count, totalPages: calcPages(count, limit) },
       };
     } catch (error) {
