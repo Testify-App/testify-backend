@@ -95,9 +95,18 @@ export class PostsServiceImpl implements PostsInterface {
 
   public getPostReposts = async (
     postId: string,
+    userId: string,
     query: dtos.GetRepostsQueryDTO
   ): Promise<BadException | NotFoundException | { reposts: entities.RepostEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> => {
-    return await PostsRepository.getPostReposts(postId, query);
+    return await PostsRepository.getPostReposts(postId, userId, query);
+  };
+
+  public getQuotePosts = async (
+    postId: string,
+    userId: string,
+    query: dtos.GetQuotePostsQueryDTO
+  ): Promise<BadException | NotFoundException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> => {
+    return await PostsRepository.getQuotePosts(postId, userId, query);
   };
 
   public createComment = async (

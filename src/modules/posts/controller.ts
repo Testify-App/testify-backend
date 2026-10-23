@@ -200,8 +200,9 @@ export class PostsController {
 
   public getPostReposts: fnRequest = async (req: AuthenticatedRequest, res) => {
     const postId = req.params.id;
+    const userId = req.user?.id as string;
     const query = new dtos.GetRepostsQueryDTO(req.query);
-    const response = await PostsService.getPostReposts(postId, query);
+    const response = await PostsService.getPostReposts(postId, userId, query);
     if (response instanceof NotFoundException) {
       logger.error(response.message, 'posts.controller.ts');
       return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
@@ -212,6 +213,23 @@ export class PostsController {
     }
     logger.info('Post reposts retrieved successfully', 'posts.controller.ts');
     return ResponseBuilder.success(res, 'Post reposts retrieved successfully', StatusCodes.OK, response);
+  };
+
+  public getQuotePosts: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const postId = req.params.id;
+    const userId = req.user?.id as string;
+    const query = new dtos.GetQuotePostsQueryDTO(req.query);
+    const response = await PostsService.getQuotePosts(postId, userId, query);
+    if (response instanceof NotFoundException) {
+      logger.error(response.message, 'posts.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.NOT_FOUND);
+    }
+    if (response instanceof BadException) {
+      logger.error(`${response.message}`, 'posts.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    logger.info('Quote posts retrieved successfully', 'posts.controller.ts');
+    return ResponseBuilder.success(res, 'Quote posts retrieved successfully', StatusCodes.OK, response);
   };
 
   public createComment: fnRequest = async (req: AuthenticatedRequest, res) => {

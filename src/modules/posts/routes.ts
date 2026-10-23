@@ -716,11 +716,17 @@ postsRouter.delete(
  *         schema:
  *           type: string
  *           format: uuid
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20, maximum: 100 }
  *     responses:
  *       200:
  *         description: Reposts retrieved successfully
  *       404:
- *         description: Post not found
+ *         description: Post not found, or not visible to you
  */
 postsRouter.get(
   '/:id/reposts',
@@ -728,6 +734,49 @@ postsRouter.get(
   validateDataMiddleware(postsValidator.idValidator, 'params'),
   validateDataMiddleware(postsValidator.getRepostsQueryValidator, 'query'),
   WatchAsyncController(postsController.getPostReposts)
+);
+
+/**
+ * @swagger
+ * /posts/{id}/quotes:
+ *   get:
+ *     summary: Get quote reposts of a post
+ *     description: >
+ *       Each result is shaped like a normal post (its own content, engagement
+ *       counts, embedded original) rather than a bare list — a quote repost is
+ *       a standalone post with independent likes/comments/reposts. Visibility
+ *       and blocking are enforced on both the requested post and each returned
+ *       quote, so a restricted post's existence/content can't be discovered
+ *       through this listing, and a quote that is itself restricted or from a
+ *       blocked user is excluded even if the original is public.
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20, maximum: 100 }
+ *     responses:
+ *       200:
+ *         description: Quote posts retrieved successfully
+ *       404:
+ *         description: Post not found, or not visible to you
+ */
+postsRouter.get(
+  '/:id/quotes',
+  verifyAuth,
+  validateDataMiddleware(postsValidator.idValidator, 'params'),
+  validateDataMiddleware(postsValidator.getQuotePostsQueryValidator, 'query'),
+  WatchAsyncController(postsController.getQuotePosts)
 );
 
 // Quote repost

@@ -99,6 +99,12 @@ export class RepostEntity extends BaseEntity<RepostEntity> {
   post_id?: string;
   user_id?: string;
   created_at?: Date;
+  user?: {
+    id?: string;
+    username?: string;
+    avatar?: string;
+    display_name?: string;
+  };
 }
 
 export class PostMentionEntity extends BaseEntity<PostMentionEntity> {
