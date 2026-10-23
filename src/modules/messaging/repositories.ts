@@ -251,27 +251,31 @@ export class MessagingRepositoryImpl implements MessagingInterface {
     }
   }
 
-  // Story-reply permission resolver — block → per-story override → the
-  // author's global default → Circle check. Runs INSTEAD of canMessage for
-  // this one send, not in addition to it: Circle membership is the whole
-  // point of the circle_only tier, so it must not also require the author's
-  // general messaging-privacy setting to allow everyone.
-  private async resolveStoryReplyPermission(
+  // Story-reply permission resolver — block → the author's global default →
+  // Circle check. Runs INSTEAD of canMessage for this one send, not in
+  // addition to it: Circle membership is the whole point of the circle_only
+  // tier, so it must not also require the author's general messaging-privacy
+  // setting to allow everyone.
+  //
+  // Reply permission is governed solely by the author's global
+  // story_reply_settings default — there is no per-story override.
+  //
+  // Public (not just used internally by sendMessage) so the stories module
+  // can resolve the same "can I reply to this story" flag for display
+  // purposes (GET /stories' can_send_message) without duplicating this
+  // logic — the UI flag and the actual enforcement are guaranteed to agree
+  // since they're the same function.
+  public async resolveStoryReplyPermission(
     replierId: string,
-    story: { author_id: string; allow_replies: boolean | null }
+    authorId: string
   ): Promise<{ allowed: true } | { allowed: false; reason: entities.MessageRestrictionReason }> {
-    const blocked = await db.one(MessagingQuery.isBlockedEitherDirection, [replierId, story.author_id]);
+    const blocked = await db.one(MessagingQuery.isBlockedEitherDirection, [replierId, authorId]);
     if (blocked.exists) {
       return { allowed: false, reason: 'blocked' };
     }
 
-    let effective: 'everyone' | 'circle_only' | 'nobody';
-    if (story.allow_replies !== null) {
-      effective = story.allow_replies ? 'everyone' : 'nobody';
-    } else {
-      const setting = await db.oneOrNone(MessagingQuery.getStoryReplySetting, [story.author_id]);
-      effective = setting?.who_can_reply ?? 'everyone';
-    }
+    const setting = await db.oneOrNone(MessagingQuery.getStoryReplySetting, [authorId]);
+    const effective = setting?.who_can_reply ?? 'everyone';
 
     if (effective === 'everyone') {
       return { allowed: true };
@@ -281,7 +285,7 @@ export class MessagingRepositoryImpl implements MessagingInterface {
     }
 
     // effective === 'circle_only'
-    const inCircle = await db.one(MessagingQuery.isInAuthorsCircle, [story.author_id, replierId]);
+    const inCircle = await db.one(MessagingQuery.isInAuthorsCircle, [authorId, replierId]);
     return inCircle.exists ? { allowed: true } : { allowed: false, reason: 'recipient_not_accepting_messages' };
   }
 
@@ -302,7 +306,7 @@ export class MessagingRepositoryImpl implements MessagingInterface {
           return new BadException('You cannot reply to your own story');
         }
 
-        const permission = await this.resolveStoryReplyPermission(payload.user_id, story);
+        const permission = await this.resolveStoryReplyPermission(payload.user_id, story.author_id);
         if (!permission.allowed) {
           return new BadException('You cannot reply to this story');
         }

@@ -33,6 +33,14 @@ export interface MediaAttachment {
   order_index?: number;
 }
 
+export interface ContentFlags {
+  is_sensitive: boolean;
+  flagged_at: string;
+  categories: string[];
+  scores: Record<string, number>;
+  source: 'openai_moderation';
+}
+
 export class PostEntity extends BaseEntity<PostEntity> {
   id?: string;
   user_id?: string;
@@ -53,6 +61,8 @@ export class PostEntity extends BaseEntity<PostEntity> {
   deleted_by?: string;
   created_at?: Date;
   updated_at?: Date;
+  edited_at?: Date | null;
+  content_flags?: ContentFlags | null;
 }
 
 export class CommentEntity extends BaseEntity<CommentEntity> {
@@ -132,10 +142,23 @@ export class PostWithUserEntity extends BaseEntity<PostWithUserEntity> {
   hashtags?: string[];
   created_at?: Date;
   updated_at?: Date;
+  edited_at?: Date | null;
+  content_flags?: ContentFlags | null;
   is_liked?: boolean;
   is_reposted?: boolean;
   is_bookmarked?: boolean;
   reposted_at?: Date;
+  // Set only when this post is appearing in a feed BECAUSE someone the
+  // viewer follows reposted it (not quote-reposted — that's just normal
+  // authorship) — this is the "Reposted by X" attribution. Absent/null for
+  // a post the viewer is seeing because they follow its actual author, or
+  // when fetched outside a feed context entirely (e.g. a direct GET by id).
+  reposted_by?: {
+    id?: string;
+    username?: string;
+    avatar?: string;
+    display_name?: string;
+  } | null;
   likers?: PostLikerPreview[];
   user?: {
     id?: string;
@@ -149,6 +172,23 @@ export class PostWithUserEntity extends BaseEntity<PostWithUserEntity> {
     id?: string;
     name?: string;
     avatar?: string;
+  } | null;
+  // Embedded original testimony for a quote repost (parent_post_id set).
+  // Null if the original was deleted/removed — per AC9/5, the embed becomes
+  // inaccessible along with the original rather than erroring the whole
+  // quote repost out.
+  parent_post?: {
+    id?: string;
+    content?: string | null;
+    content_segments?: ContentSegment[];
+    media_attachments?: MediaAttachment[];
+    author?: {
+      id?: string;
+      username?: string;
+      avatar?: string;
+      display_name?: string;
+    };
+    created_at?: Date;
   } | null;
 }
 

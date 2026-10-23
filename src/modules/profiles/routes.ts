@@ -413,6 +413,14 @@ profilesRouter.get(
  *                     prayer_count:
  *                       type: integer
  *                       example: 2
+ *                     can_message:
+ *                       type: boolean
+ *                       nullable: true
+ *                       description: >
+ *                         Whether the authenticated user can currently send this
+ *                         profile a Direct Message, resolved from their messaging
+ *                         privacy setting and any block in either direction. Null
+ *                         when viewing your own profile.
  *                     posts:
  *                       type: array
  *                       items:

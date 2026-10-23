@@ -208,6 +208,13 @@ export class PostsServiceImpl implements PostsInterface {
     return await PostsRepository.getRecommendedPosts(userId, query);
   };
 
+  public getTrendingPosts = async (
+    userId: string,
+    query: dtos.GetPostsQueryDTO
+  ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> => {
+    return await PostsRepository.getTrendingPosts(userId, query);
+  };
+
   public recordImpressions = async (
     payload: dtos.CreateImpressionsDTO
   ): Promise<BadException | { message: string }> => {

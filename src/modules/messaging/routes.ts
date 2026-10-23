@@ -93,8 +93,8 @@ messagingRouter.get(
  *   put:
  *     summary: Update the global default for who can reply privately to the authenticated user's stories
  *     description: >
- *       Each individual story can still override this via its own allow_replies
- *       field at creation time. circle_only means the AUTHOR's own Circle —
+ *       This is the sole control over who can reply to your stories — there is
+ *       no per-story override. circle_only means the AUTHOR's own Circle —
  *       someone the author has added — not the replier's Circle. Blocking
  *       always overrides this setting in either direction.
  *     tags: [Messaging]
@@ -134,9 +134,9 @@ messagingRouter.put(
  *       story's content is frozen into the message at send time, so the quote
  *       still renders correctly after the story itself expires and is deleted
  *       (stories hard-delete 24h after posting). Reply text is optional — a
- *       reply may be quote-only. Permission is governed by the story's own
- *       allow_replies override if set, else the author's story-reply-settings
- *       default, and a block in either direction always wins regardless.
+ *       reply may be quote-only. Permission is governed solely by the author's
+ *       story-reply-settings default (no per-story override exists), and a
+ *       block in either direction always wins regardless.
  *     tags: [Messaging]
  *     security:
  *       - bearerAuth: []

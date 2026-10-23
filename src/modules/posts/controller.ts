@@ -140,6 +140,7 @@ export class PostsController {
   public quoteRepost: fnRequest = async (req: AuthenticatedRequest, res) => {
     let payload = new dtos.CreatePostDTO(req.body);
     payload.user_id = req.user?.id as string;
+    payload.parent_post_id = req.params.post_id;
     const response = await PostsService.quoteRepost(payload);
     if (response instanceof BadException) {
       logger.error(`${response.message}`, 'posts.controller.ts');
@@ -415,6 +416,18 @@ export class PostsController {
     }
     logger.info('Recommended testimonies retrieved successfully', 'posts.controller.ts');
     return ResponseBuilder.success(res, 'Recommended testimonies retrieved successfully', StatusCodes.OK, response);
+  };
+
+  public getTrendingPosts: fnRequest = async (req: AuthenticatedRequest, res) => {
+    const userId = req.user?.id as string;
+    const query = new dtos.GetPostsQueryDTO(req.query);
+    const response = await PostsService.getTrendingPosts(userId, query);
+    if (response instanceof BadException) {
+      logger.error(`${response.message}`, 'posts.controller.ts');
+      return ResponseBuilder.error(res, response, StatusCodes.BAD_REQUEST);
+    }
+    logger.info('Trending testimonies retrieved successfully', 'posts.controller.ts');
+    return ResponseBuilder.success(res, 'Trending testimonies retrieved successfully', StatusCodes.OK, response);
   };
 
   public getUserBookmarks: fnRequest = async (req: AuthenticatedRequest, res) => {

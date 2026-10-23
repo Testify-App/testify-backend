@@ -336,6 +336,37 @@ postsRouter.get(
 
 /**
  * @swagger
+ * /posts/trending:
+ *   get:
+ *     summary: Get trending testimonies
+ *     description: >
+ *       Public, paginated surface of the highest engagement-velocity posts in a
+ *       recent window — the same velocity formula used internally by the Home
+ *       feed's trending slot, exposed here on its own with real pagination.
+ *       Not personalized beyond the usual visibility/block rules.
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20 }
+ *     responses:
+ *       200:
+ *         description: Trending testimonies retrieved successfully
+ */
+postsRouter.get(
+  '/trending',
+  verifyAuth,
+  validateDataMiddleware(postsValidator.getPostsQueryValidator, 'query'),
+  WatchAsyncController(postsController.getTrendingPosts)
+);
+
+/**
+ * @swagger
  * /posts/{id}:
  *   get:
  *     summary: Get a single post
@@ -702,16 +733,24 @@ postsRouter.get(
 // Quote repost
 /**
  * @swagger
- * /posts/{id}/quote:
+ * /posts/{post_id}/quote:
  *   post:
- *     summary: Quote repost a post
+ *     summary: Quote repost a testimony — your commentary with the original embedded underneath
+ *     description: >
+ *       The post in the URL becomes the embedded original (its visibility must
+ *       already permit you to see it — a circle-only or otherwise restricted
+ *       post you aren't authorized to view cannot be quote-reposted). The quote
+ *       repost is its own post: it has independent likes/comments/reposts,
+ *       appears in your followers' feeds under your authorship, and remains
+ *       accessible even if later deleted separately from the original.
  *     tags: [Posts]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: post_id
  *         required: true
+ *         description: The original testimony being quoted
  *         schema:
  *           type: string
  *           format: uuid
@@ -721,12 +760,11 @@ postsRouter.get(
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - parent_post_id
  *             properties:
- *               parent_post_id:
+ *               content:
  *                 type: string
- *                 format: uuid
+ *                 maxLength: 5000
+ *                 description: Your commentary, shown above the embedded original
  *               quote_text:
  *                 type: string
  *                 maxLength: 500
@@ -736,8 +774,8 @@ postsRouter.get(
  *     responses:
  *       201:
  *         description: Quote repost created successfully
- *       404:
- *         description: Parent post not found
+ *       400:
+ *         description: Original testimony not found, or not visible to you
  */
 postsRouter.post(
   '/:post_id/quote',

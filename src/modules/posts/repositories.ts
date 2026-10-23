@@ -40,9 +40,12 @@ export class PostsRepositoryImpl implements PostsInterface {
           }
         }
 
-        // If it's a quote post, validate parent post exists
+        // If it's a quote post, validate the parent is visible to this user —
+        // a bare existence check would let someone quote-repost a circle-only
+        // or otherwise restricted post they aren't authorized to see,
+        // exposing its content/author to their own followers.
         if (payload.parent_post_id) {
-          const parentPost = await t.oneOrNone(PostsQuery.getPostById, [payload.parent_post_id]);
+          const parentPost = await t.oneOrNone(PostsQuery.getPostWithEngagement, [payload.parent_post_id, payload.user_id]);
           if (!parentPost) {
             throw new BadException('Parent post not found');
           }
@@ -281,7 +284,7 @@ export class PostsRepositoryImpl implements PostsInterface {
 
       const postsWithEngagement = await Promise.all(
         posts.map(async (post: any) => {
-          const [isLiked, isReposted, isBookmarked, isFollowing, isInCircle, content_segments, likers] = await Promise.all([
+          const [isLiked, isReposted, isBookmarked, isFollowing, isInCircle, content_segments, likers, parent_post] = await Promise.all([
             db.one(PostsQuery.isPostLiked, [post.id, user_id]),
             db.one(PostsQuery.isReposted, [post.id, user_id]),
             db.one(PostsQuery.isBookmarked, [post.id, user_id]),
@@ -289,6 +292,7 @@ export class PostsRepositoryImpl implements PostsInterface {
             db.one(PostsQuery.isInCircleWith, [user_id, post.user_id]),
             parseContentSegments(post.content),
             db.any(PostsQuery.getFirstLikers, [post.id]),
+            this.getEmbeddedParentPost(post.parent_post_id),
           ]);
 
           return new entities.PostWithUserEntity({
@@ -298,6 +302,7 @@ export class PostsRepositoryImpl implements PostsInterface {
             is_reposted: isReposted.exists,
             is_bookmarked: isBookmarked.exists,
             likers,
+            parent_post,
             user: {
               id: post.user_id,
               username: post.username,
@@ -337,6 +342,7 @@ export class PostsRepositoryImpl implements PostsInterface {
       const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, payload.user_id]);
       const content_segments = await parseContentSegments(post.content);
       const likers = await db.any(PostsQuery.getFirstLikers, [post.id]);
+      const parent_post = await this.getEmbeddedParentPost(post.parent_post_id);
 
       return new entities.PostWithUserEntity({
         ...post,
@@ -345,6 +351,7 @@ export class PostsRepositoryImpl implements PostsInterface {
         is_reposted: isReposted.exists,
         is_bookmarked: isBookmarked.exists,
         likers,
+        parent_post,
         user: {
           id: post.user_id,
           username: post.username,
@@ -523,7 +530,11 @@ export class PostsRepositoryImpl implements PostsInterface {
   ): Promise<NotFoundException | { message: string; is_reposted: boolean }> {
     try {
       const response = await db.tx(async (t) => {
-        const post = await t.oneOrNone(PostsQuery.getPostById, [payload.post_id]);
+        // Visibility/block-aware lookup, not a bare existence check — a post
+        // you aren't authorized to see (circle-only you're not in, blocked
+        // either direction) must 404 the same as a post that doesn't exist,
+        // otherwise reposting would leak it to your followers.
+        const post = await t.oneOrNone(PostsQuery.getPostWithEngagement, [payload.post_id, payload.user_id]);
         if (!post) {
           throw new NotFoundException('Post not found');
         }
@@ -1075,6 +1086,7 @@ export class PostsRepositoryImpl implements PostsInterface {
           const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
           const content_segments = await parseContentSegments(post.content);
           const likers = await db.any(PostsQuery.getFirstLikers, [post.id]);
+          const parent_post = await this.getEmbeddedParentPost(post.parent_post_id);
 
           return new entities.PostWithUserEntity({
             ...post,
@@ -1083,6 +1095,7 @@ export class PostsRepositoryImpl implements PostsInterface {
             is_reposted: isReposted.exists,
             is_bookmarked: isBookmarked.exists,
             likers,
+            parent_post,
             user: {
               id: post.user_id,
               username: post.username,
@@ -1127,6 +1140,7 @@ export class PostsRepositoryImpl implements PostsInterface {
           const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
           const content_segments = await parseContentSegments(post.content);
           const likers = await db.any(PostsQuery.getFirstLikers, [post.id]);
+          const parent_post = await this.getEmbeddedParentPost(post.parent_post_id);
 
           return new entities.PostWithUserEntity({
             ...post,
@@ -1136,6 +1150,7 @@ export class PostsRepositoryImpl implements PostsInterface {
             is_bookmarked: isBookmarked.exists,
             reposted_at: post.reposted_at,
             likers,
+            parent_post,
             user: {
               id: post.user_id,
               username: post.username,
@@ -1178,6 +1193,7 @@ export class PostsRepositoryImpl implements PostsInterface {
           const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
           const content_segments = await parseContentSegments(post.content);
           const likers = await db.any(PostsQuery.getFirstLikers, [post.id]);
+          const parent_post = await this.getEmbeddedParentPost(post.parent_post_id);
 
           return new entities.PostWithUserEntity({
             ...post,
@@ -1186,6 +1202,7 @@ export class PostsRepositoryImpl implements PostsInterface {
             is_reposted: isReposted.exists,
             is_bookmarked: isBookmarked.exists,
             likers,
+            parent_post,
             user: {
               id: post.user_id,
               username: post.username,
@@ -1225,6 +1242,7 @@ export class PostsRepositoryImpl implements PostsInterface {
           const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
           const content_segments = await parseContentSegments(post.content);
           const likers = await db.any(PostsQuery.getFirstLikers, [post.id]);
+          const parent_post = await this.getEmbeddedParentPost(post.parent_post_id);
 
           return new entities.PostWithUserEntity({
             ...post,
@@ -1233,6 +1251,7 @@ export class PostsRepositoryImpl implements PostsInterface {
             is_reposted: isReposted.exists,
             is_bookmarked: isBookmarked.exists,
             likers,
+            parent_post,
             user: {
               id: post.user_id,
               username: post.username,
@@ -1274,6 +1293,7 @@ export class PostsRepositoryImpl implements PostsInterface {
           const isBookmarked = await db.one(PostsQuery.isBookmarked, [post.id, userId]);
           const content_segments = await parseContentSegments(post.content);
           const likers = await db.any(PostsQuery.getFirstLikers, [post.id]);
+          const parent_post = await this.getEmbeddedParentPost(post.parent_post_id);
 
           return new entities.PostWithUserEntity({
             ...post,
@@ -1282,6 +1302,19 @@ export class PostsRepositoryImpl implements PostsInterface {
             is_reposted: isReposted.exists,
             is_bookmarked: isBookmarked.exists,
             likers,
+            parent_post,
+            // Set only on the "reposted by someone I follow" branch of
+            // getFollowingFeed — null for a post appearing because the
+            // viewer follows its actual author, which is the "Reposted by
+            // X" attribution the feed needs (AC6).
+            reposted_by: post.reposted_by_id
+              ? {
+                  id: post.reposted_by_id,
+                  username: post.reposted_by_username,
+                  avatar: post.reposted_by_avatar,
+                  display_name: post.reposted_by_display_name,
+                }
+              : null,
             user: {
               id: post.user_id,
               username: post.username,
@@ -1319,12 +1352,13 @@ export class PostsRepositoryImpl implements PostsInterface {
 
       const postsWithEngagement = await Promise.all(
         posts.map(async (post: any) => {
-          const [isLiked, isReposted, isBookmarked, content_segments, likers] = await Promise.all([
+          const [isLiked, isReposted, isBookmarked, content_segments, likers, parent_post] = await Promise.all([
             db.one(PostsQuery.isPostLiked, [post.id, userId]),
             db.one(PostsQuery.isReposted, [post.id, userId]),
             db.one(PostsQuery.isBookmarked, [post.id, userId]),
             parseContentSegments(post.content),
             db.any(PostsQuery.getFirstLikers, [post.id]),
+            this.getEmbeddedParentPost(post.parent_post_id),
           ]);
 
           return new entities.PostWithUserEntity({
@@ -1334,6 +1368,7 @@ export class PostsRepositoryImpl implements PostsInterface {
             is_reposted: isReposted.exists,
             is_bookmarked: isBookmarked.exists,
             likers,
+            parent_post,
             user: {
               id: post.user_id,
               username: post.username,
@@ -1341,6 +1376,64 @@ export class PostsRepositoryImpl implements PostsInterface {
               display_name: post.display_name,
               is_following: false,
               is_in_circle: false,
+            },
+            community: post.community_id
+              ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar, is_community_owner: post.is_community_owner ?? false }
+              : null,
+          });
+        })
+      );
+
+      return {
+        posts: postsWithEngagement,
+        pagination: { page: String(page), limit: String(limit), total: count, totalPages: calcPages(count, limit) },
+      };
+    } catch (error) {
+      return new BadException(`${error.message}`);
+    }
+  }
+
+  public async getTrendingPosts(
+    userId: string,
+    query: dtos.GetPostsQueryDTO
+  ): Promise<BadException | { posts: entities.PostWithUserEntity[]; pagination: { page: string; limit: string; total: number; totalPages: number } }> {
+    try {
+      const { page = '1', limit = '20' } = query as { page?: string; limit?: string };
+      const [{ count }, posts] = await fetchResourceByPage({
+        page,
+        limit,
+        getResources: PostsQuery.getTrendingPosts,
+        params: [userId],
+      });
+
+      const postsWithEngagement = await Promise.all(
+        posts.map(async (post: any) => {
+          const [isLiked, isReposted, isBookmarked, isFollowing, isInCircle, content_segments, likers, parent_post] = await Promise.all([
+            db.one(PostsQuery.isPostLiked, [post.id, userId]),
+            db.one(PostsQuery.isReposted, [post.id, userId]),
+            db.one(PostsQuery.isBookmarked, [post.id, userId]),
+            db.one(PostsQuery.isFollowingUser, [userId, post.user_id]),
+            db.one(PostsQuery.isInCircleWith, [userId, post.user_id]),
+            parseContentSegments(post.content),
+            db.any(PostsQuery.getFirstLikers, [post.id]),
+            this.getEmbeddedParentPost(post.parent_post_id),
+          ]);
+
+          return new entities.PostWithUserEntity({
+            ...post,
+            content_segments,
+            is_liked: isLiked.exists,
+            is_reposted: isReposted.exists,
+            is_bookmarked: isBookmarked.exists,
+            likers,
+            parent_post,
+            user: {
+              id: post.user_id,
+              username: post.username,
+              avatar: post.avatar,
+              display_name: post.display_name,
+              is_following: isFollowing.exists,
+              is_in_circle: isInCircle.exists,
             },
             community: post.community_id
               ? { id: post.community_id, name: post.community_name, avatar: post.community_avatar, is_community_owner: post.is_community_owner ?? false }
@@ -1438,6 +1531,31 @@ export class PostsRepositoryImpl implements PostsInterface {
     } catch (error) {
       return new BadException(`${error.message}`);
     }
+  }
+
+  // Fetches and shapes the embedded "original testimony" for a quote repost.
+  // Returns null when there's nothing to embed (no parent_post_id) or the
+  // original is gone (deleted/archived) — never throws, since a missing
+  // parent shouldn't break the quote repost's own display.
+  private async getEmbeddedParentPost(parentPostId: string | null | undefined): Promise<entities.PostWithUserEntity['parent_post']> {
+    if (!parentPostId) return null;
+    const parent = await db.oneOrNone(PostsQuery.getParentPostForEmbed, [parentPostId]);
+    if (!parent) return null;
+
+    const content_segments = await parseContentSegments(parent.content);
+    return {
+      id: parent.id,
+      content: parent.content,
+      content_segments,
+      media_attachments: parent.media_attachments,
+      author: {
+        id: parent.author_id,
+        username: parent.author_username,
+        avatar: parent.author_avatar,
+        display_name: parent.author_display_name,
+      },
+      created_at: parent.created_at,
+    };
   }
 
   private extractHashtags(content: string): string[] {

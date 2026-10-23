@@ -5,6 +5,7 @@ import { StoriesInterface } from './interface';
 import { db } from '../../config/database';
 import { BadException, NotFoundException, ForbiddenException } from '../../shared/lib/errors';
 import { calcPages, fetchResourceByPage, FetchPaginatedResponse, createNotification } from '../../shared/helpers';
+import MessagingRepository from '../messaging/repositories';
 
 function mapToEntity(row: any): entities.StoryEntity {
   return new entities.StoryEntity({
@@ -29,6 +30,21 @@ function mapToEntity(row: any): entities.StoryEntity {
   });
 }
 
+// Resolves can_send_message for a story the viewer does not own, using the
+// exact same check the reply endpoint itself enforces — so the displayed
+// flag and the actual enforcement can never disagree. null on your own
+// stories, where replying is not applicable rather than conditionally
+// allowed (sendMessage rejects a self-reply outright).
+async function attachReplyPermission(story: entities.StoryEntity, viewerId: string): Promise<entities.StoryEntity> {
+  if (story.user_id === viewerId) {
+    story.can_send_message = null;
+    return story;
+  }
+  const permission = await MessagingRepository.resolveStoryReplyPermission(viewerId, story.user_id!);
+  story.can_send_message = permission.allowed;
+  return story;
+}
+
 export class StoriesRepositoryImpl implements StoriesInterface {
   public async createStory(
     payload: dtos.CreateStoryDTO
@@ -42,7 +58,6 @@ export class StoriesRepositoryImpl implements StoriesInterface {
         payload.text_content || null,
         payload.background_style ? JSON.stringify(payload.background_style) : null,
         payload.duration ?? null,
-        payload.allow_replies ?? null,
       ]);
 
       const full = await db.one(StoriesQuery.getStoryById, [created.id]);
@@ -96,7 +111,17 @@ export class StoriesRepositoryImpl implements StoriesInterface {
         if (!row.is_viewed) group.has_unviewed = true;
       }
 
-      return Array.from(groups.values());
+      const result = Array.from(groups.values());
+
+      // getCircleStories only ever returns OTHER people's stories (the query
+      // filters to Circle members), so every row needs the reply-permission
+      // check — no need to branch on ownership here the way attachReplyPermission
+      // does for the general case.
+      await Promise.all(
+        result.flatMap((group) => group.stories!).map((story) => attachReplyPermission(story, payload.user_id))
+      );
+
+      return result;
     } catch (error) {
       return new BadException(`${error.message}`);
     }
@@ -133,7 +158,7 @@ export class StoriesRepositoryImpl implements StoriesInterface {
         }
       }
 
-      return mapToEntity({ ...story, is_viewed: true });
+      return attachReplyPermission(mapToEntity({ ...story, is_viewed: true }), payload.user_id);
     } catch (error) {
       return new NotFoundException(`${error.message}`);
     }
