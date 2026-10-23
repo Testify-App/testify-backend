@@ -48,12 +48,6 @@ const storiesRouter = Router();
  *                 type: object
  *               duration:
  *                 type: number
- *               allow_replies:
- *                 type: boolean
- *                 description: >
- *                   Per-story override of your story-reply-settings default
- *                   ("who can reply privately to my stories"). Omit to inherit
- *                   that default at reply time instead of fixing it now.
  *     responses:
  *       201:
  *         description: Story posted successfully

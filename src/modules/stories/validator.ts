@@ -15,10 +15,6 @@ export const createStoryValidator = Joi.object({
   }),
   background_style: Joi.object().optional(),
   duration: Joi.number().integer().min(0).max(60).optional(),
-  // Per-story override of the author's story-reply-settings default. Omit to
-  // inherit that default — resolved fresh each time someone tries to reply,
-  // not frozen at creation.
-  allow_replies: Joi.boolean().optional(),
 });
 
 export const storyIdValidator = Joi.object({

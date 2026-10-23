@@ -9,7 +9,6 @@ export class CreateStoryDTO extends BaseEntity<CreateStoryDTO> {
   text_content?: string;
   background_style?: Record<string, any>;
   duration?: number;
-  allow_replies?: boolean;
 }
 
 export class GetCircleStoriesDTO extends BaseEntity<GetCircleStoriesDTO> {

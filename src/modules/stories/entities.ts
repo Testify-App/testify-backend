@@ -11,7 +11,11 @@ export class StoryEntity extends BaseEntity<StoryEntity> {
   text_content?: string | null;
   background_style?: Record<string, any> | null;
   duration?: number | null;
-  allow_replies?: boolean | null;
+  // Resolved result of the same permission check the reply endpoint itself
+  // enforces (the author's global story-reply default → Circle check →
+  // block) — null on your own stories, where replying is never applicable
+  // rather than conditionally allowed.
+  can_send_message?: boolean | null;
   views_count?: number;
   is_viewed?: boolean;
   created_at?: Date;

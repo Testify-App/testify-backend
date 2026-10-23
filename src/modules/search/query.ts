@@ -12,6 +12,8 @@ export default {
       p.quotes_count,
       p.created_at,
       p.updated_at,
+      p.edited_at,
+      p.content_flags,
       u.id          AS user_id,
       u.username,
       u.display_name,
@@ -22,7 +24,6 @@ export default {
     WHERE p.search_vector @@ plainto_tsquery('english', $3)
       AND p.deleted_at IS NULL
       AND p.status != 'archived'
-      AND p.parent_post_id IS NULL
       AND p.visibility = 'public'
     ORDER BY rank DESC, p.created_at DESC
     LIMIT $2 OFFSET $1;

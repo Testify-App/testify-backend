@@ -231,12 +231,35 @@ export class ProfilesRepositoryImpl implements ProfilesInterface {
           EXISTS (
             SELECT 1 FROM user_blocks
             WHERE blocker_id = u.id AND blocked_id = $2
-          ) as profile_has_blocked_viewer
+          ) as profile_has_blocked_viewer,
+          -- Mirrors MessagingRepositoryImpl.canMessage: deleted/deactivated and
+          -- blocked (either direction) always deny; otherwise resolved from this
+          -- profile's own messaging_privacy_settings, where "following" means
+          -- THIS profile follows the viewer (same direction convention as
+          -- isFollowedByUser's "following" tier in the messaging module).
+          -- NULL when viewing your own profile — messaging yourself isn't a
+          -- conditionally-allowed case, it's just not applicable.
+          CASE WHEN u.id = $2 THEN NULL ELSE (
+            u.deleted_at IS NULL AND u.status != 'deactivated'
+            AND NOT EXISTS (
+              SELECT 1 FROM user_blocks
+              WHERE (blocker_id = $2 AND blocked_id = u.id)
+                 OR (blocker_id = u.id AND blocked_id = $2)
+            )
+            AND (
+              COALESCE(mps.who_can_message, 'everyone') = 'everyone'
+              OR (
+                COALESCE(mps.who_can_message, 'everyone') = 'following'
+                AND EXISTS (SELECT 1 FROM user_follows WHERE follower_id = u.id AND following_id = $2)
+              )
+            )
+          ) END as can_message
         FROM users u
         LEFT JOIN user_follows uf ON u.id = uf.following_id
         LEFT JOIN user_follows uf_following ON u.id = uf_following.follower_id
+        LEFT JOIN messaging_privacy_settings mps ON mps.user_id = u.id
         WHERE u.id = $1
-        GROUP BY u.id
+        GROUP BY u.id, mps.who_can_message
       `, [payload.following_id, payload.user_id]);
       
       const [{ count }, posts] = await fetchResourceByPage({

@@ -32,6 +32,8 @@ const FEED_POST_COLUMNS = `
   p.status,
   p.created_at,
   p.updated_at,
+  p.edited_at,
+  p.content_flags,
   u.username,
   u.avatar,
   u.display_name,
@@ -46,14 +48,13 @@ const FEED_POST_COLUMNS = `
 const FEED_POST_COLUMNS_PLAIN = `
   id, user_id, community_id, content, post_type, visibility, media_attachments,
   parent_post_id, quote_text, is_pinned, likes_count, comments_count, reposts_count,
-  quotes_count, report_count, status, created_at, updated_at,
+  quotes_count, report_count, status, created_at, updated_at, edited_at, content_flags,
   username, avatar, display_name, community_name, community_avatar, is_community_owner
 `;
 
 const FEED_VISIBILITY_AND_BLOCK_FILTER = `
   p.deleted_at IS NULL
   AND p.status != 'archived'
-  AND p.parent_post_id IS NULL
   AND (
     (p.visibility = 'public')
     OR (p.user_id = $1)
@@ -196,6 +197,40 @@ export default {
     LIMIT $2;
   `,
 
+  // Public, paginated trending surface — same velocity formula and window as
+  // the Home feed's internal trending slot (getTrendingFeedCandidates), but
+  // exposed as its own endpoint with real pagination instead of a fixed-size
+  // candidate pool. $1 = offset, $2 = limit (fetchResourceByPage convention),
+  // $3 = viewer's user_id, used only for visibility/block filtering — results
+  // are not personalized beyond that.
+  getTrendingPosts: `
+    SELECT COUNT(*) OVER () as count,
+      ${FEED_POST_COLUMNS.replace(/\$1/g, '$3')},
+      (p.likes_count + p.reposts_count + p.comments_count)
+        / GREATEST(EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 3600, ${VELOCITY_MIN_AGE_HOURS}) AS velocity
+    FROM posts p
+    JOIN users u ON p.user_id = u.id
+    LEFT JOIN communities c ON p.community_id = c.id
+    WHERE p.deleted_at IS NULL
+      AND p.status != 'archived'
+      AND p.created_at >= NOW() - INTERVAL '${TRENDING_WINDOW_HOURS} hours'
+      AND (
+        (p.visibility = 'public')
+        OR (p.user_id = $3)
+        OR (p.visibility = 'circle_only' AND EXISTS (
+          SELECT 1 FROM user_connections
+          WHERE user_id = $3 AND connected_user_id = p.user_id AND status = 'accepted'
+        ))
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM user_blocks
+        WHERE (blocker_id = $3 AND blocked_id = p.user_id)
+           OR (blocker_id = p.user_id AND blocked_id = $3)
+      )
+    ORDER BY velocity DESC, created_at DESC, id DESC
+    LIMIT $2 OFFSET $1;
+  `,
+
   // "Recommended for you" — a discovery surface distinct from the Home feed:
   // only public posts from authors the viewer does NOT already follow/circle
   // with (Home already serves those), scored the same way as the ranked Home
@@ -226,7 +261,6 @@ export default {
     LEFT JOIN user_creator_affinity ca ON ca.user_id = $3 AND ca.creator_id = p.user_id
     WHERE p.deleted_at IS NULL
       AND p.status != 'archived'
-      AND p.parent_post_id IS NULL
       AND p.visibility = 'public'
       AND p.user_id != $3
       AND NOT EXISTS (SELECT 1 FROM user_follows WHERE follower_id = $3 AND following_id = p.user_id)
@@ -302,12 +336,25 @@ export default {
       SELECT ${FEED_POST_COLUMNS_PLAIN}, slot FROM variety_ranked
       LIMIT $2
     ),
-    merged AS (
+    -- UNION ALL here, not UNION: the three branches share no columns that
+    -- guarantee row-level uniqueness (the same post can appear in more than
+    -- one branch with a different "slot" value each time, e.g. a brand-new
+    -- post naturally qualifies for BOTH "recent" and "variety"), so a plain
+    -- UNION's whole-row dedup silently fails to catch it — the differing
+    -- slot value makes the rows "different" even though the post id is the
+    -- same. DISTINCT ON (id) is the real dedup, with slot priority matching
+    -- this branch order (recent > trending > variety).
+    combined AS (
       SELECT ${FEED_POST_COLUMNS_PLAIN}, slot FROM recent
-      UNION
+      UNION ALL
       SELECT ${FEED_POST_COLUMNS_PLAIN}, slot FROM trending
-      UNION
+      UNION ALL
       SELECT ${FEED_POST_COLUMNS_PLAIN}, slot FROM variety
+    ),
+    merged AS (
+      SELECT DISTINCT ON (id) *
+      FROM combined
+      ORDER BY id, CASE slot WHEN 'recent' THEN 0 WHEN 'trending' THEN 1 ELSE 2 END
     )
     SELECT COUNT(*) OVER () AS count, * FROM merged
     ORDER BY created_at DESC
@@ -317,7 +364,6 @@ export default {
   getPostsCount: `
     SELECT COUNT(*) as total FROM posts p
     WHERE p.deleted_at IS NULL
-      AND p.parent_post_id IS NULL
       AND (
         (p.visibility = 'public')
         OR (p.user_id = $1)
@@ -350,7 +396,6 @@ export default {
     WHERE p.user_id = $3
       AND p.deleted_at IS NULL
       AND p.status != 'archived'
-      AND p.parent_post_id IS NULL
       AND ($4::text IS NULL OR p.search_vector @@ plainto_tsquery('english', $4))
       AND (
         (p.visibility = 'public')
@@ -386,26 +431,25 @@ export default {
     WHERE p.user_id = $3
       AND p.deleted_at IS NULL
       AND p.status != 'archived'
-      AND p.parent_post_id IS NULL
       AND ($4::text IS NULL OR p.search_vector @@ plainto_tsquery('english', $4))
     ORDER BY p.created_at DESC
     LIMIT $2 OFFSET $1;
   `,
 
   getUserPostsCount: `
-    SELECT COUNT(*) as total FROM posts 
-    WHERE user_id = $1 
-      AND deleted_at IS NULL
-      AND parent_post_id IS NULL;
+    SELECT COUNT(*) as total FROM posts
+    WHERE user_id = $1
+      AND deleted_at IS NULL;
   `,
 
   updatePost: `
-    UPDATE posts 
-    SET 
+    UPDATE posts
+    SET
       content = COALESCE($2, content),
       visibility = COALESCE($3, visibility),
       media_attachments = COALESCE($4, media_attachments),
-      updated_at = NOW()
+      updated_at = NOW(),
+      edited_at = NOW()
     WHERE id = $1 AND deleted_at IS NULL
     RETURNING *;
   `,
@@ -569,6 +613,22 @@ export default {
     WHERE pl.post_id = $1
     ORDER BY pl.created_at ASC
     LIMIT 3;
+  `,
+
+  // Embedded "original testimony" for a quote repost. Deliberately does NOT
+  // check visibility/block against the viewer here — that check already
+  // happened once, at quote-repost creation time (createPost validates the
+  // quoter could see the parent then), and the quote itself is a standalone
+  // post the viewer is already authorized to see. Only existence/deletion is
+  // checked, so a deleted original embeds as null rather than erroring the
+  // whole quote repost out (AC5: "no longer accessible" once unavailable).
+  getParentPostForEmbed: `
+    SELECT p.id, p.content, p.media_attachments, p.created_at,
+      u.id AS author_id, u.username AS author_username,
+      u.avatar AS author_avatar, u.display_name AS author_display_name
+    FROM posts p
+    JOIN users u ON u.id = p.user_id
+    WHERE p.id = $1 AND p.deleted_at IS NULL AND p.status != 'archived';
   `,
 
   likeComment: `
@@ -735,11 +795,23 @@ export default {
     LIMIT $2 OFFSET $1;
   `,
 
+  // Following feed = posts authored by people I follow (quote reposts
+  // included — a quote repost is authored by the quoter, so it belongs here
+  // like any other post of theirs) UNION posts someone I follow has plainly
+  // reposted (not quote-reposted — that's already covered by authorship
+  // above), regardless of whether I follow the ORIGINAL author. The
+  // reposted branch checks the ORIGINAL post's own visibility/block rules
+  // against ME, the viewer — not the reposter's — so a repost can never leak
+  // a circle-only/private post to someone unauthorized to see it.
+  // reposted_by is NULL for the authored branch and set to the reposting
+  // user's info for the reposted branch, which is exactly the "Reposted by
+  // X" attribution the feed needs. If a post qualifies through both branches
+  // (rare: you follow both the author and a resharer), DISTINCT ON keeps the
+  // authored version, since that's not really a "repost" row for this viewer.
   getFollowingFeed: `
-    WITH recent_posts AS (
+    WITH candidates AS (
       SELECT
         p.*,
-        u.id          AS user_id,
         u.username,
         u.avatar,
         u.display_name,
@@ -747,7 +819,12 @@ export default {
         c.name        AS community_name,
         c.avatar      AS community_avatar,
         (c.owner_id = $3) AS is_community_owner,
-        ROW_NUMBER() OVER (PARTITION BY p.user_id ORDER BY p.created_at DESC) AS rn
+        NULL::varchar AS reposted_by_id,
+        NULL::varchar AS reposted_by_username,
+        NULL::varchar AS reposted_by_avatar,
+        NULL::varchar AS reposted_by_display_name,
+        NULL::timestamptz AS reposted_at,
+        p.created_at AS feed_sort_at
       FROM posts p
       JOIN users u        ON p.user_id = u.id
       LEFT JOIN communities c ON p.community_id = c.id
@@ -755,7 +832,6 @@ export default {
       WHERE uf.follower_id = $3
         AND p.deleted_at IS NULL
         AND p.status != 'archived'
-        AND p.parent_post_id IS NULL
         AND (
           (p.visibility = 'public')
           OR (p.user_id = $3)
@@ -769,13 +845,71 @@ export default {
           WHERE (blocker_id = $3 AND blocked_id = p.user_id)
              OR (blocker_id = p.user_id AND blocked_id = $3)
         )
+
+      UNION ALL
+
+      SELECT
+        p.*,
+        u.username,
+        u.avatar,
+        u.display_name,
+        c.id          AS community_id,
+        c.name        AS community_name,
+        c.avatar      AS community_avatar,
+        (c.owner_id = $3) AS is_community_owner,
+        reposter.id          AS reposted_by_id,
+        reposter.username    AS reposted_by_username,
+        reposter.avatar      AS reposted_by_avatar,
+        reposter.display_name AS reposted_by_display_name,
+        r.created_at  AS reposted_at,
+        r.created_at  AS feed_sort_at
+      FROM reposts r
+      JOIN user_follows uf ON uf.following_id = r.user_id
+      JOIN users reposter ON reposter.id = r.user_id
+      JOIN posts p ON p.id = r.post_id
+      JOIN users u ON u.id = p.user_id
+      LEFT JOIN communities c ON p.community_id = c.id
+      WHERE uf.follower_id = $3
+        AND p.deleted_at IS NULL
+        AND p.status != 'archived'
+        AND (
+          (p.visibility = 'public')
+          OR (p.user_id = $3)
+          OR (p.visibility = 'circle_only' AND EXISTS (
+            SELECT 1 FROM user_connections
+            WHERE user_id = $3 AND connected_user_id = p.user_id AND status = 'accepted'
+          ))
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM user_blocks
+          WHERE (blocker_id = $3 AND blocked_id = p.user_id)
+             OR (blocker_id = p.user_id AND blocked_id = $3)
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM user_blocks
+          WHERE (blocker_id = $3 AND blocked_id = r.user_id)
+             OR (blocker_id = r.user_id AND blocked_id = $3)
+        )
+    ),
+    -- One row per post: prefer the "authored by someone I follow" version
+    -- over the "reposted by someone I follow" version when both apply,
+    -- since a post that's genuinely theirs isn't a repost for this viewer.
+    ranked AS (
+      SELECT DISTINCT ON (id) *
+      FROM candidates
+      ORDER BY id, (reposted_by_id IS NULL) DESC, feed_sort_at DESC
+    ),
+    capped AS (
+      SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY feed_sort_at DESC) AS rn
+      FROM ranked
     )
     SELECT
       COUNT(*) OVER () AS count,
       *,
       (likes_count * 3 + reposts_count * 2 + comments_count * 1)
-        - (EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 * 0.5) AS score
-    FROM recent_posts
+        - (EXTRACT(EPOCH FROM (NOW() - feed_sort_at)) / 3600 * 0.5) AS score
+    FROM capped
     WHERE rn <= 5
     ORDER BY score DESC
     LIMIT $2 OFFSET $1;

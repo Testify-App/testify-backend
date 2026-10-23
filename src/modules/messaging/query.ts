@@ -47,12 +47,12 @@ export default {
     );
   `,
 
-  // Live, non-expired story plus its author id and per-story allow_replies
-  // override — everything sendMessage needs to resolve reply permission and
-  // build the quote snapshot in one query.
+  // Live, non-expired story plus its author id — everything sendMessage
+  // needs to resolve reply permission and build the quote snapshot in one
+  // query.
   getStoryForReply: `
     SELECT s.id, s.user_id AS author_id, s.content_type, s.media_url, s.thumbnail_url,
-      s.text_content, s.background_style, s.allow_replies, s.created_at,
+      s.text_content, s.background_style, s.created_at,
       u.username AS author_username, u.display_name AS author_display_name
     FROM stories s
     JOIN users u ON u.id = s.user_id
@@ -155,7 +155,22 @@ export default {
     JOIN conversations c ON c.id = cp.conversation_id
     JOIN conversation_participants other_cp ON other_cp.conversation_id = c.id AND other_cp.user_id != $3
     JOIN users other ON other.id = other_cp.user_id
-    LEFT JOIN messages lm ON lm.id = c.last_message_id
+    -- Not a plain join on c.last_message_id: that pointer is shared by both
+    -- participants and never reflects either side's own deleted-for-me state
+    -- (message_deletions), so a message this viewer deleted for themselves
+    -- would still show as their inbox preview. This picks, per viewer, the
+    -- most recent message in the conversation they haven't deleted —
+    -- falling back to an older one rather than going blank, same as the
+    -- conversation-level "reappear" behavior already does for the thread as
+    -- a whole.
+    LEFT JOIN LATERAL (
+      SELECT m.id, m.content, m.content_type, m.is_unsent, m.sender_id, m.created_at
+      FROM messages m
+      WHERE m.conversation_id = c.id
+        AND NOT EXISTS (SELECT 1 FROM message_deletions md WHERE md.message_id = m.id AND md.user_id = $3)
+      ORDER BY m.created_at DESC
+      LIMIT 1
+    ) lm ON TRUE
     LEFT JOIN messaging_privacy_settings mps ON mps.user_id = other.id
     WHERE cp.user_id = $3
       AND (cp.deleted_at IS NULL OR c.last_message_at > cp.deleted_at)
