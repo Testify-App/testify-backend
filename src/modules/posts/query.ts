@@ -197,6 +197,39 @@ export default {
     LIMIT $2;
   `,
 
+  // Posts someone the viewer follows has reposted — real "Reposted by X"
+  // attribution in the ranked Home feed, not just authored-by-follows. The
+  // ORIGINAL post's visibility/block is checked against the VIEWER (not the
+  // reposter), so a repost can never leak a circle-only/private post to
+  // someone unauthorized to see it. Excludes the viewer's own posts/reposts.
+  getRepostedFeedCandidates: `
+    SELECT * FROM (
+      SELECT
+        ${FEED_POST_COLUMNS},
+        reposter.id            AS reposted_by_id,
+        reposter.username      AS reposted_by_username,
+        reposter.avatar        AS reposted_by_avatar,
+        reposter.display_name  AS reposted_by_display_name,
+        r.created_at           AS reposted_at
+      FROM reposts r
+      JOIN user_follows uf ON uf.following_id = r.user_id
+      JOIN users reposter ON reposter.id = r.user_id
+      JOIN posts p ON p.id = r.post_id
+      JOIN users u ON u.id = p.user_id
+      LEFT JOIN communities c ON p.community_id = c.id
+      WHERE uf.follower_id = $1
+        AND p.user_id != $1
+        AND ${FEED_VISIBILITY_AND_BLOCK_FILTER}
+        AND NOT EXISTS (
+          SELECT 1 FROM user_blocks
+          WHERE (blocker_id = $1 AND blocked_id = r.user_id)
+             OR (blocker_id = r.user_id AND blocked_id = $1)
+        )
+    ) reposted
+    ORDER BY reposted_at DESC
+    LIMIT $2;
+  `,
+
   // Public, paginated trending surface — same velocity formula and window as
   // the Home feed's internal trending slot (getTrendingFeedCandidates), but
   // exposed as its own endpoint with real pagination instead of a fixed-size
@@ -659,9 +692,12 @@ export default {
     SELECT EXISTS(SELECT 1 FROM reposts WHERE post_id = $1 AND user_id = $2);
   `,
 
+  // $4 = viewer's own id, used only to compute is_following (does the viewer
+  // follow this reposting user) — not a filter, every reposter is returned.
   getPostReposts: `
     SELECT COUNT(*) OVER () as count,
-      r.*, u.username, u.avatar, u.display_name
+      r.*, u.username, u.avatar, u.display_name,
+      EXISTS(SELECT 1 FROM user_follows WHERE follower_id = $4 AND following_id = r.user_id) AS is_following
     FROM reposts r
     JOIN users u ON r.user_id = u.id
     WHERE r.post_id = $3

@@ -104,6 +104,7 @@ export class RepostEntity extends BaseEntity<RepostEntity> {
     username?: string;
     avatar?: string;
     display_name?: string;
+    is_following?: boolean;
   };
 }
 

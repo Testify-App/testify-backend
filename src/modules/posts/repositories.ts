@@ -160,17 +160,19 @@ export class PostsRepositoryImpl implements PostsInterface {
     personalized: any[],
     discovery: any[],
     trending: any[],
+    reposted: any[],
     targetCount: number
   ): any[] {
     const ratio = FEED_INTERLEAVE_RATIO;
-    const cycleLength = ratio.personalized + ratio.discovery + ratio.trending;
+    const cycleLength = ratio.personalized + ratio.discovery + ratio.trending + ratio.reposted;
     const seenIds = new Set<string>();
-    const queues: Record<'personalized' | 'discovery' | 'trending', any[]> = {
+    const queues: Record<'personalized' | 'discovery' | 'trending' | 'reposted', any[]> = {
       personalized: [...personalized],
       discovery: [...discovery],
       trending: [...trending],
+      reposted: [...reposted],
     };
-    const sourceNames = ['personalized', 'discovery', 'trending'] as const;
+    const sourceNames = ['personalized', 'discovery', 'trending', 'reposted'] as const;
 
     const wouldViolate = (candidate: any, result: any[]): boolean => {
       if (result.length < MAX_CONSECUTIVE_SAME_SOURCE) return false;
@@ -202,14 +204,15 @@ export class PostsRepositoryImpl implements PostsInterface {
 
     const interleaved: any[] = [];
     let cyclePosition = 0;
-    const totalAvailable = personalized.length + discovery.length + trending.length;
+    const totalAvailable = personalized.length + discovery.length + trending.length + reposted.length;
 
     while (interleaved.length < targetCount && interleaved.length < totalAvailable) {
       const slot = cyclePosition % cycleLength;
       const preferredSource =
         slot < ratio.personalized ? 'personalized'
           : slot < ratio.personalized + ratio.discovery ? 'discovery'
-            : 'trending';
+            : slot < ratio.personalized + ratio.discovery + ratio.trending ? 'trending'
+              : 'reposted';
       cyclePosition++;
 
       let candidate = takeBestFrom(preferredSource, interleaved);
@@ -269,14 +272,15 @@ export class PostsRepositoryImpl implements PostsInterface {
         // candidates already shown on page 1, duplicating them in the
         // response instead of advancing past them.
         const poolSize = limitNum * pageNum * CANDIDATE_POOL_MULTIPLIER;
-        const [personalized, discovery, trending, totalRow] = await Promise.all([
+        const [personalized, discovery, trending, reposted, totalRow] = await Promise.all([
           db.any(PostsQuery.getRankedFeedCandidates, [user_id, poolSize]),
           db.any(PostsQuery.getDiscoveryFeedCandidates, [user_id, poolSize]),
           db.any(PostsQuery.getTrendingFeedCandidates, [user_id, poolSize]),
+          db.any(PostsQuery.getRepostedFeedCandidates, [user_id, poolSize]),
           db.one(PostsQuery.getPostsCount, [user_id]),
         ]);
 
-        const interleaved = this.interleaveAndDiversify(personalized, discovery, trending, limitNum * pageNum);
+        const interleaved = this.interleaveAndDiversify(personalized, discovery, trending, reposted, limitNum * pageNum);
         const offset = (pageNum - 1) * limitNum;
         posts = interleaved.slice(offset, offset + limitNum);
         count = parseInt(totalRow.total || '0', 10);
@@ -303,6 +307,18 @@ export class PostsRepositoryImpl implements PostsInterface {
             is_bookmarked: isBookmarked.exists,
             likers,
             parent_post,
+            // Set only when this post entered the results via the "reposted
+            // by someone I follow" candidate source — null when it's here
+            // because the viewer follows its actual author (or any other
+            // source), which is exactly the "Reposted by X" attribution.
+            reposted_by: post.reposted_by_id
+              ? {
+                  id: post.reposted_by_id,
+                  username: post.reposted_by_username,
+                  avatar: post.reposted_by_avatar,
+                  display_name: post.reposted_by_display_name,
+                }
+              : null,
             user: {
               id: post.user_id,
               username: post.username,
@@ -733,7 +749,7 @@ export class PostsRepositoryImpl implements PostsInterface {
         page,
         limit,
         getResources: PostsQuery.getPostReposts,
-        params: [postId],
+        params: [postId, userId],
       });
 
       return {
@@ -747,6 +763,7 @@ export class PostsRepositoryImpl implements PostsInterface {
             username: r.username,
             avatar: r.avatar,
             display_name: r.display_name,
+            is_following: r.is_following,
           },
         })),
         pagination: { page: String(page), limit: String(limit), total: count, totalPages: calcPages(count, limit) },
