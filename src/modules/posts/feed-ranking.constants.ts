@@ -35,12 +35,16 @@ export const VELOCITY_MIN_AGE_HOURS = 0.5;
 // Each request ranks a window of (page size * multiplier) candidates, then serves one page from it.
 export const CANDIDATE_POOL_MULTIPLIER = 3;
 
-// Product decision: personalized : discovery : trending mix per page, so the feed
-// never collapses into an echo chamber even when personalization scores are confident.
+// Product decision: personalized : discovery : trending : reposted mix per page,
+// so the feed never collapses into an echo chamber even when personalization
+// scores are confident. "reposted" surfaces posts someone the viewer follows
+// has reposted — real "Reposted by X" attribution, same mechanism the
+// now-unused Following feed had, wired into the actual feed users see.
 export const FEED_INTERLEAVE_RATIO = {
-  personalized: 7,
+  personalized: 6,
   discovery: 2,
   trending: 1,
+  reposted: 1,
 } as const;
 
 // Product decision: never show 3+ consecutive posts from the same author, community, or dominant hashtag.
