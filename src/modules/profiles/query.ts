@@ -189,7 +189,8 @@ export default {
       p.created_at as post_created_at,
       p.updated_at as post_updated_at
     FROM posts p
-    WHERE p.user_id = $3
+    -- Exclude posts deleted by their author or hidden by moderation (both set deleted_at).
+    WHERE p.user_id = $3 AND p.deleted_at IS NULL
     ORDER BY p.created_at DESC
   `,
 

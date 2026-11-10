@@ -27,8 +27,8 @@ export default {
   `,
 
   createReport: `
-    INSERT INTO reports (entity_type, entity_id, content_owner_id, reporter_id, reason, details, context_conversation_id)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    INSERT INTO reports (entity_type, entity_id, content_owner_id, reporter_id, reason, details, context_conversation_id, reason_code)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, resolve_report_reason_code($5))
     ON CONFLICT (entity_type, entity_id, reporter_id) DO NOTHING
     RETURNING *;
   `,

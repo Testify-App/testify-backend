@@ -8,6 +8,7 @@ import { AppEnv } from './shared/enums';
 import { envValidatorSchema } from './shared/env-validator';
 import { startStoryCleanupJob } from './shared/jobs/story-cleanup.job';
 import { startFeedAffinityJob } from './shared/jobs/feed-affinity.job';
+import { startSuspensionExpiryJob } from './shared/jobs/suspension-expiry.job';
 import { initMessagingGateway, getMessagingIO } from './shared/sockets/messaging.gateway';
 
 async function main(app: Express): Promise<void> {
@@ -31,6 +32,7 @@ async function main(app: Express): Promise<void> {
 
   startStoryCleanupJob();
   startFeedAffinityJob();
+  startSuspensionExpiryJob();
 
   const server = http.createServer(app);
 

@@ -96,6 +96,8 @@ export class ReportsRepositoryImpl implements ReportsInterface {
 
       if (payload.entity_type === 'post') {
         await db.none('UPDATE posts SET report_count = report_count + 1 WHERE id = $1', [payload.entity_id]);
+      } else if (payload.entity_type === 'comment') {
+        await db.none('UPDATE comments SET report_count = report_count + 1 WHERE id = $1', [payload.entity_id]);
       }
 
       return new entities.ReportEntity(created);

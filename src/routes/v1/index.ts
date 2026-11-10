@@ -15,6 +15,8 @@ import storiesRouter from '../../modules/stories/routes';
 import reportsRouter from '../../modules/reports/routes';
 import uploadsRouter from '../../modules/uploads/routes';
 import messagingRouter from '../../modules/messaging/routes';
+import backofficeRouter from '../../modules/backoffice/routes';
+import { accountWarningsRouter } from '../../modules/backoffice/user_management/routes';
 
 const appRouter = express.Router();
 
@@ -72,6 +74,12 @@ appRouter.get('/healthcheck/ping', async (_req, res) => {
     );
   }
 });
+
+// Admin portal API. Mounted before the "/" routers so their middleware never runs for it.
+appRouter.use("/backoffice", backofficeRouter);
+
+// App users: see and acknowledge moderator warnings.
+appRouter.use("/account", accountWarningsRouter);
 
 appRouter.use("/auth", authenticationRouter);
 

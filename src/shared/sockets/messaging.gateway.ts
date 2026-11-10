@@ -7,6 +7,7 @@ import Logger from '../../config/logger';
 import jwtSigningService from '../services/jwt';
 import { SignedData } from '../interface';
 import presenceService from '../services/presence.redis';
+import { getAccountStanding } from '../services/account-standing';
 import MessagingRepository from '../../modules/messaging/repositories';
 import MessagingQuery from '../../modules/messaging/query';
 import { db } from '../../config/database';
@@ -41,6 +42,11 @@ export function emitToUser(userId: string, event: string, payload: any): void {
 // conversation room — a participant may not have called conversation:join
 // (e.g. they're viewing their inbox, not this thread), but they're always
 // in their own user room once connected.
+/** Ends every live socket of a user, e.g. right after a suspension or ban. */
+export function disconnectUser(userId: string): void {
+  io?.in(userRoom(userId)).disconnectSockets(true);
+}
+
 export function emitToUsers(userIds: string[], event: string, payload: any): void {
   for (const userId of userIds) {
     io?.to(userRoom(userId)).emit(event, payload);
@@ -60,18 +66,29 @@ export function initMessagingGateway(server: http.Server): Server {
   const subClient = pubClient.duplicate();
   io.adapter(createAdapter(pubClient, subClient));
 
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
+    let decoded: SignedData;
     try {
       const token = (socket.handshake.auth?.token as string) || (socket.handshake.headers.authorization as string)?.split(' ')[1];
       if (!token) {
         return next(new Error('token not found.'));
       }
-      const decoded = jwtSigningService.verify(token) as SignedData;
-      (socket as AuthenticatedSocket).userId = decoded.id;
-      return next();
+      decoded = jwtSigningService.verify(token) as SignedData;
     } catch {
       return next(new Error('invalid token.'));
     }
+    try {
+      // Suspended or banned accounts can't open a socket (see disconnectUser for live ones).
+      const standing = await getAccountStanding(decoded.id);
+      if (standing.status !== 'active') {
+        return next(new Error(standing.status === 'banned' ? 'ACCOUNT_BANNED' : 'ACCOUNT_SUSPENDED'));
+      }
+    } catch (error) {
+      logger.error(error);
+      return next(new Error('unable to verify account.'));
+    }
+    (socket as AuthenticatedSocket).userId = decoded.id;
+    return next();
   });
 
   io.on('connection', (rawSocket: Socket) => {

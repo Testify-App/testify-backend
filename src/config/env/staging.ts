@@ -18,6 +18,8 @@ const staging = {
   AWS_REGION: process.env.AWS_REGION,
   AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
   AWS_S3_PUBLIC_BASE_URL: process.env.AWS_S3_PUBLIC_BASE_URL,
+  BACKOFFICE_PORTAL_URL: process.env.TESTIFY_BACKOFFICE_PORTAL_URL,
+  SESSION_IDLE_MINUTES: process.env.TESTIFY_BACKOFFICE_SESSION_IDLE_MINUTES,
 };
 
 export default staging;
