@@ -24,7 +24,8 @@
     "seed:down": "db-migrate down:seed --config database.json",
     "seed:reset": "db-migrate reset:seed --config database.json",
     "seed:reset:test": "db-migrate reset:seed --config database.json -e test",
-    "seed:up:test": "db-migrate up:seed --config database.json -e test"
+    "seed:up:test": "db-migrate up:seed --config database.json -e test",
+    "backoffice:create-admin": "ts-node scripts/create-backoffice-admin.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1141.0",

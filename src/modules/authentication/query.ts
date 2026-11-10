@@ -93,7 +93,9 @@ export default {
       email,
       username,
       password,
-      status
+      status,
+      moderation_status,
+      suspended_until
     FROM users
     WHERE email = $1 AND deleted_at IS NULL;
   `,

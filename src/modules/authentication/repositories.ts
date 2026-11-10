@@ -7,6 +7,7 @@ import { db } from '../../config/database';
 import { SignedData } from '../../shared/interface';
 import { AuthenticationInterface } from './interface';
 import otpGenerate from '../../shared/services/token';
+import { effectiveStanding, standingMessage } from '../../shared/services/account-standing';
 import jwtSigningService from '../../shared/services/jwt';
 import hashingService from '../../shared/services/hashing';
 import logger from '../../shared/services/logger';
@@ -224,6 +225,11 @@ export class AuthenticationRepositoryImpl implements AuthenticationInterface {
         const isValid = await hashingService.compare(payload.password, user.password);
         if (!isValid) {
           throw new BadException('Invalid login credentials.');
+        }
+        // Checked after the password so the response doesn't reveal an account's standing.
+        const standing = effectiveStanding(user);
+        if (standing.status !== 'active') {
+          throw new BadException(standingMessage(standing));
         }
         const session_id = crypto.randomBytes(32).toString('hex');
         const setLoginTime = await setLastLoginTime([user.id, session_id], 'user', t);
